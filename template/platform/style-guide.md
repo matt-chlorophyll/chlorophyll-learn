@@ -173,7 +173,7 @@
 <template data-recall="w00/d0#q4" data-kind="quiz" data-label="Day 0 · 起点诊断 第 4 题" data-was="a">
 <lh-quiz id="q4" answer="c">……原样拷贝……</lh-quiz>
 </template>
-<template data-recall="w00/d0#diagnostic" data-kind="note" data-label="Day 0 · 起点诊断" data-src="capture" data-at="2026-10-16T21:00:35+11:00" data-field="note">
+<template data-recall="w00/d0#diagnostic" data-kind="note" data-label="Day 0 · 起点诊断" data-src="capture" data-at="2026-01-05T20:30:00+08:00" data-field="note">
 <blockquote>学习者的原话</blockquote>
 </template>
 ```
