@@ -12,7 +12,7 @@ disable-model-invocation: true
 ## 0. 准备
 
 1. 参数里有 `lite` 就用**轻量档**（见文末「轻量档」），下面每一步按它的说明收缩。
-2. 从 `learner/state.md` 取主题 slug（下文记作 `<topic>`）和视觉主题（`site/manifest.json` 的 `topics.<topic>.theme`；新主题还没进 manifest 时看 `state.md` 的「视觉主题」，下文记作 `<theme>`）。周序号 N：用参数；没有参数就用当前周 + 1。`NN` 是两位数（`w00`、`w01`）。
+2. 从 `learner/state.md` 取主题 slug（下文记作 `<topic>`）和视觉主题（`site/manifest.json` 的 `topics.<topic>.theme`；新主题还没进 manifest 时看 `state.md` 的「视觉主题」，下文记作 `<theme>`）。新主题还没进 manifest 的，现在就在 manifest 的 `topics` 里建 `"<topic>": { "title": "主题名", "theme": "<theme>", "weeks": [] }`，不改 `current`（hub 上看不出变化）：这样课程页、组件和 QA 截图从一开始就用这门课的主题。周序号 N：用参数；没有参数就用当前周 + 1。`NN` 是两位数（`w00`、`w01`）。
 3. 记下开始时间（`date "+%F %T"`），结束时写进生成记录。
 4. 确认本地服务器在运行：`curl -s http://127.0.0.1:4321/api/health`。没有就用 Bash 的 `run_in_background` 启动 `node tools/serve.mjs`，整个流程期间保持运行（qa.mjs 依赖它）。
 5. 告诉学习者：开始生成第 N 周，大约需要多久（完整档 3–4 小时，轻量档约一半），期间窗口要保持打开；可以随时在这里提问。

@@ -345,7 +345,8 @@ async function synthesize(dir, flags) {
   }
   const other = roster.length > 1 ? roster[(roster.indexOf(main) + 1) % roster.length] : main;
   const voiceOf = b => (b.speaker === 'b' ? other : main);
-  const dialog = other !== main && beats.some(b => b.speaker === 'b');
+  // 无配音时没有第二个声音，但对话的字幕照样要分开颜色
+  const dialog = (provider === 'silent' || other !== main) && beats.some(b => b.speaker === 'b');
   const glossary = await loadGlossary();
   await mkdir(CACHE, { recursive: true });
 
@@ -410,7 +411,7 @@ async function synthesize(dir, flags) {
   await writeFile(path.join(outDir, 'timeline.json'), JSON.stringify(timeline, null, 2) + '\n');
 
   const rel = p => path.relative(ROOT, p).replaceAll('\\', '/');
-  console.log(`✓ ${beats.length} 个 beat（新合成 ${synthesized}，缓存 ${cached}）→ ${provider === 'silent' ? `${rel(path.join(outDir, 'timeline.json'))}（无配音）` : rel(audioFile)}，时长 ${timeline.duration.toFixed(1)}s，声音 ${main ?? '（无）'}${dialog ? ` + ${other}（对话）` : ''}`);
+  console.log(`✓ ${beats.length} 个 beat（新合成 ${synthesized}，缓存 ${cached}）→ ${provider === 'silent' ? `${rel(path.join(outDir, 'timeline.json'))}（无配音）` : rel(audioFile)}，时长 ${timeline.duration.toFixed(1)}s，声音 ${main ?? '（无）'}${dialog ? (main ? ` + ${other}（对话）` : '（对话）') : ''}`);
   for (const b of timelineBeats) console.log(`  ${b.id.padEnd(14)} ${b.start.toFixed(2).padStart(7)} – ${b.end.toFixed(2)}`);
   for (const w of warnings) console.warn(`⚠ ${w}`);
 }
