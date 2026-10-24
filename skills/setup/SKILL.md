@@ -39,7 +39,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/setup.mjs" "<工作区文件夹>"
 3. 告诉用户下一步（照这个顺序，简短）：
    - 在工作区里重新打开 Claude Code：`cd "<工作区文件夹>"`，然后 `claude`。老师规则、命令和 subagent 都在工作区里，要在那里打开才会生效。
    - 运行 `/new-topic <想学的主题>`：老师先问几个问题，然后准备 Day 0 导览课或第一周。
-   - 打开课程网站：Windows 双击工作区里的 `start.cmd`，macOS / Linux 运行 `./start.sh`。
+   - 打开课程网站：Windows 双击工作区里的 `start.cmd`，macOS / Linux 运行 `./start.sh`。想先看看一节课是什么样，打开 http://localhost:4321/lab/example/ （示例课：古诗词鉴赏 Day 0，不计入学习记录）。
    - 节奏：工作日每天 `/today` 上一节课（以看为主），周末练习，然后 `/build-week` 生成下一周（完整档约 3–4 小时，窗口要开着；`/build-week N lite` 是更快、更省额度的轻量档）。
    - 额度：生成一周会调用很多次 subagent，额度少的方案建议先用轻量档，看看 `/usage`。
 

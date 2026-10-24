@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="lh-theme" content="ink">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>四层透镜读《绝句》</title>
+<link rel="stylesheet" href="/assets/component.css">
+<style>
+  /* 画法（ink）：诗句和格子、连线、分镜框都是界画（直线、细框）；写意只用在分镜的山水里。
+     状态先靠墨色深浅：一次只亮一处，其余降到淡墨。颜料有固定语义：花青 = 你点的、概念标签；赭石 = 被发现的错误；
+     石绿 = 对上了；藤黄 = 韵脚淡染。分镜里的黄、翠、白、青是诗的内容本身。不用朱砂。 */
+  :root {
+    --c-jiao: var(--ink-jiao, var(--ink));
+    --c-dan: var(--ink-dan, var(--pencil));
+    --c-zhe: var(--zheshi, var(--pencil));
+    --c-on: var(--on-ink, var(--paper));
+    --c: clamp(38px, calc((100vw - 124px) * .47 / 7), 58px);   /* 每个字一格 */
+    --gut: 24px;                                                  /* 左边句号栏 */
+    --mb: 24px;                                                   /* 字上方：平仄记号 */
+  }
+  .wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 14px; }
+  .main { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 26px; align-items: start; }
+
+  /* ---------- 诗 ---------- */
+  .poem { position: relative; padding-bottom: 2px; }
+  .ptitle { display: flex; align-items: baseline; gap: 10px; height: 42px; margin: 0 0 0 var(--gut); }
+  .ptitle b { font-size: 24px; letter-spacing: .14em; color: var(--c-jiao); }
+  .ptitle span { font-size: 15px; font-weight: 700; color: var(--pencil); }
+  .ptitle small { font-size: 13px; color: var(--pencil); }
+  .couplet + .couplet { margin-top: 24px; }
+  .line { position: relative; z-index: 1; display: flex; align-items: flex-start; transition: opacity .3s; }
+  .line.l0, .line.l2 { --bb: 40px; }      /* 联内：放配对连线和标签 */
+  .line.l1, .line.l3 { --bb: 28px; }      /* 放「韵脚」 */
+  .lno {
+    position: relative; flex: none; width: var(--gut); padding-top: calc(var(--mb) + var(--c) / 2 - 11px);
+    font-size: 13.5px; line-height: 22px; color: var(--pencil); opacity: 0; transition: opacity .25s;
+  }
+  .poem.image .lno { opacity: 1; }
+  .line.on .lno { color: var(--c-jiao); font-weight: 700; }
+  .line.on .lno::before {
+    content: ""; position: absolute; left: -9px; top: calc(var(--mb) + 4px); width: 5px; height: calc(var(--c) - 8px); background: var(--ink);
+    -webkit-mask: url("/assets/themes/ink/ink/vstroke.svg") center / 100% 100% no-repeat; mask: url("/assets/themes/ink/ink/vstroke.svg") center / 100% 100% no-repeat;
+  }
+  .poem.lit .line:not(.on) { opacity: .32; }
+
+  .word {
+    position: relative; display: flex; padding: 0; margin: 0; border: 0; border-radius: 0; background: none;
+    font: inherit; color: inherit; text-align: center; cursor: default;
+  }
+  .word:hover, .word:disabled, .word[aria-pressed="true"] { background: none; opacity: 1; color: inherit; }
+  .word::after {                         /* 构：词框（界画细线） */
+    content: ""; position: absolute; left: 3px; right: 3px; top: calc(var(--mb) - 2px); height: calc(var(--c) + 4px);
+    border: 1px solid transparent; border-radius: 2px; pointer-events: none; transition: border-color .2s, background-color .2s;
+  }
+  .poem.form .word:not(.done)::after { border-color: var(--rule); }
+  .poem.form .word:not(:disabled) { cursor: pointer; }
+  .poem.form .word:not(.done):hover::after { border-color: var(--ink); }
+  .poem.form .word.sel::after { border: 2px solid var(--pen); background: color-mix(in srgb, var(--pen) 9%, transparent); }
+  .word:focus-visible { outline: none; }
+  .word:focus-visible::after { outline: 2px solid var(--pen); outline-offset: 2px; }
+
+  .ch { display: flex; flex-direction: column; align-items: center; width: var(--c); }
+  .mk { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: var(--mb); }
+  .hz {
+    display: flex; align-items: center; justify-content: center; width: 100%; height: var(--c);
+    font-size: calc(var(--c) * .64); line-height: 1; color: var(--c-jiao);
+  }
+  .bl { width: 100%; height: var(--bb); padding-top: 3px; font-size: 12px; line-height: 1.3; color: var(--pencil); }
+  .rl { visibility: hidden; font-weight: 700; }
+  .poem.sound .ch.rhyme .rl { visibility: visible; }
+  .poem.sound .ch.rhyme .hz { background: url("/assets/themes/ink/ink/mark.svg") center / 92% 64% no-repeat; }
+
+  /* 平仄记号：○ 平 = 墨线圈，● 仄 = 实墨点（形状 + 墨色）；◉ = 唐朝读音下和普通话不同的字（花青外圈） */
+  .dot {
+    display: inline-block; flex: none; width: 12px; height: 12px; border: 2px solid var(--ink); border-radius: 50% 46% 52% 48%;
+    background: transparent; vertical-align: -1px; transition: opacity .25s, transform .25s, width .25s, height .25s, background-color .25s, box-shadow .25s;
+  }
+  .dot.ze { background: var(--ink); }
+  .dot.chg { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.6px var(--pen); }
+  .poem:not(.sound) .dot { opacity: 0; transform: scale(.4); }
+  .poem.sound.s246 .ch:not(.p246) .dot { opacity: .3; }
+  .poem.sound.s246 .ch.p246 .dot { width: 19px; height: 19px; border-width: 2.5px; }
+  /* 被发现的那一格：赭石虚线框 + 「?」 */
+  .odd-box { position: absolute; left: 50%; top: 50%; width: 29px; height: 29px; margin: -14.5px 0 0 -14.5px; border: 1.5px dashed var(--c-zhe); border-radius: 3px; display: none; pointer-events: none; }
+  .qb {
+    position: absolute; left: calc(50% + 11px); top: -6px; width: 17px; height: 17px; border-radius: 50%; display: none;
+    background: var(--c-zhe); color: var(--c-on); font: 700 12px/17px var(--sans); text-align: center; pointer-events: none;
+  }
+  .poem.sound.s246:not(.tang) .ch.q-host .odd-box, .poem.sound.s246:not(.tang) .ch.q-host .qb { display: block; }
+
+  .under, .over { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+  .under { z-index: 0; }
+  .over { z-index: 2; }
+  .band { fill: var(--ink); fill-opacity: .05; }
+  .band-e { stroke: var(--rule); stroke-width: 1; }
+  .pair { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linecap: square; }
+  .mf { fill: none; stroke: var(--pen); stroke-width: 1.6; }
+  .fresh { animation: appear .45s ease-out both; }
+  @keyframes appear { from { opacity: 0; } }
+  .labels { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+  .plabel {
+    position: absolute; transform: translateY(-50%); width: max-content; padding: 1px 4px;
+    border: 1px solid var(--rule); border-radius: 2px; background: var(--paper);
+    font: 700 12px/1.2 var(--sans); color: var(--ink); text-align: center; text-wrap: balance;
+  }
+
+  /* ---------- 四层透镜 ---------- */
+  .tools { min-width: 0; border-bottom: 1px solid var(--rule); }
+  .lens { border-top: 1px solid var(--rule); }
+  .lens-h { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 6px 0; }
+  .lens-btn { position: relative; isolation: isolate; flex: none; padding: 5px 12px 5px 11px; font-size: 14.5px; }
+  .lens-btn b { font-size: 19px; }
+  .lens-btn::before {                      /* 打开 = 一抹实墨 */
+    content: ""; position: absolute; inset: -3px -5px; z-index: -1; background: var(--ink); opacity: 0; transition: opacity .2s;
+    -webkit-mask: url("/assets/themes/ink/ink/dab.svg") center / 100% 100% no-repeat; mask: url("/assets/themes/ink/ink/dab.svg") center / 100% 100% no-repeat;
+  }
+  .lens-btn[aria-pressed="true"], .lens-btn[aria-pressed="true"]:hover { background: transparent; border-color: transparent; color: var(--c-on); }
+  .lens-btn[aria-pressed="true"]::before { opacity: 1; }
+  .q { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.4; color: var(--pencil); }
+  .exp { flex: none; margin-left: auto; padding: 3px 10px; font-size: 13px; }
+  .tool { padding: 0 0 14px; }
+  .tool > * + * { margin-top: 10px; }
+  .tool p { margin: 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13.5px; color: var(--pencil); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+  .ctl button { padding: 5px 12px; font-size: 14px; }
+  .seg { display: inline-flex; align-items: center; }
+  .seg .sl { margin-right: 8px; font-size: 13.5px; color: var(--pencil); }
+  .seg button { border-radius: 0; }
+  .seg button:first-of-type { border-radius: 2px 0 0 2px; }
+  .seg button:last-of-type { border-radius: 0 2px 2px 0; margin-left: -1px; }
+  .fn { font-size: 13px; line-height: 1.6; color: var(--pencil); }
+
+  /* 2/4/6 小格子（界画框） */
+  .mini { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+  .mg {
+    display: grid; grid-template-columns: auto repeat(3, 34px); align-items: center; justify-items: center; gap: 2px 0;
+    padding: 6px 10px 8px 8px; border: 2px solid var(--ink); border-radius: 2px;
+    box-shadow: inset 0 0 0 2px var(--paper), inset 0 0 0 2.8px color-mix(in srgb, var(--ink) 55%, transparent);
+  }
+  .mg .h { font-size: 12px; color: var(--pencil); }
+  .mg .r { justify-self: end; padding-right: 8px; font-size: 12px; color: var(--pencil); }
+  .mc { position: relative; display: flex; align-items: center; justify-content: center; width: 34px; height: 26px; }
+  .mc .dot { width: 17px; height: 17px; border-width: 2.5px; }
+  .mc .odd-box { width: 27px; height: 25px; margin: -12.5px 0 0 -13.5px; }
+  .mc .qb { left: calc(50% + 8px); top: -7px; }
+  .mc.q-host.on .odd-box, .mc.q-host.on .qb { display: block; }
+  .mstat { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 700; color: var(--pencil); }
+  .mstat .qb { position: static; display: inline-block; }
+  .mstat.good { color: var(--climb); }
+  .ck { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--climb); border-radius: 50% 46% 52% 48%; font: 700 12px/14px var(--sans); text-align: center; }
+
+  /* 构 */
+  .prog { font-size: 14px; color: var(--pencil); }
+  .prog b { color: var(--c-jiao); font-variant-numeric: tabular-nums; }
+  .prog.good b { color: var(--climb); }
+
+  /* 象：四格分镜（界画框，框里是写意小画） */
+  .sb { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .shot {
+    display: flex; flex-direction: column; align-items: stretch; min-width: 0; padding: 0; text-align: left;
+    border: 2px solid var(--ink); border-radius: 2px; background: transparent; color: var(--ink);
+  }
+  .shot:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+  .shot[aria-pressed="true"], .shot[aria-pressed="true"]:hover { background: transparent; color: var(--ink); border-color: var(--ink); }
+  .pic { display: block; width: calc(100% - 6px); height: auto; margin: 3px 3px 0; border: .8px solid color-mix(in srgb, var(--ink) 55%, transparent); }
+  .cap { display: flex; flex-wrap: wrap; align-items: baseline; gap: 1px 8px; padding: 4px 7px 6px; font-weight: 400; font-size: 12.5px; line-height: 1.45; color: var(--pencil); }
+  .cap b { position: relative; isolation: isolate; display: inline-block; padding: 0 5px; font-size: 13.5px; white-space: nowrap; color: var(--c-jiao); }
+  .cap b::before {
+    content: ""; position: absolute; inset: -2px -6px; z-index: -1; background: var(--ink); opacity: 0; transition: opacity .2s;
+    -webkit-mask: url("/assets/themes/ink/ink/dab.svg") center / 100% 100% no-repeat; mask: url("/assets/themes/ink/ink/dab.svg") center / 100% 100% no-repeat;
+  }
+  .shot[aria-pressed="true"] .cap b { color: var(--c-on); }
+  .shot[aria-pressed="true"] .cap b::before { opacity: 1; }
+  .sum { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; font-size: 13.5px; }
+  .sum dt { font-weight: 700; color: var(--pencil); }
+  .sum dd { margin: 0; color: var(--ink); }
+
+  /* 分镜里的墨和颜料 */
+  .s-ink { fill: var(--ink); }
+  .s-zhong { fill: var(--pencil); }
+  .s-dan { fill: var(--c-dan); }
+  .s-on { fill: var(--c-on); }
+  .s-huang { fill: var(--marker); }
+  .s-lv { fill: var(--climb); }
+  .s-qing { fill: var(--pen); }
+  .s-edge { stroke: var(--ink); stroke-width: .9; }
+  .s-ln { fill: none; stroke: var(--ink); stroke-linecap: round; stroke-linejoin: round; }
+  .s-lz { fill: none; stroke: var(--pencil); stroke-linecap: round; }
+  .s-ld { fill: none; stroke: var(--c-dan); stroke-linecap: round; }
+  .s-fo { fill: none; stroke: var(--ink); stroke-width: 2.6; }
+  .s-fi { fill: none; stroke: var(--ink); stroke-width: .8; stroke-opacity: .55; }
+  .s-t { font: 700 15px var(--sans); fill: var(--ink); }
+
+  /* 意 */
+  .tags { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; }
+  .tg {
+    display: inline-block; margin-right: 4px; padding: 0 6px; border: 1.5px solid var(--pen); border-radius: 2px;
+    color: var(--pen); font: 700 13.5px/20px var(--sans);
+  }
+  .msum { font-weight: 700; color: var(--c-jiao); font-size: 14.5px; }
+  .reading { display: grid; }
+  .rv { grid-area: 1 / 1; display: grid; gap: 8px; align-content: start; }
+  .rv[aria-hidden="true"] { visibility: hidden; }
+  .rv p { margin: 0; font-size: 14.5px; line-height: 1.65; }
+  .rq { font-weight: 700; color: var(--c-jiao); letter-spacing: .06em; }
+  .bgc { padding: 6px 10px; background: color-mix(in srgb, var(--paper-2) 80%, transparent); border-left: 2px solid var(--pen); }
+  .bgc b { color: var(--pen); margin-right: 6px; }
+
+  /* 说明区 */
+  .say { position: relative; min-height: calc(2 * 1.7em + 4px); margin: 0; padding: 2px 0 2px 16px; font-size: 15.5px; line-height: 1.7; }
+  .say::before {
+    content: ""; position: absolute; left: 0; top: 2px; bottom: 2px; width: 6px; background: var(--ink);
+    -webkit-mask: url("/assets/themes/ink/ink/vstroke.svg") center / 100% 100% no-repeat; mask: url("/assets/themes/ink/ink/vstroke.svg") center / 100% 100% no-repeat;
+  }
+  .say.good::before { background: var(--climb); }
+  .emo { filter: grayscale(1); }
+
+  @media (max-width: 759px) {
+    .say { min-height: calc(3 * 1.7em + 4px); }
+    .lens.folded .q { display: none; }      /* 窄时收起的那几层只留开关和「展开」，免得问句挤成两行 */
+  }
+  @media (max-width: 699px) { .main { gap: 20px; } }
+  @media (max-width: 599px) {
+    :root { --c: clamp(34px, calc((100vw - 76px) / 7), 54px); }
+    .main { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .poem { justify-self: center; }
+  }
+  @media (max-width: 420px) { .ptitle small { display: none; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="fl-wash" filterUnits="userSpaceOnUse" x="-30" y="-30" width="260" height="150">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="1.6"/>
+    </filter>
+    <filter id="fl-mtn" filterUnits="userSpaceOnUse" x="-30" y="-30" width="260" height="150">
+      <feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="3" seed="23" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="6" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="0.7"/>
+    </filter>
+    <filter id="fl-rough" filterUnits="userSpaceOnUse" x="-30" y="-30" width="260" height="150">
+      <feTurbulence type="fractalNoise" baseFrequency="0.12" numOctaves="2" seed="4" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="1.6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <clipPath id="clip-win"><rect x="52" y="10" width="96" height="70"/></clipPath>
+    <clipPath id="clip-door"><rect x="20" y="10" width="56" height="84"/></clipPath>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <div class="main">
+    <div class="poem" id="poem">
+      <p class="ptitle"><b>绝句</b><span>杜甫</span><small>《绝句四首》其三</small></p>
+      <svg class="under" id="under" aria-hidden="true"></svg>
+      <div id="lines"></div>
+      <svg class="over" id="over" aria-hidden="true"></svg>
+      <div class="labels" id="labels" aria-hidden="true"></div>
+    </div>
+
+    <div class="tools" role="group" aria-label="四层透镜">
+      <section class="lens" data-lens="sound">
+        <div class="lens-h">
+          <button type="button" class="lens-btn" data-lens="sound" aria-pressed="false"><b>声</b> · 声音</button>
+          <span class="q">读出来是什么节拍？</span>
+          <button type="button" class="exp" data-lens="sound" aria-expanded="false" aria-controls="T-sound" hidden>展开 ▾</button>
+        </div>
+        <div class="tool" id="T-sound" hidden>
+          <p class="legend" id="sLegend"></p>
+          <div class="ctl">
+            <button type="button" id="b246" aria-pressed="false">只看第 2、4、6 字</button>
+            <div class="seg" role="group" aria-label="读音">
+              <span class="sl" aria-hidden="true">读音</span>
+              <button type="button" data-read="m" aria-pressed="true">普通话</button>
+              <button type="button" data-read="t" aria-pressed="false">唐朝读音</button>
+            </div>
+          </div>
+          <div class="mini" id="mini" hidden>
+            <div class="mg" id="mg" role="img"></div>
+            <p class="mstat" id="mstat"></p>
+          </div>
+          <p class="fn" id="sNote"></p>
+        </div>
+      </section>
+
+      <section class="lens" data-lens="form">
+        <div class="lens-h">
+          <button type="button" class="lens-btn" data-lens="form" aria-pressed="false"><b>构</b> · 结构</button>
+          <span class="q">哪些词两两成对？</span>
+          <button type="button" class="exp" data-lens="form" aria-expanded="false" aria-controls="T-form" hidden>展开 ▾</button>
+        </div>
+        <div class="tool" id="T-form" hidden>
+          <p class="fn">在诗里点一个词，再点相邻那一句里它的搭档：先连第 1、2 句，再连第 3、4 句。</p>
+          <div class="ctl">
+            <p class="prog" id="prog"></p>
+            <button type="button" id="bAll">直接显示全部</button>
+            <button type="button" id="bReset">重新连</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="lens" data-lens="image">
+        <div class="lens-h">
+          <button type="button" class="lens-btn" data-lens="image" aria-pressed="false"><b>象</b> · 画面</button>
+          <span class="q">眼前是什么画面？</span>
+          <button type="button" class="exp" data-lens="image" aria-expanded="false" aria-controls="T-image" hidden>展开 ▾</button>
+        </div>
+        <div class="tool" id="T-image" hidden>
+          <div class="sb" id="sb" role="group" aria-label="四格分镜"></div>
+          <dl class="sum">
+            <dt>颜色</dt><dd>黄 · 翠 · 白 · 青</dd>
+            <dt>镜头</dt><dd>近 → 高 → 远（西）→ 远（东）</dd>
+          </dl>
+        </div>
+      </section>
+
+      <section class="lens" data-lens="meaning">
+        <div class="lens-h">
+          <button type="button" class="lens-btn" data-lens="meaning" aria-pressed="false"><b>意</b> · 言外</button>
+          <span class="q">没说出口的是什么？</span>
+          <button type="button" class="exp" data-lens="meaning" aria-expanded="false" aria-controls="T-meaning" hidden>展开 ▾</button>
+        </div>
+        <div class="tool" id="T-meaning" hidden>
+          <ul class="tags">
+            <li><span class="tg">千秋</span>→ 时间：雪积了很多年</li>
+            <li><span class="tg">万里</span>→ 距离：船能走到万里之外</li>
+          </ul>
+          <p class="msum">一扇窗、一道门，装进了千年和万里。</p>
+          <div class="seg" role="group" aria-label="第 4 句怎么读">
+            <button type="button" data-ctx="0" aria-pressed="true">只看字面</button>
+            <button type="button" data-ctx="1" aria-pressed="false">加上背景</button>
+          </div>
+          <div class="reading">
+            <div class="rv" id="rvLit">
+              <p class="rq">窗含西岭千秋雪，门泊东吴万里船。</p>
+              <p>第 4 句读作：门口停着来往东吴的船，风景很好。</p>
+            </div>
+            <div class="rv" id="rvCtx" aria-hidden="true">
+              <p class="bgc"><b>背景</b>一般认为这首诗写于 764 年春天。前一年，打了八年的安史之乱（唐朝中期的一场大叛乱）刚刚平定，杜甫又回到了成都的草堂。</p>
+              <p>战乱时，长江上的路不好走；现在门口就停着能去万里之外东吴的船：路通了。不少读者从这里读出诗人心里一动：也许可以坐船回家了。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <p class="say" id="say" aria-live="polite"></p>
+</div>
+
+<script type="module">
+import { emit } from '/assets/component.js';
+
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+function h(tag, props = {}, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (v === false || v == null) continue;
+    if (k === 'class') el.className = v; else el.setAttribute(k, v === true ? '' : v);
+  }
+  el.append(...kids);
+  return el;
+}
+
+// ---------- 数据 ----------
+// 分词按词，不按字；上下两句同一位置的词是一对（两联都恰好按位置对齐）
+const POEM = [
+  ['两个', '黄鹂', '鸣', '翠柳'],
+  ['一行', '白鹭', '上', '青天'],
+  ['窗', '含', '西岭', '千秋雪'],
+  ['门', '泊', '东吴', '万里船'],
+];
+const PAIR_LABEL = [
+  ['数量', '颜色 + 鸟', '动作', '颜色 + 景物'],
+  ['房子的一部分', '动作', '方位 + 地方', '数字 + 时间/距离 + 物'],
+];
+// 平仄：Z = 仄，P = 平。m = 普通话按字典单字声调粗分（一二声平、三四声仄，"一"按 yī），t = 唐朝读音（《广韵》/ 平水韵）
+const TONE = {
+  m: ['ZZPPPZZ', 'PPPZZPP', 'PPPZPPZ', 'PPPPZZP'],
+  t: ['ZZPPPZZ', 'ZPZZZPP', 'PPPZPPZ', 'PZPPZZP'],
+};
+const THIN = String.fromCharCode(0x2009);  // 标签里「+」两边用窄空格，窄屏也尽量放进一行
+const RHYME = [[1, 6], [3, 6]];          // 天、船
+const P246 = [1, 3, 5];                  // 第 2、4、6 字（0 起）
+const ODD = [3, 1];                      // 普通话下不合的那一格：第 4 句的「泊」
+const MEANING = [[2, 4, 5], [3, 4, 5]];  // 千秋、万里
+
+const LENS = ['sound', 'form', 'image', 'meaning'];
+const LENS_NAME = { sound: '声', form: '构', image: '象', meaning: '意' };
+
+const SHOTS = [
+  { lbl: '① 近景', note: '鸣：还有声音',
+    say: '① 近景：窗前柳枝上，两只黄鹂在叫。「鸣」：画面里还有声音。' },
+  { lbl: '② 仰望', note: '斜着飞进青天',
+    say: '② 仰望：镜头抬高，一行白鹭斜着飞进青天。' },
+  { lbl: '③ 窗框取景', note: '含：窗含着雪山',
+    say: '③ 窗框取景：窗框像画框，框住西边的雪山。西岭：成都西边的岷山雪岭，雪终年不化；含：窗把雪山含在框里，像一幅画。' },
+  { lbl: '④ 门外远方', note: '箭头指向东吴',
+    say: '④ 门外远方：门前河边停着来往东吴的船，箭头指向东方。东吴：长江下游，今江苏、浙江一带。' },
+];
+
+const MSG = {
+  hint: '点一层透镜，看看这首诗里还藏着什么。',
+  soundAll: '看起来有点乱？点「只看第 2、4、6 字」。',
+  sound246m: '这三个字落在每句的停顿处。几乎是整齐的交替……只有一格不对。换成「唐朝读音」看看？',
+  sound246t: '每句里平仄交替，上下两句正好相反。「泊」在唐朝是入声，读得短促，算仄；普通话里入声没了，它被读成了二声（为什么会这样，见本页 🧗）。',
+  soundAllT: '换成唐朝读音，「一」「白」「泊」从平变成了仄（带圈的那几个）：它们在唐朝都是入声。再点「只看第 2、4、6 字」看看。',
+  formOpen: '先点第 1 句里的一个词，再点第 2 句里它的搭档。',
+  formWrong: '再找找：看词的类别和意思。',
+  formHalf: '第 1、2 句配齐了。接着连第 3、4 句。',
+  formDone: '四句两两成对，每个词都有搭档。绝句并不要求对仗，这首每一联都对上了。',
+  imageOpen: '四句，四个镜头。点一格分镜，看它对应哪一句。',
+  meaningOpen: '「千秋」是时间，「万里」是距离。再点「加上背景」，看第 4 句会读出什么。',
+  meaningLit: '只看字面，第 4 句是一幅风景。',
+  meaningCtx: '这就是「意」这一层：同样 14 个字，有没有背景，读出来的不一样。',
+};
+
+// ---------- 状态 ----------
+const st = {
+  on: { sound: false, form: false, image: false, meaning: false },
+  open: null,                       // 展开工具的那一层
+  s246: false, tang: false,
+  sel: null,                        // 构：选中的词 { l, k }
+  paired: new Set(),                // 'c-k'
+  fresh: null,                      // 刚连上的（只让它淡入）
+  mistakes: 0, showedAll: false,
+  shot: null, seen: new Set(),
+  ctx: false,
+};
+const sent = { lens: new Set(), pattern: false, pairs: false, storyboard: false, context: false };
+
+// ---------- 诗 ----------
+const poemEl = $('poem');
+const lineEls = [];
+const cells = [];     // cells[l][i] = { el, mk, hz }
+const words = [];     // words[l][k] = button
+{
+  const host = $('lines');
+  let couplet;
+  POEM.forEach((ws, l) => {
+    if (l % 2 === 0) { couplet = h('div', { class: 'couplet' }); host.append(couplet); }
+    const line = h('div', { class: `line l${l}` }, h('span', { class: 'lno', 'aria-hidden': 'true' }, '①②③④'[l]));
+    cells[l] = []; words[l] = [];
+    let i = 0;
+    ws.forEach((w, k) => {
+      const b = h('button', { type: 'button', class: 'word', disabled: true, 'data-l': l, 'data-k': k });
+      for (const z of w) {
+        const dot = h('span', { class: 'dot' });
+        const mk = h('span', { class: 'mk', 'aria-hidden': 'true' }, dot);
+        const hz = h('span', { class: 'hz' }, z);
+        const bl = h('span', { class: 'bl' });
+        const ch = h('span', { class: 'ch' }, mk, hz, bl);
+        if (P246.includes(i)) ch.classList.add('p246');
+        if (RHYME.some(([rl, ri]) => rl === l && ri === i)) { ch.classList.add('rhyme'); bl.append(h('span', { class: 'rl' }, '韵脚')); }
+        if (l === ODD[0] && i === ODD[1]) {
+          ch.classList.add('q-host');
+          mk.append(h('span', { class: 'odd-box' }), h('span', { class: 'qb' }, '?'));
+        }
+        cells[l][i] = { el: ch, dot, hz };
+        b.append(ch);
+        i++;
+      }
+      b.addEventListener('click', () => clickWord(l, k));
+      words[l][k] = b;
+      line.append(b);
+    });
+    lineEls[l] = line;
+    couplet.append(line);
+  });
+}
+
+// 每个词占哪几个字
+const span = (l, k) => {
+  let i = 0;
+  for (let j = 0; j < k; j++) i += POEM[l][j].length;
+  return [i, i + POEM[l][k].length - 1];
+};
+
+// ---------- 小格子（声） ----------
+const mini = [];
+{
+  const mg = $('mg');
+  mg.append(h('span'), ...['第2字', '第4字', '第6字'].map(t => h('span', { class: 'h' }, t)));
+  for (let l = 0; l < 4; l++) {
+    mg.append(h('span', { class: 'r' }, `第${l + 1}句`));
+    mini[l] = P246.map(i => {
+      const dot = h('span', { class: 'dot' });
+      const mc = h('span', { class: 'mc' }, dot);
+      if (l === ODD[0] && i === ODD[1]) { mc.classList.add('q-host'); mc.append(h('span', { class: 'odd-box' }), h('span', { class: 'qb' }, '?')); }
+      mg.append(mc);
+      return { mc, dot };
+    });
+  }
+}
+
+// ---------- 分镜（象）：界画框 + 写意小画 ----------
+const egret = (x, y, s = 1) => `<g transform="translate(${x} ${y}) rotate(-24) scale(${s})">
+  <path class="s-ln" stroke-width=".9" d="M-9 .4 L-16 1.6"/>
+  <path class="s-on s-edge" d="M-10 0 C-6 -3.4 4 -3.4 8 -1.2 C4 1.4 -5 2.2 -10 0 Z"/>
+  <path class="s-on s-edge" d="M-3 -1.6 C-5 -8 -9 -12 -15 -13.4 C-11 -8.6 -8 -4.4 -5 -.6 Z"/>
+  <path class="s-ln" stroke-width="1" d="M8 -1.2 L13.4 -1.8"/></g>`;
+const oriole = (x, y, flip) => `<g transform="translate(${x} ${y})${flip ? ' scale(-1 1)' : ''}">
+  <path class="s-ln" stroke-width=".8" d="M-2 -2 V.6 M1.4 -2 V.6"/>
+  <path class="s-ink" d="M-10 -6.4 L-17.5 -3.2 L-16 -8.6 Z"/>
+  <ellipse class="s-huang s-edge" cx="-2.6" cy="-7" rx="9" ry="5.6" transform="rotate(-12 -2.6 -7)"/>
+  <path class="s-ink" d="M-8.5 -9.2 C-4 -12.4 1 -11.6 3 -8.4 C-1 -8.2 -5 -7.2 -8.5 -6 Z"/>
+  <circle class="s-huang s-edge" cx="6" cy="-12.4" r="4.4"/>
+  <path class="s-ln" stroke-width="1.5" d="M3.6 -13.2 L8.6 -12.8"/>
+  <path class="s-ink" d="M10.2 -13.2 L14.4 -11.8 L10.2 -10.6 Z"/></g>`;
+const leaves = pts => pts.map(([x, y, r = 0]) => `<ellipse cx="${x}" cy="${y}" rx="3.2" ry="7.5" transform="rotate(${r} ${x} ${y})"/>`).join('');
+
+const PICS = [
+  // ① 近景：柳枝、两只黄鹂、叫声
+  `<g filter="url(#fl-wash)" class="s-lv" opacity=".42">${leaves([[20, 28, 6], [19, 46, -4], [22, 64, 5], [44, 32, -6], [45, 52, 4], [150, 44, 5], [149, 62, -5], [151, 78, 4], [172, 46, -6], [173, 62, 5], [190, 48, 4], [94, 36, -5], [95, 52, 6]])}</g>
+   <g filter="url(#fl-rough)">
+     <path class="s-ln" stroke-width="2.6" d="M-4 14 C30 16 50 19 62 20 S110 25 128 28 S180 36 206 40"/>
+     <path class="s-lz" stroke-width="1" d="M20 16 C18 34 24 54 20 80 M44 19 C42 36 47 52 44 66 M94 23 C93 36 97 48 94 60 M150 31 C148 50 153 66 150 86 M172 34 C171 48 175 60 172 72 M190 38 C189 48 192 58 190 66"/>
+   </g>
+   ${oriole(62, 20, false)}${oriole(128, 28, true)}
+   <path class="s-lz" stroke-width="1.3" d="M80 4 Q84 9 80 14 M86 1 Q92 9 86 17"/>`,
+  // ② 仰望：青天、一行白鹭斜飞
+  `<g filter="url(#fl-wash)"><path class="s-qing" opacity=".22" d="M12 8 C60 -2 160 0 194 10 C204 38 198 64 172 72 C120 82 62 72 32 60 C8 50 0 22 12 8 Z"/></g>
+   <g filter="url(#fl-wash)"><path class="s-dan" opacity=".35" d="M-4 94 L-4 78 C10 70 24 74 32 80 C42 72 56 76 64 94 Z"/></g>
+   ${egret(46, 74)}${egret(76, 60)}${egret(106, 47, .95)}${egret(136, 34, .9)}${egret(165, 22, .85)}`,
+  // ③ 窗框取景：窗框（界画）框住西边的雪山（写意）
+  `<g clip-path="url(#clip-win)">
+     <g filter="url(#fl-wash)"><path class="s-dan" opacity=".42" d="M40 84 L40 52 C58 44 70 40 82 46 C96 34 110 30 124 40 C136 36 150 42 162 48 L162 84 Z"/></g>
+     <g filter="url(#fl-mtn)"><path class="s-zhong" opacity=".78" d="M46 84 L58 60 L72 40 L84 29 L95 42 L104 51 L115 41 L130 58 L154 84 Z"/></g>
+     <g filter="url(#fl-rough)"><path class="s-on" d="M73 39 L84 29 L95 42 L90 40 L85 44 L80 38 L76 41 Z M109 46 L115 41 L121 49 L117 47 L113 50 Z"/></g>
+   </g>
+   <rect class="s-fo" x="48" y="6" width="104" height="78"/>
+   <rect class="s-fi" x="52" y="10" width="96" height="70"/>
+   <path class="s-ln" stroke-width="1.4" d="M42 46 H12 M18 41 L12 46 L18 51"/>
+   <text class="s-t" x="19" y="36">西</text>`,
+  // ④ 门外远方：门框（界画）、河、船，箭头指向东
+  `<g filter="url(#fl-wash)"><path class="s-dan" opacity=".3" d="M120 70 C138 58 156 60 170 64 C182 58 196 60 206 64 L206 72 L120 72 Z"/></g>
+   <path class="s-ld" stroke-width="1" d="M0 72 C40 70 120 74 204 71 M0 80 C50 78 110 82 204 79 M0 88 C60 86 120 90 204 87"/>
+   <g clip-path="url(#clip-door)"><g transform="translate(48 70)">
+     <path class="s-ln" stroke-width="1.2" d="M3 -1 V-24"/>
+     <path class="s-ink" opacity=".75" d="M-9 -1 C-7 -9 6 -9 8 -1 Z"/>
+     <path class="s-ink" d="M-17 -1 H17 L12 6 H-12 Z"/></g></g>
+   <rect class="s-fo" x="16" y="6" width="64" height="92"/>
+   <rect class="s-fi" x="20" y="10" width="56" height="88"/>
+   <path class="s-ln" stroke-width="1.4" stroke-dasharray="5 4" d="M88 44 H184"/>
+   <path class="s-ln" stroke-width="1.4" d="M178 39 L186 44 L178 49"/>
+   <text class="s-t" x="170" y="33">东</text>`,
+];
+const shotBtns = SHOTS.map((s, n) => {
+  const b = h('button', { type: 'button', class: 'shot', 'aria-pressed': 'false', 'data-n': n });
+  b.innerHTML = `<svg class="pic" viewBox="0 0 200 90" aria-hidden="true">${PICS[n]}</svg>`;
+  b.append(h('span', { class: 'cap' }, h('b', {}, s.lbl), h('span', {}, s.note)));
+  b.addEventListener('click', () => clickShot(n));
+  $('sb').append(b);
+  return b;
+});
+
+// ---------- 说明区 ----------
+const sayEl = $('say');
+function say(text, good = false) {
+  sayEl.replaceChildren(...text.split('🧗').flatMap((part, n) => (n ? [h('span', { class: 'emo' }, '🧗'), part] : [part])));
+  sayEl.classList.toggle('good', good);
+}
+const soundMsg = () => (st.s246 ? (st.tang ? MSG.sound246t : MSG.sound246m) : (st.tang ? MSG.soundAllT : MSG.soundAll));
+const formMsg = () => (st.paired.size === 8 ? MSG.formDone : MSG.formOpen);
+const imageMsg = () => (st.shot != null ? SHOTS[st.shot].say : MSG.imageOpen);
+const meaningMsg = () => (st.ctx ? MSG.meaningCtx : MSG.meaningOpen);
+function lensMsg(L) {
+  if (L === 'sound') return say(soundMsg(), st.s246 && st.tang);
+  if (L === 'form') return say(formMsg(), st.paired.size === 8);
+  if (L === 'image') return say(imageMsg());
+  return say(meaningMsg());
+}
+
+// ---------- 操作 ----------
+document.querySelectorAll('.lens-btn').forEach(b => b.addEventListener('click', () => {
+  const L = b.dataset.lens;
+  st.on[L] = !st.on[L];
+  if (st.on[L]) {
+    st.open = L;
+    if (!sent.lens.has(L)) { sent.lens.add(L); emit('viz_four-lenses_lens', { lens: L }); }
+    lensMsg(L);
+  } else {
+    if (st.open === L) st.open = null;
+    if (L === 'form') st.sel = null;
+    if (L === 'image') st.shot = null;
+    const any = LENS.some(x => st.on[x]);
+    say(any ? `关上了「${LENS_NAME[L]}」这一层。` : MSG.hint);
+  }
+  st.fresh = null;
+  render();
+}));
+document.querySelectorAll('.exp').forEach(b => b.addEventListener('click', () => {
+  const L = b.dataset.lens;
+  st.open = L;
+  lensMsg(L);
+  render();
+  $(`T-${L}`).querySelector('button')?.focus();
+}));
+
+// 声
+$('b246').addEventListener('click', () => { st.s246 = !st.s246; afterSound(); });
+document.querySelectorAll('[data-read]').forEach(b => b.addEventListener('click', () => { st.tang = b.dataset.read === 't'; afterSound(); }));
+function afterSound() {
+  if (st.s246 && st.tang && !sent.pattern) { sent.pattern = true; emit('viz_four-lenses_pattern', {}); }
+  say(soundMsg(), st.s246 && st.tang);
+  st.fresh = null;
+  render();
+}
+
+// 构
+function clickWord(l, k) {
+  if (!st.on.form) return;
+  const c = l >> 1;
+  const key = `${c}-${k}`;
+  const w = POEM[l][k];
+  st.fresh = null;
+  const sel = st.sel;
+  if (sel && sel.l === l && sel.k === k) { st.sel = null; say(MSG.formOpen); return render(); }
+  if (sel && sel.l !== l && (sel.l >> 1) === c) {
+    if (sel.k === k) {
+      st.paired.add(key);
+      st.sel = null;
+      st.fresh = key;
+      const up = POEM[2 * c][k], dn = POEM[2 * c + 1][k];
+      const n = st.paired.size;
+      if (n === 8) finishPairs();
+      else {
+        const half = c === 0 && [0, 1, 2, 3].every(j => st.paired.has(`0-${j}`));
+        say(`连上了：「${up}」和「${dn}」，${PAIR_LABEL[c][k]}。${half ? MSG.formHalf : `还剩 ${8 - n} 对。`}`);
+      }
+    } else {
+      st.mistakes++;
+      say(MSG.formWrong);
+    }
+    return render();
+  }
+  if (st.paired.has(key)) {
+    st.sel = null;
+    say(`「${POEM[2 * c][k]}」和「${POEM[2 * c + 1][k]}」已经连上了：${PAIR_LABEL[c][k]}。`);
+    return render();
+  }
+  st.sel = { l, k };
+  say(`选了「${w}」。它在第 ${l % 2 === 0 ? l + 2 : l} 句里的搭档是哪个词？`);
+  render();
+}
+function finishPairs() {
+  say(MSG.formDone, true);
+  if (!sent.pairs) { sent.pairs = true; emit('viz_four-lenses_pairs', { mistakes: st.mistakes, showedAll: st.showedAll }); }
+}
+$('bAll').addEventListener('click', () => {
+  if (st.paired.size === 8) return;
+  for (let c = 0; c < 2; c++) for (let k = 0; k < 4; k++) st.paired.add(`${c}-${k}`);
+  st.showedAll = true; st.sel = null; st.fresh = 'all';
+  finishPairs();
+  render();
+});
+$('bReset').addEventListener('click', () => {
+  st.paired.clear(); st.sel = null; st.mistakes = 0; st.showedAll = false; st.fresh = null;
+  say(MSG.formOpen);
+  render();
+});
+
+// 象
+function clickShot(n) {
+  st.shot = n;
+  st.seen.add(n);
+  say(SHOTS[n].say);
+  if (st.seen.size === 4 && !sent.storyboard) { sent.storyboard = true; emit('viz_four-lenses_storyboard', {}); }
+  st.fresh = null;
+  render();
+}
+
+// 意
+document.querySelectorAll('[data-ctx]').forEach(b => b.addEventListener('click', () => {
+  st.ctx = b.dataset.ctx === '1';
+  if (st.ctx && !sent.context) { sent.context = true; emit('viz_four-lenses_context', {}); }
+  say(st.ctx ? MSG.meaningCtx : MSG.meaningLit);
+  st.fresh = null;
+  render();
+}));
+
+// ---------- 画 ----------
+function render() {
+  const P = poemEl.classList;
+  P.toggle('sound', st.on.sound);
+  P.toggle('s246', st.s246);
+  P.toggle('tang', st.tang);
+  P.toggle('form', st.on.form);
+  P.toggle('image', st.on.image);
+  P.toggle('meaning', st.on.meaning);
+  // 分镜选中的那一句亮起，其余降到淡墨；只在分镜展开时（收起后看不到分镜，就不再压暗）
+  const lit = st.on.image && st.open === 'image' && st.shot != null;
+  P.toggle('lit', lit);
+  lineEls.forEach((el, l) => el.classList.toggle('on', lit && st.shot === l));
+
+  // 平仄记号
+  const T = TONE[st.tang ? 't' : 'm'];
+  cells.forEach((row, l) => row.forEach(({ dot }, i) => {
+    dot.classList.toggle('ze', T[l][i] === 'Z');
+    dot.classList.toggle('chg', st.tang && TONE.m[l][i] !== TONE.t[l][i]);
+  }));
+  mini.forEach((row, l) => row.forEach(({ mc, dot }, j) => {
+    const i = P246[j];
+    dot.classList.toggle('ze', T[l][i] === 'Z');
+    dot.classList.toggle('chg', st.tang && TONE.m[l][i] !== TONE.t[l][i]);
+    mc.classList.toggle('on', !st.tang);
+  }));
+  const sym = l => P246.map(i => (T[l][i] === 'Z' ? '仄' : '平')).join('');
+  $('mg').setAttribute('aria-label', `第 2、4、6 字（${st.tang ? '唐朝读音' : '普通话'}）：${[0, 1, 2, 3].map(l => `第 ${l + 1} 句 ${sym(l)}`).join('，')}`);
+  const mstat = $('mstat');
+  mstat.classList.toggle('good', st.tang);
+  mstat.replaceChildren(...(st.tang
+    ? [h('span', { class: 'ck', 'aria-hidden': 'true' }, '✓'), '每句交替，上下相反']
+    : [h('span', { class: 'qb', 'aria-hidden': 'true' }, '?'), '第 4 句第 2 字不合']));
+  $('mini').hidden = !st.s246;
+  $('sLegend').replaceChildren(...(st.tang
+    ? [h('span', {}, h('span', { class: 'dot' }), '平'), h('span', {}, h('span', { class: 'dot ze' }), '仄（按唐朝读音）'), h('span', {}, h('span', { class: 'dot ze chg' }), '和普通话不同')]
+    : [h('span', {}, h('span', { class: 'dot' }), '平：普通话大致一、二声'), h('span', {}, h('span', { class: 'dot ze' }), '仄：大致三、四声')]));
+  $('sNote').textContent = st.tang
+    ? (st.s246 ? '第 2、3 句的格子一样：为什么这样安排，后面讲格律时再说。' : '「雪」在唐朝也是入声，普通话读三声，本来就算仄，所以没有变。')
+    : '「一」单念是一声；在「一行」里口语会变读，这里按单字算。';
+  $('b246').setAttribute('aria-pressed', String(st.s246));
+  document.querySelectorAll('[data-read]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.read === 't') === st.tang)));
+
+  // 构
+  words.forEach((row, l) => row.forEach((b, k) => {
+    const done = st.paired.has(`${l >> 1}-${k}`);
+    const sel = !!st.sel && st.sel.l === l && st.sel.k === k;
+    b.disabled = !st.on.form;
+    b.classList.toggle('done', done);
+    b.classList.toggle('sel', sel);
+    if (st.on.form) b.setAttribute('aria-pressed', String(sel)); else b.removeAttribute('aria-pressed');
+  }));
+  const n = st.paired.size;
+  $('prog').replaceChildren('已连 ', h('b', {}, `${n} / 8`), ' 对');
+  $('prog').classList.toggle('good', n === 8);
+  $('bAll').disabled = n === 8;
+  $('bReset').disabled = n === 0;
+
+  // 象
+  shotBtns.forEach((b, i) => b.setAttribute('aria-pressed', String(st.shot === i)));
+
+  // 意
+  document.querySelectorAll('[data-ctx]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.ctx === '1') === st.ctx)));
+  $('rvLit').setAttribute('aria-hidden', String(st.ctx));
+  $('rvCtx').setAttribute('aria-hidden', String(!st.ctx));
+
+  // 透镜开关和工具
+  for (const L of LENS) {
+    const on = st.on[L], open = on && st.open === L;
+    document.querySelector(`.lens-btn[data-lens="${L}"]`).setAttribute('aria-pressed', String(on));
+    $(`T-${L}`).hidden = !open;
+    const exp = document.querySelector(`.exp[data-lens="${L}"]`);
+    exp.hidden = !on || open;
+    exp.closest('.lens').classList.toggle('folded', on && !open);
+    exp.setAttribute('aria-expanded', String(open));
+  }
+  draw();
+  st.fresh = null;     // 只淡入一次：之后重画（窗口变宽变窄）不再重放
+}
+
+// 依赖排版位置的部分：2/4/6 的竖栏、配对连线和标签、「意」的框
+function draw() {
+  const P0 = poemEl.getBoundingClientRect();
+  const rel = el => { const r = el.getBoundingClientRect(); return { x: r.left - P0.left, y: r.top - P0.top, w: r.width, h: r.height }; };
+  const hzBox = (l, a, b) => { const A = rel(cells[l][a].hz), B = rel(cells[l][b].hz); return { x: A.x, y: A.y, w: B.x + B.w - A.x, h: A.h }; };
+  for (const svg of [$('under'), $('over')]) {
+    svg.setAttribute('width', P0.width); svg.setAttribute('height', P0.height);
+    svg.setAttribute('viewBox', `0 0 ${P0.width} ${P0.height}`);
+  }
+  const f = v => Math.round(v * 10) / 10;
+
+  let u = '';
+  if (st.on.sound && st.s246) {
+    const top = rel(cells[0][0].el).y, last = rel(cells[3][0].hz), bot = last.y + last.h + 4;
+    for (const i of P246) {
+      const r = rel(cells[0][i].el);
+      u += `<rect class="band" x="${f(r.x)}" y="${f(top)}" width="${f(r.w)}" height="${f(bot - top)}"/>`
+        + `<path class="band-e" d="M${f(r.x) + .5} ${f(top)} V${f(bot)} M${f(r.x + r.w) - .5} ${f(top)} V${f(bot)}"/>`;
+    }
+  }
+  $('under').innerHTML = u;
+
+  let o = '';
+  const labs = [];
+  if (st.on.form) {
+    for (const key of st.paired) {
+      const [c, k] = key.split('-').map(Number);
+      const U = hzBox(2 * c, ...span(2 * c, k));
+      const lowTop = rel(cells[2 * c + 1][0].el).y;
+      const x1 = U.x + 6, x2 = U.x + U.w - 6, cx = U.x + U.w / 2;
+      const y1 = U.y + U.h + 5, y2 = lowTop - 3;
+      const isNew = st.fresh === key || st.fresh === 'all';
+      o += `<path class="pair${isNew ? ' fresh' : ''}" d="M${f(x1)} ${f(y1 - 4)} V${f(y1)} H${f(x2)} V${f(y1 - 4)} M${f(cx)} ${f(y1)} V${f(y2)} M${f(x1)} ${f(y2 + 4)} V${f(y2)} H${f(x2)} V${f(y2 + 4)}"/>`;
+      // 标签只放在自己这个词的宽度里（相邻的词首尾相接，所以标签不会互相压住）；每句第一个词可以伸进左边的句号栏，最后一个词可以伸出右边一点
+      const lo = k === 0 ? 0 : U.x + 1;
+      const hi = k === 3 ? P0.width + 4 : U.x + U.w - 1;
+      const el = h('span', { class: `plabel${isNew ? ' fresh' : ''}` }, PAIR_LABEL[c][k].replaceAll(' ', THIN));
+      el.style.maxWidth = `${f(hi - lo)}px`;
+      el.style.top = `${f((y1 + y2) / 2)}px`;
+      labs.push({ el, c, k, cx, lo, hi });
+    }
+  }
+  if (st.on.meaning) {
+    for (const [l, a, b] of MEANING) {
+      const r = hzBox(l, a, b);
+      o += `<rect class="mf" x="${f(r.x - 3)}" y="${f(r.y - 3)}" width="${f(r.w + 6)}" height="${f(r.h + 6)}" rx="2"/>`;
+    }
+  }
+  $('over').innerHTML = o;
+  $('labels').replaceChildren(...labs.map(L => L.el));
+  placeLabels(labs, P0.width);
+}
+
+// 标签：先在自己这个词的宽度里量一次、尽量居中在连线上；折成两行的，再请左右邻居在它们自己的词宽里让一让，
+// 用让出来的空间重排；还折行就收窄到最长那一行。邻居只在自己的词宽里移动，所以始终压在自己的连线上。
+function placeLabels(labs, PW) {
+  const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+  const one = 22;   // 单行标签约 18px 高，超过 22 就是折行了
+  for (const L of labs) {
+    L.w = L.el.offsetWidth;
+    L.x = clamp(L.cx - L.w / 2, L.lo, L.hi - L.w);
+  }
+  for (const c of [0, 1]) {
+    const row = labs.filter(L => L.c === c).sort((a, b) => a.k - b.k);
+    for (let pass = 0; pass < 2; pass++) row.forEach((L, i) => {
+      if (L.el.offsetHeight <= one) return;
+      const P = row[i - 1], N = row[i + 1];
+      const pMin = P && Math.min(P.x, P.lo), nMax = N && Math.max(N.x, N.hi - N.w);   // 邻居最多能让到哪
+      const left = P ? pMin + P.w + 3 : 0;
+      const right = N ? nMax - 3 : PW + 4;
+      L.el.style.width = '';
+      L.el.style.maxWidth = `${Math.max(right - left, 24)}px`;
+      if (L.el.offsetHeight > one) {
+        const r = document.createRange();
+        r.selectNodeContents(L.el);
+        const tw = Math.max(...[...r.getClientRects()].map(q => q.width));
+        L.el.style.width = `${Math.ceil(tw) + 10}px`;
+      }
+      L.w = L.el.offsetWidth;
+      L.x = clamp(L.cx - L.w / 2, left, Math.max(left, right - L.w));
+      if (P) P.x = Math.max(pMin, Math.min(P.x, L.x - 3 - P.w));
+      if (N) N.x = Math.min(nMax, Math.max(N.x, L.x + L.w + 3));
+    });
+  }
+  for (const L of labs) L.el.style.left = `${Math.round(L.x * 10) / 10}px`;
+}
+
+say(MSG.hint);
+render();
+new ResizeObserver(() => draw()).observe(poemEl);
+document.fonts?.ready.then(() => draw());
+</script>
+</body>
+</html>

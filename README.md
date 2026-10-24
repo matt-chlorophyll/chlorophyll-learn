@@ -93,6 +93,8 @@ Chlorophyll-Learn 安装后，会在你选的文件夹里生成一个学习工�
    /new-topic <想学的主题>
    ```
 
+   想先看看课是什么样：启动课程网站（见下面「日常使用」）后打开 <http://localhost:4321/lab/example/>，那是一节完整的示例课（上面截图里的古诗词 Day 0），不计入学习记录，也不花额度。
+
    老师会问几个问题（最多 2 轮），然后生成 Day 0 导览课；如果你在这个领域已经有实际经验，会跳过 Day 0，提示你运行 `/build-week 1`。
 
 setup 会在工作区里建好 `.env`。要配音的话，自己打开它填上 MiniMax 或 ElevenLabs 的 key。`.env` 不会进 git，也不要把 key 贴进对话。

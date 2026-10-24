@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="lh-theme" content="ink">
+<title>十个字，怎么装下一个清晨</title>
+<link rel="stylesheet" href="/assets/player.css">
+<style>
+  /* 「墨」：舞台是一幅纸本画。中心略亮，四角略沉 */
+  #stage { background: radial-gradient(ellipse at 50% 42%, rgba(255, 253, 246, .35) 0%, rgba(255, 253, 246, 0) 55%, rgba(110, 96, 72, .10) 100%); }
+  svg text { font-family: var(--lh-font); }
+  svg text.brush { font-family: var(--lh-brush); }
+</style>
+</head>
+<body>
+<div id="stage"><svg viewBox="0 0 1280 720" id="svg">
+  <defs>
+    <!-- 写意墨团：读者脑子里的画面，画面里唯一的写意笔墨 -->
+    <filter id="wash" x="-40%" y="-40%" width="180%" height="180%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="3" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="80" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="9"/>
+    </filter>
+    <filter id="wash2" x="-40%" y="-40%" width="180%" height="180%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" seed="23" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="46" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="5"/>
+    </filter>
+    <!-- 月亮四周的一圈留白 -->
+    <filter id="halo" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <!-- 毛边：亮起的一抹墨 -->
+    <filter id="rough" x="-5%" y="-15%" width="110%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="4" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <!-- 墨团里的小画：轻微手绘感 -->
+    <filter id="hand" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg></div>
+
+<script type="module">
+import { mountScene, ease, lerp, clamp } from '/assets/player.js';
+
+// ---------- 小工具 ----------
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('svg');
+function mk(parent, tag, attrs = {}, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text != null) e.textContent = text;
+  parent.appendChild(e);
+  return e;
+}
+const set = (e, attrs) => { for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, typeof v === 'number' ? v.toFixed(2) : v); };
+const op = (e, v) => e.setAttribute('opacity', clamp(v).toFixed(3));
+const place = (e, x, y, s = 1) => e.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s.toFixed(3)})`);
+const up = (t, t0, dur = 0.5, e = ease.inOut) => e(clamp((t - t0) / dur));
+const win = (t, t0, t1, fin = 0.4, fout = 0.4) => Math.min(up(t, t0, fin), 1 - up(t, t1, fout));
+const draw = (e, len, k) => set(e, { 'stroke-dasharray': `${len} ${len}`, 'stroke-dashoffset': len * (1 - clamp(k)) });
+
+// 「墨」：bg = 宣纸，pri = 浓墨（线、框、亮起的一抹），ink/soft/mute = 焦/重/淡墨的字，
+// warn = 朱砂（只用在划掉心情那一笔），user = 花青（读者，第二个声音），hi = 藤黄（高亮淡染）
+const C = {
+  bg: '#EEEAE0', pri: '#2A2622', ok: '#386A54', warn: '#A3301D', ink: '#15130F', soft: '#3F3A34', mute: '#6A6359',
+  panel: '#E5E0D3', panel2: '#F4F1EA', line: '#A39C90', user: '#2E5770', meter: '#9A6838', hi: '#E4C766',
+};
+const DIM = 0.32;
+
+// ---------- 十个字：格子在四种布局之间移动（封面一排 → 左下 → 左中 → 正中） ----------
+const POEM = ['鸡', '声', '茅', '店', '月', '人', '迹', '板', '桥', '霜'];
+const WORDS = [[0, 1], [2, 3], [4], [5, 6], [7, 8], [9]];   // 鸡声 茅店 月 / 人迹 板桥 霜
+const WORD_OF = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5];
+const CELL = 84, STEP = 92, RSTEP = 140;
+const coverCell = i => [226 + i * 84, 350, 72];
+const gridAt = (x0, y0) => i => [x0 + (i % 5) * STEP, y0 + Math.floor(i / 5) * RSTEP, CELL];
+const G1 = gridAt(196, 288), G2 = gridAt(196, 170), G3 = gridAt(414, 170);
+
+// ---------- 大白话（左上界画框，逐字定位：28 号字，每字 28 宽） ----------
+const LINES = [
+  '住在山路边的茅草小店，鸡一叫就得起身。',
+  '出门时，月亮还挂在天上。',
+  '走上木板桥，桥面结了霜，霜上已经有一串脚印。',
+  '离家越来越远，又冷又累，好想家。',
+];
+const PX = 100, PB = [96, 142, 188, 234], FS = 28;
+const cx = j => PX + j * FS + FS / 2;
+const CY_OFF = 0.38;                       // 字形中心在基线上方约 0.38em
+// 留下的六处：[行, 起, 止, 词]
+const SPANS = [[0, 11, 13, 0], [0, 6, 9, 1], [1, 4, 5, 2], [2, 19, 20, 3], [2, 2, 4, 4], [2, 10, 10, 5]];
+// 十个字各从哪里浮出来：[行, x, 原文里同一个字的位置（-1 = 换了字）]
+const SRC = [
+  [0, cx(11), 11], [0, (cx(12) + cx(13)) / 2, -1], [0, cx(6), 6], [0, cx(9), 9], [1, cx(4), 4],
+  [2, cx(19), -1], [2, cx(20), -1], [2, cx(3), 3], [2, cx(4), 4], [2, cx(10), 10],
+];
+
+// ---------- 读者的墨团（右侧） ----------
+const BLOB = [948, 300], BLOB_END = [1030, 300];
+const FROST_Y = x => { const s = (x - 802) / 306; return 399 - 16 * s * (1 - s); };
+
+// ---------- 按台词定位：beat 内某个短语开始的时刻 ----------
+function weight(s) {
+  const cjk = (s.match(/[一-鿿]/g) || []).length;
+  const words = (s.match(/[A-Za-z]+/g) || []).length;
+  const digits = (s.match(/\d/g) || []).length;
+  const comma = (s.match(/[，、；,;]/g) || []).length;
+  const colon = (s.match(/[：:]/g) || []).length;
+  const stop = (s.match(/[。？！?!]/g) || []).length;
+  return cjk + words * 1.6 + digits * 0.9 + comma * 1.2 + colon * 1.6 + stop * 2.6;
+}
+
+const el = {};
+let a = {};
+
+function setup({ ctx }) {
+  const B = id => ctx.beat(id);
+  const A = (id, sub, off = -0.15) => {
+    const b = B(id);
+    const i = b.text.indexOf(sub);
+    if (i < 0) throw new Error(`beat ${id} 里找不到 "${sub}"`);
+    const total = weight(b.text.replace(/[。？！，]+$/, ''));
+    return b.start + (weight(b.text.slice(0, i)) / total) * (b.end - b.start) + off;
+  };
+  a = {
+    hTen: A('hook', '十个字'), hTag: [A('hook', '觉得冷'), A('hook', '觉得早'), A('hook', '觉得累')],
+    plain: B('plain').start, pFrame: A('plain', '大白话', -0.5),
+    pLine: [A('plain', '住在', -0.3), A('plain', '月亮', -0.3), A('plain', '走上', -0.3), A('plain', '离家', -0.3)],
+    cut: B('cut-feel').start, c59: A('cut-feel', '将近'), cStrike: A('cut-feel', '删掉'),
+    keep: B('keep-six').start, kDel: A('keep-six', '再删掉', 0.1), kKeep: A('keep-six', '只留下'),
+    lift: [A('keep-six', '鸡声'), A('keep-six', '茅店'), A('keep-six', '月，'), A('keep-six', '人迹'), A('keep-six', '板桥'), A('keep-six', '霜。')],
+    kWen: A('keep-six', '温庭筠'), kTen: A('keep-six', '十个字'), kSweep: A('keep-six', '六个画面'),
+    pairs: B('pairs').start,
+    P: [A('pairs', '鸡声对人迹'), A('pairs', '茅店对板桥'), A('pairs', '月对霜'), B('pairs').end + 0.3],
+    pl: [A('pairs', '听到的'), A('pairs', '看到的'), A('pairs', '茅草搭'), A('pairs', '木板搭'), A('pairs', '天上'), A('pairs', '地上')],
+    uStart: B('unzip-time').start, uRead: A('unzip-time', '鸡声'), uBloom: A('unzip-time', '画面'),
+    uHut: A('unzip-time', '路边'), uCrow: A('unzip-time', '鸡刚叫'), uMoon: A('unzip-time', '月亮'), uRoad: A('unzip-time', '上路', -0.5),
+    fRead: A('unzip-frost', '人迹'), fBridge: A('unzip-frost', '走上板桥'), fFrost: A('unzip-frost', '一层白霜'),
+    fPrints: A('unzip-frost', '霜上已经'), fEarly: A('unzip-frost', '原来有人'),
+    feel: B('unzip-feel').start,
+    e: [A('unzip-feel', '冷', 0), A('unzip-feel', '早'), A('unzip-feel', '累'), A('unzip-feel', '想家')], eAll: A('unzip-feel', '全读出来'),
+    mei: B('meiyaochen').start, mQuote: A('meiyaochen', '含不尽', -0.7), mOut: A('meiyaochen', '意思藏在'), mExample: A('meiyaochen', '他举的'),
+    close: B('close').start, cWork: A('close', '每个字都得'), cPoet: A('close', '所以诗人'), cPress: A('close', '压成十个字'),
+    cReader: A('close', '交给读者'), cUnzip: A('close', '解压回来'), cBeyond: A('close', '字外面'),
+  };
+
+  // ---- 封面 ----
+  el.cover = mk(svg, 'g', { 'text-anchor': 'middle' });
+  mk(el.cover, 'text', { x: 640, y: 222, 'font-size': 128, class: 'brush', fill: C.ink, 'letter-spacing': 14 }, '十个字');
+  mk(el.cover, 'text', { x: 640, y: 296, 'font-size': 34, fill: C.soft, 'letter-spacing': 8 }, '怎么装下一个清晨');
+  el.tags = ['冷', '早', '累'].map((s, i) => mk(svg, 'text', { x: 560 + i * 80, y: 494, 'text-anchor': 'middle', 'font-size': 36, fill: C.mute, opacity: 0 }, s));
+
+  // ---- 大白话框 ----
+  el.para = mk(svg, 'g', { opacity: 0 });
+  mk(el.para, 'rect', { x: 70, y: 46, width: 700, height: 216, rx: 2, fill: 'rgba(42,38,34,0.03)', stroke: C.pri, 'stroke-width': 2 });
+  mk(el.para, 'rect', { x: 76, y: 52, width: 688, height: 204, rx: 1, fill: 'none', stroke: C.pri, 'stroke-width': 0.8, opacity: 0.55 });
+  mk(el.para, 'rect', { x: 86, y: 26, width: 104, height: 40, rx: 2, fill: C.bg, stroke: C.pri, 'stroke-width': 1.4 });
+  mk(el.para, 'text', { x: 138, y: 56, 'text-anchor': 'middle', 'font-size': 28, fill: C.soft }, '大白话');
+  // 留下来的六处：藤黄淡染
+  el.washes = SPANS.map(([l, f, to]) => mk(svg, 'rect', {
+    x: PX + f * FS - 3, y: PB[l] - 27, width: (to - f + 1) * FS + 6, height: 35, rx: 2, fill: C.hi, opacity: 0, filter: 'url(#rough)',
+  }));
+  el.pchars = LINES.map((s, l) => [...s].map((ch, j) => {
+    const span = SPANS.findIndex(([sl, f, to]) => sl === l && j >= f && j <= to);
+    const literal = SRC.findIndex(([sl, , sj]) => sl === l && sj === j);
+    const e = mk(svg, 'text', { x: cx(j), y: PB[l], 'text-anchor': 'middle', 'font-size': FS, fill: C.ink, opacity: 0 }, ch);
+    return { e, l, j, word: span >= 0 ? SPANS[span][3] : -1, literal: literal >= 0 };
+  })).flat();
+  // 朱砂一笔：划掉写心情的那一行
+  el.strike = mk(svg, 'path', { d: 'M92 226 Q320 219 556 228', fill: 'none', stroke: C.warn, 'stroke-width': 5, 'stroke-linecap': 'round' });
+  el.strikeLen = el.strike.getTotalLength();
+
+  // 字数：59 → 10
+  el.c59 = mk(svg, 'text', { x: 868, y: 172, 'text-anchor': 'middle', fill: C.soft, opacity: 0 });
+  mk(el.c59, 'tspan', { 'font-size': 52 }, '59');
+  mk(el.c59, 'tspan', { 'font-size': 30, dx: 8 }, '字');
+  el.cArrow = mk(svg, 'g', { opacity: 0 });
+  el.cLine = mk(el.cArrow, 'line', { x1: 868, y1: 198, x2: 868, y2: 366, stroke: C.pri, 'stroke-width': 2.5, 'stroke-linecap': 'round' });
+  el.cHead = mk(el.cArrow, 'path', { d: 'M868 378 l-9 -15 h18 z', fill: C.pri });
+  el.c10 = mk(svg, 'text', { x: 868, y: 436, 'text-anchor': 'middle', fill: C.ink, opacity: 0 });
+  mk(el.c10, 'tspan', { 'font-size': 52 }, '10');
+  mk(el.c10, 'tspan', { 'font-size': 30, dx: 8 }, '字');
+
+  // ---- 读者的墨团 ----
+  el.blob = mk(svg, 'g', { opacity: 0 });
+  mk(el.blob, 'ellipse', { cx: 0, cy: 0, rx: 236, ry: 206, fill: C.pri, opacity: 0.13, filter: 'url(#wash)' });
+  mk(el.blob, 'ellipse', { cx: -30, cy: -24, rx: 150, ry: 118, fill: C.pri, opacity: 0.08, filter: 'url(#wash2)' });
+  el.readerTag = mk(svg, 'text', { x: BLOB[0], y: 72, 'text-anchor': 'middle', 'font-size': 30, fill: C.user, 'letter-spacing': 4, opacity: 0 }, '读者');
+
+  // 墨团里的小画（都在 hand 滤镜下，像随手勾的几笔）
+  el.motifs = mk(svg, 'g', { filter: 'url(#hand)' });
+  // 茅店
+  el.hut = mk(el.motifs, 'g', { opacity: 0 });
+  mk(el.hut, 'line', { x1: 724, y1: 327, x2: 896, y2: 327, stroke: C.pri, 'stroke-width': 2.5, opacity: 0.5 });
+  mk(el.hut, 'rect', { x: 758, y: 280, width: 92, height: 47, fill: 'none', stroke: C.pri, 'stroke-width': 3 });
+  mk(el.hut, 'rect', { x: 792, y: 297, width: 22, height: 30, fill: C.pri, opacity: 0.85 });
+  mk(el.hut, 'rect', { x: 826, y: 293, width: 14, height: 12, fill: 'none', stroke: C.pri, 'stroke-width': 2 });
+  mk(el.hut, 'path', { d: 'M740 280 L782 228 L822 228 L868 280 Z', fill: C.pri, opacity: 0.8 });
+  for (let x = 746; x <= 862; x += 10) mk(el.hut, 'line', { x1: x, y1: 280, x2: x - 1, y2: 288 + (x % 3) * 2, stroke: C.pri, 'stroke-width': 2.2, opacity: 0.75 });
+  // 鸡鸣：几道短弧
+  el.arcs = [16, 30, 44].map(r => {
+    const a1 = -80 * Math.PI / 180, a2 = -22 * Math.PI / 180, o = [870, 252];
+    return mk(el.motifs, 'path', {
+      d: `M${(o[0] + r * Math.cos(a1)).toFixed(1)} ${(o[1] + r * Math.sin(a1)).toFixed(1)} A${r} ${r} 0 0 1 ${(o[0] + r * Math.cos(a2)).toFixed(1)} ${(o[1] + r * Math.sin(a2)).toFixed(1)}`,
+      fill: 'none', stroke: C.pri, 'stroke-width': 4, 'stroke-linecap': 'round', opacity: 0,
+    });
+  });
+  // 月：留白
+  el.moon = mk(el.motifs, 'g', { opacity: 0 });
+  mk(el.moon, 'circle', { cx: 0, cy: 0, r: 50, fill: C.panel2, opacity: 0.7, filter: 'url(#halo)' });
+  mk(el.moon, 'circle', { cx: 0, cy: 0, r: 34, fill: C.panel2 });
+  mk(el.moon, 'circle', { cx: 0, cy: 0, r: 34, fill: 'none', stroke: C.pri, 'stroke-width': 1.4, opacity: 0.35 });
+  // 上路
+  el.road = mk(el.motifs, 'path', { d: 'M846 330 Q866 372 806 404', fill: 'none', stroke: C.pri, 'stroke-width': 3.5, 'stroke-linecap': 'round', opacity: 0 });
+  el.roadLen = el.road.getTotalLength();
+  // 板桥
+  el.bridge = mk(el.motifs, 'g', { opacity: 0 });
+  el.water = [mk(el.bridge, 'path', { d: 'M772 476 Q955 468 1138 476', fill: 'none', stroke: C.pri, 'stroke-width': 2.5, opacity: 0 }),
+    mk(el.bridge, 'path', { d: 'M812 492 Q955 486 1098 492', fill: 'none', stroke: C.pri, 'stroke-width': 2.5, opacity: 0 })];
+  el.posts = [846, 955, 1064].map(x => mk(el.bridge, 'line', { x1: x, y1: 414, x2: x, y2: 462, stroke: C.pri, 'stroke-width': 5, opacity: 0 }));
+  el.plank = mk(el.bridge, 'path', { d: 'M800 410 Q955 402 1110 410', fill: 'none', stroke: C.pri, 'stroke-width': 18, opacity: 0.85 });
+  el.plankLen = el.plank.getTotalLength();
+  // 霜
+  el.frost = mk(el.motifs, 'g', { opacity: 0 });
+  el.frostBand = mk(el.frost, 'path', { d: 'M802 399 Q955 391 1108 399', fill: 'none', stroke: C.panel2, 'stroke-width': 11, 'stroke-linecap': 'round' });
+  el.frostLen = el.frostBand.getTotalLength();
+  el.glints = [[826, 384], [874, 380], [930, 377], [988, 378], [1040, 380], [1088, 385]].map(([x, y]) =>
+    mk(el.frost, 'circle', { cx: x, cy: y, r: 2.6, fill: C.panel2, opacity: 0 }));
+  // 霜上的脚印
+  el.prints = Array.from({ length: 8 }, (_, j) => {
+    const x = 838 + j * 32, y = FROST_Y(x) + (j % 2 ? 2 : -2);
+    return mk(el.motifs, 'ellipse', { cx: x, cy: y, rx: 10, ry: 4.2, fill: C.pri, transform: `rotate(-6 ${x} ${y.toFixed(1)})`, opacity: 0 });
+  });
+  // 冷 早 累 想家：墨团边缘淡淡浮出
+  el.feels = [['冷', 1150, 336], ['早', 990, 200], ['累', 752, 392], ['想家', 955, 540]].map(([s, x, y]) =>
+    mk(svg, 'text', { x, y, 'text-anchor': 'middle', 'font-size': 40, fill: C.mute, opacity: 0 }, s));
+
+  // ---- 十个格子 ----
+  el.cells = POEM.map(() => {
+    const g = mk(svg, 'g');
+    const flash = mk(g, 'rect', { fill: C.hi, opacity: 0, rx: 1 });
+    const outer = mk(g, 'rect', { fill: 'rgba(42,38,34,0.03)', stroke: C.pri, 'stroke-width': 2, rx: 2 });
+    const inner = mk(g, 'rect', { fill: 'none', stroke: C.pri, 'stroke-width': 0.8, opacity: 0.55, rx: 1 });
+    return { g, flash, outer, inner };
+  });
+
+  // ---- 对仗：三组连线（画在左中布局 G2 上）和注释 ----
+  el.pairs = [0, 1, 2].map(p => {
+    const top = WORDS[p], f = G2(top[0]), l = G2(top[top.length - 1]);
+    const x1 = f[0] + 12, x2 = l[0] + CELL - 12, xc = (f[0] + l[0] + CELL) / 2;
+    const y1 = 170 + CELL + 8, y2 = 170 + RSTEP - 8;
+    const g = mk(svg, 'g', { opacity: 0 });
+    const t1 = mk(g, 'line', { x1, y1, x2, y2: y1, stroke: C.pri, 'stroke-width': 2.5, 'stroke-linecap': 'round' });
+    const v = mk(g, 'line', { x1: xc, y1, x2: xc, y2: y1, stroke: C.pri, 'stroke-width': 2.5, 'stroke-linecap': 'round' });
+    const t2 = mk(g, 'line', { x1, y1: y2, x2, y2, stroke: C.pri, 'stroke-width': 2.5, 'stroke-linecap': 'round' });
+    return { g, t1, v, t2, xc, y1, y2 };
+  });
+  el.plabels = ['听到的', '看到的', '茅草', '木板', '天上', '地上'].map((s, k) => {
+    const p = Math.floor(k / 2), bottom = k % 2 === 1;
+    const top = WORDS[p], f = G2(top[0]), l = G2(top[top.length - 1]);
+    const x = (f[0] + l[0] + CELL) / 2;
+    return mk(svg, 'text', { x, y: bottom ? 170 + RSTEP + CELL + 36 : 170 - 16, 'text-anchor': 'middle', 'font-size': 28, fill: C.soft, opacity: 0 }, s);
+  });
+
+  // ---- 亮起：一抹浓墨压纸色字 ----
+  el.dabs = WORDS.map(() => mk(svg, 'rect', { fill: C.pri, rx: 2, filter: 'url(#rough)', opacity: 0 }));
+
+  // ---- 十个字（从大白话里浮出来，落进格子） ----
+  el.chars = POEM.map(ch => {
+    const g = mk(svg, 'g', { opacity: 0 });
+    const dark = mk(g, 'text', { x: 0, y: (52 * CY_OFF).toFixed(1), 'text-anchor': 'middle', 'font-size': 52, 'font-weight': 700, fill: C.ink }, ch);
+    const light = mk(g, 'text', { x: 0, y: (52 * CY_OFF).toFixed(1), 'text-anchor': 'middle', 'font-size': 52, 'font-weight': 700, fill: C.bg, opacity: 0 }, ch);
+    return { g, dark, light };
+  });
+  el.attr = mk(svg, 'text', { x: 648, y: 550, 'text-anchor': 'end', 'font-size': 28, fill: C.soft, opacity: 0 }, '温庭筠《商山早行》');
+
+  // ---- 梅尧臣 ----
+  el.quote = mk(svg, 'text', { x: 640, y: 470, 'text-anchor': 'middle', 'font-size': 36, fill: C.ink, opacity: 0 }, '“含不尽之意，见于言外”');
+  el.source = mk(svg, 'text', { x: 640, y: 518, 'text-anchor': 'middle', 'font-size': 28, fill: C.soft, opacity: 0 }, '—— 梅尧臣，载于欧阳修《六一诗话》');
+  el.yanwai = mk(svg, 'g', { opacity: 0 });
+  mk(el.yanwai, 'text', { x: 0, y: -19, 'text-anchor': 'middle', 'font-size': 100, class: 'brush', fill: C.ink }, '言');
+  mk(el.yanwai, 'text', { x: 0, y: 91, 'text-anchor': 'middle', 'font-size': 100, class: 'brush', fill: C.ink }, '外');
+
+  // ---- 收尾：诗人压缩，读者解压 ----
+  el.endWash = mk(svg, 'ellipse', { cx: 1045, cy: 290, rx: 130, ry: 80, fill: C.pri, opacity: 0, filter: 'url(#wash2)' });
+  el.poet = mk(svg, 'text', { x: 235, y: 300, 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 700, fill: C.ink, opacity: 0 }, '诗人：压缩');
+  el.reader = mk(svg, 'text', { x: 1045, y: 300, 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 700, fill: C.user, opacity: 0 }, '读者：解压');
+  el.arrTop = mk(svg, 'path', { d: 'M235 262 V128 H1045 V254', fill: 'none', stroke: C.pri, 'stroke-width': 3, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', opacity: 0 });
+  el.arrTopHead = mk(svg, 'path', { d: 'M1045 268 l-9 -15 h18 z', fill: C.pri, opacity: 0 });
+  el.arrBot = mk(svg, 'path', { d: 'M1045 316 V448 H235 V326', fill: 'none', stroke: C.pri, 'stroke-width': 3, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', opacity: 0 });
+  el.arrBotHead = mk(svg, 'path', { d: 'M235 312 l-9 15 h18 z', fill: C.pri, opacity: 0 });
+  el.arrTopLen = el.arrTop.getTotalLength();
+  el.arrBotLen = el.arrBot.getTotalLength();
+}
+
+// ---------- 时刻 t 的状态 ----------
+// 十个字各自的亮度：一次只亮一处，其余降到淡墨
+function charLevel(i, t) {
+  const w = WORD_OF[i], row = i < 5 ? 0 : 1, p = w % 3;
+  const full = Math.max(
+    1 - up(t, a.P[0] - 0.1, 0.4),             // 对仗之前：全亮
+    win(t, a.P[3], a.uRead),                  // 对仗讲完、读者开口之前
+    up(t, a.feel, 0.5),                       // 读出心情以后
+  );
+  const pairW = win(t, a.P[p] - 0.1, a.P[p + 1] - 0.1);
+  const rowW = row === 0 ? win(t, a.uRead, a.fRead) : win(t, a.fRead, a.feel);
+  const lv = DIM + (1 - DIM) * Math.max(full, pairW, rowW);
+  return lv * (1 - 0.45 * win(t, a.mQuote, a.mExample, 0.5, 0.5));   // 引文出现时让一让
+}
+
+// 哪个词正被"亮起"（浓墨一抹）
+function dabK(w, t) {
+  const sweep = win(t, a.kSweep + 0.3 * w, a.kSweep + 0.3 * w + 0.4, 0.12, 0.2);
+  const u = [
+    win(t, a.uCrow, a.uMoon, 0.3, 0.3),          // 鸡声
+    win(t, a.uHut, a.uCrow, 0.3, 0.3),           // 茅店
+    win(t, a.uMoon, a.uRoad, 0.3, 0.3),          // 月
+    win(t, a.fPrints, a.feel - 0.2, 0.3, 0.4),   // 人迹
+    win(t, a.fBridge, a.fFrost, 0.3, 0.3),       // 板桥
+    win(t, a.fFrost, a.fPrints, 0.3, 0.3),       // 霜
+  ][w];
+  return Math.max(sweep, u);
+}
+
+function cellAt(i, t) {
+  const m1 = up(t, a.plain, 1.0), m2 = up(t, a.pairs + 0.2, 1.0), m3 = up(t, a.mei + 0.3, 1.0);
+  const c0 = coverCell(i), g1 = G1(i), g2 = G2(i), g3 = G3(i);
+  return [0, 1, 2].map(k => lerp(lerp(lerp(c0[k], g1[k], m1), g2[k], m2), g3[k], m3));
+}
+
+function seek(t) {
+  // ---- 封面 ----
+  const coverOut = up(t, a.plain - 0.1, 0.6);
+  op(el.cover, 1 - coverOut);
+  el.tags.forEach((e, k) => op(e, up(t, a.hTag[k], 0.4) * (1 - coverOut)));
+
+  // ---- 格子 ----
+  const cells = POEM.map((_, i) => cellAt(i, t));
+  const frameOp = lerp(0.95, 0.45, up(t, a.plain, 0.8)) + 0.3 * up(t, a.keep, 0.6);
+  el.cells.forEach((c, i) => {
+    const [x, y, s] = cells[i];
+    set(c.outer, { x, y, width: s, height: s });
+    set(c.inner, { x: x + 5, y: y + 5, width: s - 10, height: s - 10 });
+    set(c.flash, { x: x + 3, y: y + 3, width: s - 6, height: s - 6 });
+    const pulse = Math.max(
+      win(t, a.hTen + 0.08 * i, a.hTen + 0.08 * i + 0.3, 0.12, 0.35),
+      win(t, a.cWork + 0.1 * i, a.cWork + 0.1 * i + 0.3, 0.12, 0.35),
+    );
+    op(c.flash, 0.6 * pulse);
+    op(c.g, frameOp);
+  });
+
+  // ---- 大白话 ----
+  const paraOut = 1 - up(t, a.pairs, 0.5);
+  const kDim = up(t, a.kDel, 0.8);
+  op(el.para, up(t, a.pFrame, 0.5) * (1 - 0.5 * kDim) * paraOut);
+  const lineLv = a.pLine.map((t0, l) => {
+    const next = l < 3 ? a.pLine[l + 1] : a.cut;
+    return 0.55 + 0.45 * Math.max(win(t, t0, next, 0.3, 0.4), up(t, a.cut, 0.4));
+  });
+  const struck = up(t, a.cStrike + 0.5, 0.4);
+  el.pchars.forEach(c => {
+    let o = up(t, a.pLine[c.l], 0.45) * lineLv[c.l] * paraOut;
+    if (c.l === 3) o *= 1 - 0.65 * struck;
+    if (c.word < 0) o *= 1 - 0.86 * kDim;
+    else {
+      const t0 = a.lift[c.word];
+      o *= c.literal ? (t < t0 ? 1 : 0) : 1 - up(t, t0, 0.25);
+    }
+    op(c.e, o);
+    if (c.word >= 0) c.e.setAttribute('font-weight', t >= a.kKeep ? 700 : 400);
+  });
+  el.washes.forEach((e, k) => op(e, 0.6 * up(t, a.kKeep + 0.12 * k, 0.35) * (1 - up(t, a.lift[SPANS[k][3]], 0.25))));
+  draw(el.strike, el.strikeLen, up(t, a.cStrike, 0.7));
+  op(el.strike, (t >= a.cStrike ? 1 : 0) * (1 - 0.6 * kDim) * paraOut);
+
+  // 字数
+  op(el.c59, up(t, a.c59, 0.5) * (1 - 0.45 * up(t, a.kTen, 0.4)) * paraOut);
+  const ca = up(t, a.kTen - 0.3, 0.6);
+  set(el.cLine, { y2: lerp(198, 366, ca) });
+  op(el.cHead, ca > 0.95 ? 1 : 0);
+  op(el.cArrow, (ca > 0 ? 1 : 0) * paraOut);
+  op(el.c10, up(t, a.kTen + 0.2, 0.5) * paraOut);
+
+  // ---- 十个字 ----
+  el.chars.forEach((c, i) => {
+    const w = WORD_OF[i], t0 = a.lift[w];
+    const [sl, sx, sj] = SRC[i];
+    const sy = PB[sl] - FS * CY_OFF;
+    const [x, y, s] = cells[i];
+    const tx = x + s / 2, ty = y + s / 2;
+    const appear = sj >= 0 ? (t >= t0 ? 1 : 0) : up(t, t0 + 0.25, 0.15);
+    const k = up(t, t0 + 0.4, 0.9);
+    const qx = lerp(sx, tx, 0.3), qy = sy - 36;
+    const px = (1 - k) ** 2 * sx + 2 * (1 - k) * k * qx + k ** 2 * tx;
+    const py = (1 - k) ** 2 * sy + 2 * (1 - k) * k * qy + k ** 2 * ty;
+    place(c.g, px, py, lerp(FS / 52, 1, k));
+    op(c.g, appear * charLevel(i, t));
+    const d = dabK(w, t);
+    op(c.dark, 1 - d);
+    op(c.light, d);
+  });
+  el.dabs.forEach((e, w) => {
+    const ids = WORDS[w], f = cells[ids[0]], l = cells[ids[ids.length - 1]];
+    set(e, { x: f[0] - 4, y: f[1] - 4, width: l[0] + l[2] - f[0] + 8, height: f[2] + 8 });
+    op(e, dabK(w, t));
+  });
+  const m2 = up(t, a.pairs + 0.2, 1.0);
+  set(el.attr, { y: lerp(550, 474, m2) });
+  op(el.attr, up(t, a.kWen, 0.5) * (1 - up(t, a.mei, 0.4)));
+
+  // ---- 对仗 ----
+  el.pairs.forEach((p, k) => {
+    const t0 = a.P[k];
+    const active = Math.max(win(t, t0 - 0.1, a.P[k + 1] - 0.1), win(t, a.P[3], a.uStart));
+    const lv = (0.45 + 0.55 * active) * (1 - up(t, a.uStart, 0.5));
+    op(p.g, up(t, t0, 0.25) * lv);
+    set(p.v, { y2: lerp(p.y1, p.y2, up(t, t0 + 0.15, 0.4)) });
+    op(p.t2, up(t, t0 + 0.5, 0.2));
+  });
+  el.plabels.forEach((e, k) => {
+    const p = Math.floor(k / 2);
+    const active = Math.max(win(t, a.P[p] - 0.1, a.P[p + 1] - 0.1), win(t, a.P[3], a.uStart));
+    op(e, up(t, a.pl[k], 0.35) * (0.45 + 0.55 * active) * (1 - up(t, a.uStart, 0.4)));
+  });
+
+  // ---- 读者：墨团 ----
+  const bloom = up(t, a.uBloom, 1.4, ease.out);
+  const shrink = up(t, a.mei + 0.2, 1.2);
+  place(el.blob, lerp(BLOB[0], BLOB_END[0], shrink), lerp(BLOB[1], BLOB_END[1], shrink), lerp(0.35, 1, bloom) * lerp(1, 0.5, shrink));
+  op(el.blob, bloom * (1 - up(t, a.close, 0.6)));
+  op(el.readerTag, up(t, a.uStart, 0.5) * (1 - up(t, a.mei, 0.4)));
+
+  const motifOut = 1 - up(t, a.mei, 0.6);
+  const mlv = (t0, t1) => (0.55 + 0.45 * win(t, t0, t1, 0.3, 0.5)) * motifOut;
+  op(el.hut, up(t, a.uHut, 0.6) * mlv(a.uHut, a.uCrow));
+  el.arcs.forEach((e, j) => op(e, up(t, a.uCrow + 0.18 * j, 0.3) * mlv(a.uCrow, a.uMoon)));
+  const mk2 = up(t, a.uMoon, 0.8, ease.out);
+  place(el.moon, 1082, 166, lerp(0.7, 1, mk2));
+  op(el.moon, mk2 * mlv(a.uMoon, a.fRead));
+  draw(el.road, el.roadLen, up(t, a.uRoad, 1.0));
+  op(el.road, (t >= a.uRoad ? 0.5 : 0) * mlv(a.uRoad, a.fBridge));
+  draw(el.plank, el.plankLen, up(t, a.fBridge, 0.9));
+  op(el.bridge, (t >= a.fBridge ? 1 : 0) * mlv(a.fBridge, a.feel));
+  el.posts.forEach((e, j) => op(e, up(t, a.fBridge + 0.5 + 0.12 * j, 0.3)));
+  el.water.forEach((e, j) => op(e, 0.3 * up(t, a.fBridge + 0.7 + 0.15 * j, 0.4)));
+  draw(el.frostBand, el.frostLen, up(t, a.fFrost, 0.8));
+  op(el.frost, (t >= a.fFrost ? 1 : 0) * mlv(a.fFrost, a.feel));
+  el.glints.forEach((e, j) => op(e, up(t, a.fFrost + 0.4 + 0.08 * j, 0.25)));
+  const printLv = mlv(a.fPrints, a.feel);
+  el.prints.forEach((e, j) => op(e, up(t, a.fPrints + 0.14 * j, 0.15) * printLv));
+  el.feels.forEach((e, k) => {
+    op(e, up(t, a.e[k], 0.5) * (0.72 + 0.28 * up(t, a.eAll, 0.5)) * motifOut);
+  });
+
+  // ---- 梅尧臣：含不尽之意，见于言外 ----
+  const closeOut = 1 - up(t, a.close, 0.5);
+  op(el.quote, up(t, a.mQuote, 0.6) * (1 - 0.35 * up(t, a.mExample, 0.5)) * closeOut);
+  op(el.source, up(t, a.mQuote + 0.5, 0.6) * (1 - 0.35 * up(t, a.mExample, 0.5)) * closeOut);
+  const yw = up(t, a.mOut, 0.7, ease.out);
+  place(el.yanwai, BLOB_END[0], BLOB_END[1], lerp(0.9, 1, yw));
+  op(el.yanwai, yw * (1 - 0.3 * up(t, a.mExample, 0.5)) * closeOut);
+
+  // ---- 收尾 ----
+  op(el.poet, up(t, a.cPoet, 0.5));
+  op(el.reader, up(t, a.cReader, 0.5));
+  const at = up(t, a.cPress, 1.2, ease.linear), ab = up(t, a.cUnzip, 1.2, ease.linear);
+  draw(el.arrTop, el.arrTopLen, at);
+  op(el.arrTop, at > 0 ? 1 : 0);
+  op(el.arrTopHead, at > 0.97 ? 1 : 0);
+  draw(el.arrBot, el.arrBotLen, ab);
+  op(el.arrBot, ab > 0 ? 1 : 0);
+  op(el.arrBotHead, ab > 0.97 ? 1 : 0);
+  op(el.endWash, 0.16 * up(t, a.cBeyond, 1.0));
+}
+
+mountScene({ setup, seek });
+</script>
+</body>
+</html>
