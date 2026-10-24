@@ -4,7 +4,17 @@
 
 一个 Claude Code 插件：按周生成多模态课程（文字、交互组件、配音动画、小测），由 Claude Code 当你的老师，带你一周一周学下去。
 
-<!-- 截图：docs/screenshots/，v0.1 发布前补 -->
+![课程页（水墨主题）](docs/screenshots/lesson.jpg)
+
+下面的截图都来自用本插件生成的一节演示课：「古诗词鉴赏入门」的 Day 0，学习者是虚构的，没有配 TTS key，所以配音动画是字幕版。
+
+| 首页和迷雾知识地图 | 交互组件：用四层透镜读《绝句》 |
+|---|---|
+| ![hub](docs/screenshots/hub.jpg) | ![交互组件](docs/screenshots/viz.jpg) |
+
+| 配音动画（字幕版） | 三个视觉主题 |
+|---|---|
+| ![配音动画](docs/screenshots/media.jpg) | ![视觉主题](docs/screenshots/themes.jpg) |
 
 ## 它是什么
 
