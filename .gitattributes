@@ -1,0 +1,20 @@
+# 文本文件统一用 LF；Windows 的 .cmd 脚本必须用 CRLF
+* text=auto eol=lf
+*.cmd text eol=crlf
+
+# 二进制文件：不转换换行、不做文本 diff
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.mp3 binary
+*.mp4 binary
+*.wav binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.glb binary
+*.gltf binary
+*.zip binary
