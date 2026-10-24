@@ -1,0 +1,12 @@
+{
+  "name": "chlorophyll-learn-workspace",
+  "private": true,
+  "type": "module",
+  "description": "Chlorophyll-Learn 学习工作区（Claude Code 驱动的多模态学习平台）",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "tts": "node tools/tts.mjs",
+    "qa": "node tools/qa.mjs"
+  }
+}

@@ -1,0 +1,48 @@
+/* iso.css — 等轴测零件的色调和线条（lesson.css / component.css / player.css 都会引入）
+ * 浅色单色 + 一个"亮"的强调（墨色描边）。只有颜色本身就是主题时才用红/绿/蓝（如：出错的请求）。
+ * 色调思路参考 Anatomy skill 的 kit/iso.css（MIT，github.com/wheresryan22/anatomy），数值按本项目重新调过。
+ */
+:root {
+  --iso-paper: #FFFFFF;    /* 零件底色 */
+  --iso-top: #FFFFFF;      /* 顶面 */
+  --iso-s3: #F6F6F3;       /* 侧面：最亮 */
+  --iso-s2: #EEEEEB;
+  --iso-s1: #E6E6E3;
+  --iso-s0: #DADAD7;       /* 侧面：最暗 */
+  --iso-hi: #26262A;       /* 主角零件的线 */
+  --iso-mid: #8A8A8F;      /* 结构 */
+  --iso-lo: #B4B4B8;       /* 底座 */
+  --iso-faint: #D9D9DB;    /* 凹槽、地面网格 */
+  --iso-lit: #000000;      /* 现在要看的那一个 */
+  --iso-red: #E5484D;      /* 颜色就是主题时：出错 */
+  --iso-red-hi: #F7B4B5;
+  --iso-green: #30A46C;
+  --iso-blue: #3E63DD;
+  --iso-weight: .75px;
+  --iso-ease: cubic-bezier(.32, .72, 0, 1);
+}
+
+.iso-face { stroke: var(--iso-lo); stroke-width: var(--iso-weight); stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.iso-top { fill: var(--iso-top); }
+.iso-left { fill: var(--iso-s3); }
+.iso-front { fill: var(--iso-s1); }
+.iso-side { fill: url(#iso-cyl); }
+.iso-solid[data-tone="mid"] .iso-face { stroke: var(--iso-mid); }
+.iso-solid[data-tone="hi"] .iso-face { stroke: var(--iso-hi); }
+.iso-solid[data-tone="ink"] .iso-top { fill: var(--iso-s1); }
+.iso-solid[data-tone="ink"] .iso-front { fill: var(--iso-s0); }
+.iso-solid[data-lit] .iso-face { stroke: var(--iso-lit); stroke-width: 1.15px; }
+
+.iso-line { fill: none; stroke: var(--iso-lo); stroke-width: var(--iso-weight); stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.iso-line[data-tone="hi"] { stroke: var(--iso-hi); }
+.iso-line[data-tone="mid"] { stroke: var(--iso-mid); }
+.iso-line[data-tone="faint"] { stroke: var(--iso-faint); }
+.iso-line[data-tone="lit"] { stroke: var(--iso-lit); stroke-width: 1.15px; }
+.iso-line[data-dash] { stroke-dasharray: 2 3; }
+.iso-dot { fill: var(--iso-mid); stroke: none; }
+.iso-halo { fill: #8a8a80; opacity: .22; filter: blur(8px); }
+
+.iso-ball { fill: url(#iso-ball); stroke: var(--iso-mid); stroke-width: .7px; vector-effect: non-scaling-stroke; }
+.iso-ball[data-kind="bad"] { fill: url(#iso-ball-bad); stroke: #B8353A; }
+.iso-ball[data-kind="flag"] { fill: url(#iso-ball-flag); stroke: var(--iso-hi); }
+.iso-ball[data-kind="ghost"] { fill: none; stroke: var(--iso-faint); }

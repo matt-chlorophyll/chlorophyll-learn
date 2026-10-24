@@ -1,0 +1,91 @@
+/* lh-recall.css — 回指回看（lh-recall.js）的样式，所有主题共用，只用主题 token（见 themes/README.md）。
+ * 主题想换外观，可以在自己的 lesson.css 里覆盖这些类（主题样式排在这个文件后面，同等优先级时主题赢）。 */
+
+/* 正文里的回指：虚下划线 + 一个小小的「回看」标记，和链接（实线）、术语（dfn）区分开 */
+lh-recall {
+  position: relative; display: inline-block; max-width: 100%; cursor: pointer; border-radius: 3px;
+  text-decoration: underline dashed var(--pen); text-decoration-thickness: 1px; text-underline-offset: .28em;
+  transition: background .15s;
+}
+lh-recall::after {
+  content: "回看"; display: inline-block; margin-left: .25em; padding: 0 .38em; border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--pen) 45%, transparent); color: var(--pen);
+  font: 600 .66em/1.5 var(--sans); vertical-align: .18em; text-indent: 0; letter-spacing: 0;
+}
+/* 点击区至少 44px 高：伪元素在文字上下各扩出一截，不影响排版 */
+lh-recall::before { content: ""; position: absolute; left: -2px; right: -2px; top: 50%; height: 44px; transform: translateY(-50%); }
+lh-recall:hover, lh-recall.is-open { background: color-mix(in srgb, var(--pen) 10%, transparent); }
+lh-recall:focus-visible { outline: 2px solid var(--pen); outline-offset: 2px; }
+
+/* 小窗：最上层的弹窗（高于问老师面板 32、犯困了 33，低于提示 40 和暂停层 50）；跟着页面滚动 */
+.lh-recall-pop {
+  position: absolute; z-index: 36; box-sizing: border-box; overflow: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column;
+  background: var(--card, var(--paper)); color: var(--ink); border: 1px solid var(--rule); border-radius: 6px;
+  box-shadow: 0 0 0 3px var(--paper), 0 0 0 4px color-mix(in srgb, var(--pen) 35%, transparent), 0 22px 48px -18px rgba(0, 0, 0, .4);
+  font: 400 14.5px/1.7 var(--sans); text-align: left;
+}
+.lh-recall-pop:focus { outline: none; }
+.lh-recall-pop:focus-visible { outline: 2px solid var(--pen); outline-offset: 3px; }
+.lh-recall-h {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 6px 8px 16px; background: var(--card, var(--paper)); border-bottom: 1px solid var(--rule);
+}
+.lh-recall-h p { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; line-height: 1.45; }
+.lh-recall-h .kind { color: var(--pen); font: 600 12px/1.5 var(--sans); letter-spacing: .04em; }
+.lh-recall-h .where { font-weight: 600; font-size: 14px; }
+.lh-recall-x {
+  flex: none; width: 40px; height: 40px; margin: -6px 0 -6px; border: 0; border-radius: 6px; background: transparent;
+  color: var(--pencil); font: 400 22px/1 var(--sans); cursor: pointer;
+}
+.lh-recall-x:hover { background: var(--paper-2); color: var(--ink); }
+.lh-recall-body { padding: 10px 16px 4px; }
+.lh-recall-body > :first-child, .lh-recall-copy > :first-child, .lh-recall-stem > :first-child { margin-top: 0; }
+.lh-recall-body p, .lh-recall-body ul, .lh-recall-body ol { margin: 0 0 .6em; }
+.lh-recall-body ul:not(.lh-recall-opts), .lh-recall-body ol { padding-left: 1.4em; }
+.lh-recall-body code { font: .92em var(--mono); background: var(--paper-2); padding: 0 .25em; border-radius: 3px; }
+.lh-recall-body pre {
+  margin: .4em 0 .8em; padding: 10px 12px; overflow: auto; background: var(--paper-2); border-radius: 4px;
+  font: 12.5px/1.6 var(--mono); white-space: pre; tab-size: 2;
+}
+.lh-recall-body pre code { background: none; padding: 0; font: inherit; }
+.lh-recall-body mark { background: color-mix(in srgb, var(--marker) 70%, transparent); color: inherit; padding: 0 .1em; }
+.lh-recall-scroll { overflow-x: auto; margin: .4em 0 .8em; }
+.lh-recall-body table { border-collapse: collapse; font-size: 13px; line-height: 1.55; min-width: 100%; }
+.lh-recall-body th, .lh-recall-body td { padding: 5px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; text-align: left; }
+.lh-recall-body th { color: var(--pencil); font-weight: 600; }
+.lh-recall-quote blockquote, .lh-recall-result blockquote {
+  margin: 0 0 .7em; padding: 6px 12px; border-left: 3px solid var(--pen); background: var(--paper-2); border-radius: 0 4px 4px 0;
+}
+.lh-recall-meta, .lh-recall-hint { margin: 0 0 .5em; color: var(--pencil); font-size: 13px; }
+.lh-recall-note { color: var(--ink); }
+
+/* 题目：选项只读（不是按钮），看答案后标出正确答案和你当时的选择 */
+.lh-recall-opts { list-style: none; margin: .4em 0 .6em; padding: 0; }
+.lh-recall-opts li {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 6px 0; padding: 6px 10px;
+  border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); cursor: default;
+}
+.lh-recall-opts .k { flex: none; font-weight: 700; color: var(--pencil); }
+.lh-recall-opts .t { flex: 1; min-width: 0; }
+.lh-recall-opts .tag { flex: none; margin-left: auto; padding: 0 6px; border-radius: 3px; font: 600 11.5px/1.7 var(--sans); }
+.lh-recall-opts li.right { border-color: var(--climb); box-shadow: inset 3px 0 0 var(--climb); }
+.lh-recall-opts li.right .tag { color: var(--climb); border: 1px solid var(--climb); }
+.lh-recall-opts li.was:not(.right) { border-color: var(--red); box-shadow: inset 3px 0 0 var(--red); }
+.lh-recall-opts li.was .tag:last-child { color: var(--red); border: 1px solid var(--red); }
+.lh-recall-opts li.was.right .tag:last-child { color: var(--climb); border-color: var(--climb); }
+.lh-recall-revealrow { margin: 4px 0 10px; }
+.lh-recall-reveal { min-height: 40px; }
+.lh-recall-was { font-weight: 600; }
+.lh-recall-why { padding-top: 8px; border-top: 1px dashed var(--rule); }
+
+.lh-recall-f { display: flex; justify-content: flex-end; padding: 0 10px 6px; }
+.lh-recall-go {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; color: var(--pen); font-weight: 600; font-size: 14px;
+  text-decoration: underline; text-underline-offset: .25em;
+}
+
+/* 「去原文」打开的旧课：短暂标出落点 */
+.lh-recall-target { outline: 3px solid color-mix(in srgb, var(--pen) 55%, transparent); outline-offset: 6px; border-radius: 4px; transition: outline-color 1.2s; }
+html.lh-still .lh-recall-target, html.lh-still lh-recall { transition: none; }
+@media (prefers-reduced-motion: reduce) { lh-recall, .lh-recall-target { transition: none; } }

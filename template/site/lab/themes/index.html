@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>视觉主题</title>
+<style>
+  :root { --bg: #F2F2EF; --card: #FFFFFF; --ink: #1E2229; --soft: #5E6470; --line: #DADBD5; --focus: #3446C2; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.7 "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; }
+  main { max-width: 1240px; margin: 0 auto; padding: 48px 24px 64px; }
+  .back { display: inline-block; margin-bottom: 24px; color: var(--soft); text-decoration: none; font-size: 14px; }
+  .back:hover { color: var(--ink); }
+  h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.3; }
+  .lead { margin: 0; color: var(--soft); max-width: 46em; }
+  ol { list-style: none; margin: 32px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
+  li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+  a.shot { display: block; aspect-ratio: 16 / 10; overflow: hidden; border-bottom: 1px solid var(--line); background: #ddd; }
+  a.shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  h2 { margin: 0; font-size: 18px; line-height: 1.4; }
+  h2 small { font-weight: 400; color: var(--soft); font-size: 14px; margin-left: 6px; }
+  .body p { margin: 0; color: var(--soft); font-size: 14.5px; }
+  .for { color: var(--ink) !important; }
+  .links { margin-top: auto; padding-top: 10px; display: flex; gap: 18px; font-size: 14px; font-weight: 600; }
+  .links a { color: var(--focus); text-decoration: none; }
+  .links a:hover { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  @media (max-width: 420px) { ol { grid-template-columns: 1fr; } main { padding: 32px 16px 48px; } }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/">← 回到首页</a>
+  <h1>视觉主题</h1>
+  <p class="lead">每门课按学科选一个主题，在开新主题时决定。下面三个样例页都是同一节 Day 0，交互组件和配音动画按各自的画法重画过；在这里答题、打卡不会算进学习记录。</p>
+
+  <ol>
+    <li>
+      <a class="shot" href="quest/" target="_blank"><img src="quest/thumb.jpg" alt="今日委托主题首屏"></a>
+      <div class="body">
+        <h2>今日委托<small>quest</small></h2>
+        <p class="for">适合：工程、编程、工具类。</p>
+        <p>现代二次元游戏的 UI 语言：侧边的委托目标读完一段勾一项，术语收进本课图鉴，小测是挑战，打卡是委托完成。</p>
+        <div class="links"><a href="quest/" target="_blank">打开样例</a><a href="/assets/themes/quest/DESIGN.md" target="_blank">设计规范</a></div>
+      </div>
+    </li>
+    <li>
+      <a class="shot" href="ink/" target="_blank"><img src="ink/thumb.jpg" alt="水墨主题首屏"></a>
+      <div class="body">
+        <h2>水墨<small>ink</small></h2>
+        <p class="for">适合：文科，如历史、文学、哲学、艺术、语言。</p>
+        <p>宣纸、墨分五色、竖排书法题头和朱砂印。小测像老师批改：答对画圈，答错朱笔划掉。</p>
+        <div class="links"><a href="ink/" target="_blank">打开样例</a><a href="/assets/themes/ink/DESIGN.md" target="_blank">设计规范</a></div>
+      </div>
+    </li>
+    <li>
+      <a class="shot" href="anatomy/" target="_blank"><img src="anatomy/thumb.jpg" alt="图谱主题首屏"></a>
+      <div class="body">
+        <h2>图谱<small>anatomy</small></h2>
+        <p class="for">适合：数学、金融、物理、理论类。</p>
+        <p>安静的技术图谱，力气花在等轴测"机器"图上：零件随操作移动，读数来自同一个模型。</p>
+        <div class="links"><a href="anatomy/" target="_blank">打开样例</a><a href="/assets/themes/anatomy/DESIGN.md" target="_blank">设计规范</a></div>
+      </div>
+    </li>
+  </ol>
+</main>
+</body>
+</html>

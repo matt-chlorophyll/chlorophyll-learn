@@ -1,0 +1,13 @@
+{
+  "name": "chlorophyll",
+  "owner": { "name": "Matt Yang", "url": "https://github.com/matt-chlorophyll" },
+  "description": "Chlorophyll-Learn：Claude Code 驱动的个人学习平台",
+  "plugins": [
+    {
+      "name": "chlorophyll-learn",
+      "source": "./",
+      "description": "AI 老师 + 多 agent 课件生成：按周生成带配音动画、交互组件和小测的 HTML 课程，记住你的进度并据此调整。中文。",
+      "category": "education"
+    }
+  ]
+}

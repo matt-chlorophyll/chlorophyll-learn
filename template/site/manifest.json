@@ -1,0 +1,18 @@
+{
+  "current": null,
+  "topics": {},
+  "lab": [
+    {
+      "title": "视觉主题",
+      "path": "/lab/themes/"
+    },
+    {
+      "title": "课件样例",
+      "path": "/lab/demo/"
+    },
+    {
+      "title": "示例课：古诗词鉴赏 Day 0",
+      "path": "/lab/example/"
+    }
+  ]
+}

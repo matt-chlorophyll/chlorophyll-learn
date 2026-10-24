@@ -1,0 +1,92 @@
+name: 装不上 / 跑不起来
+description: 安装插件、生成工作区、启动课程网页或运行命令时出错
+title: "[安装] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先确认两件事：Node.js ≥ 22（`node -v`），Claude Code 已登录。
+        不要贴 API key（`.env` 里的内容）。报错里有个人路径或用户名的，可以换成 `<...>`。
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 系统
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - 其他（写在下面）
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: 系统版本
+      placeholder: 例如 Windows 11、macOS 15、Ubuntu 24.04
+    validations:
+      required: false
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js 版本
+      description: 运行 `node -v` 的输出
+      placeholder: v22.12.0
+    validations:
+      required: true
+
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code 版本
+      description: 运行 `claude --version` 的输出
+    validations:
+      required: true
+
+  - type: dropdown
+    id: step
+    attributes:
+      label: 在哪一步
+      options:
+        - 添加 marketplace（/plugin marketplace add）
+        - 安装插件（/plugin install）
+        - 生成工作区（/chlorophyll-learn:setup）
+        - 更新平台（再次运行 /chlorophyll-learn:setup）
+        - 开始新主题（/new-topic）
+        - 生成课程（/build-week）
+        - 每天上课（/today）
+        - 打开课程网页（start.cmd、start.sh、本地服务器）
+        - 配音或导出 mp4（TTS、ffmpeg）
+        - 课程页的「问老师」
+        - QA 截图（Chrome、Edge）
+        - 其他（写在下面）
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 你做了什么，期望看到什么，实际看到了什么。
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: 报错原文
+      description: 终端或浏览器控制台里的报错，原样粘贴。会自动放进代码块。
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 发出前检查
+      options:
+        - label: 我没有贴 API key，也没有贴不想公开的个人信息
+          required: true

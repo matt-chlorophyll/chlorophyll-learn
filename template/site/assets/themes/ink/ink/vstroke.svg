@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 400" preserveAspectRatio="none">
+  <!-- 竖向一笔（stroke.svg 旋转 90°）：用于 Stretch 段的括线、解读文字的左边线 -->
+  <filter id="dry" x="-2%" y="-10%" width="104%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="6" result="edge"/>
+    <feDisplacementMap in="SourceGraphic" in2="edge" scale="5" xChannelSelector="R" yChannelSelector="G" result="rough"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.005 0.36" numOctaves="2" seed="2" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -7 0 0 0 4.75" result="streak"/>
+    <feComposite in="rough" in2="streak" operator="in"/>
+  </filter>
+  <g transform="translate(40 0) rotate(90)">
+    <path filter="url(#dry)" fill="#000" d="M12 7 C5 9 2 16 3 21 C4 29 8 34 17 34 C92 32 176 35 258 32 C318 30 368 29 395 25 C399 22 398 17 393 15 C344 10 300 9 240 7 C162 4 84 5 12 7 Z"/>
+  </g>
+</svg>

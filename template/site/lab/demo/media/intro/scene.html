@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>播放器测试</title>
+<link rel="stylesheet" href="/assets/player.css">
+<script type="importmap">
+{ "imports": { "three": "/assets/vendor/three/three.module.js", "three/addons/": "/assets/vendor/three/addons/" } }
+</script>
+<style>
+  #stage { background: radial-gradient(ellipse at 30% 20%, #1b2550 0%, #0b1020 62%); }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; }
+  svg text { font-family: var(--lh-font); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="gl"></canvas>
+  <svg viewBox="0 0 1280 720">
+    <text x="40" y="56" fill="#8fa3d9" font-size="20" letter-spacing="3">CHLOROPHYLL-LEARN · 播放器测试</text>
+
+    <!-- 封面 / hello -->
+    <g id="title" text-anchor="middle">
+      <text x="640" y="320" fill="#fff" font-size="76" font-weight="700">配音动画测试</text>
+      <g font-size="28">
+        <g id="chip0"><rect x="330" y="384" width="180" height="56" rx="28" fill="#1c2650" stroke="#7c9cff"/><text x="420" y="421" fill="#cfd8ff">① 声画同步</text></g>
+        <g id="chip1"><rect x="550" y="384" width="180" height="56" rx="28" fill="#1c2650" stroke="#7c9cff"/><text x="640" y="421" fill="#cfd8ff">② 中英混读</text></g>
+        <g id="chip2"><rect x="770" y="384" width="180" height="56" rx="28" fill="#1c2650" stroke="#7c9cff"/><text x="860" y="421" fill="#cfd8ff">③ 播放器</text></g>
+      </g>
+    </g>
+
+    <!-- ① 声画同步 -->
+    <g id="sync" text-anchor="middle" opacity="0">
+      <text x="640" y="170" fill="#fff" font-size="44" font-weight="700">① 声画同步</text>
+      <g id="dot0"><circle cx="420" cy="360" r="72" fill="#141c3d" stroke="#3a4a8a" stroke-width="4"/><circle class="glow" cx="420" cy="360" r="72" fill="#7c9cff" opacity="0"/><text x="420" y="382" fill="#fff" font-size="64" font-weight="700">一</text></g>
+      <g id="dot1"><circle cx="640" cy="360" r="72" fill="#141c3d" stroke="#3a4a8a" stroke-width="4"/><circle class="glow" cx="640" cy="360" r="72" fill="#7c9cff" opacity="0"/><text x="640" y="382" fill="#fff" font-size="64" font-weight="700">二</text></g>
+      <g id="dot2"><circle cx="860" cy="360" r="72" fill="#141c3d" stroke="#3a4a8a" stroke-width="4"/><circle class="glow" cx="860" cy="360" r="72" fill="#7c9cff" opacity="0"/><text x="860" y="382" fill="#fff" font-size="64" font-weight="700">三</text></g>
+      <text x="640" y="520" fill="#8fa3d9" font-size="26">听到数字时，对应的圆点应该正好亮起</text>
+    </g>
+
+    <!-- ② 中英混读（3D 部分画在 #gl 上） -->
+    <g id="termsHead" text-anchor="middle" opacity="0">
+      <text x="640" y="130" fill="#fff" font-size="44" font-weight="700">② 中英混读</text>
+      <text x="640" y="176" fill="#8fa3d9" font-size="24">术语读得自然吗？读错的写进发音词表</text>
+    </g>
+
+    <!-- ③ 播放器 -->
+    <g id="ctrl" text-anchor="middle" opacity="0">
+      <text x="640" y="170" fill="#fff" font-size="44" font-weight="700">③ 播放器</text>
+      <rect x="240" y="352" width="800" height="12" rx="6" fill="#2a3566"/>
+      <rect id="ctrlFill" x="240" y="352" width="0" height="12" rx="6" fill="#7c9cff"/>
+      <circle id="knob" cx="240" cy="358" r="18" fill="#fff"/>
+      <g id="speedChip"><rect x="420" y="450" width="140" height="64" rx="14" fill="#1c2650" stroke="#7c9cff" stroke-width="2"/><text x="490" y="494" fill="#fff" font-size="32" font-weight="700">1.25×</text></g>
+      <g id="keyC"><rect x="720" y="450" width="64" height="64" rx="12" fill="#e8ecf8"/><text x="752" y="495" fill="#0b1020" font-size="34" font-weight="700">C</text><text x="830" y="492" fill="#cfd8ff" font-size="26" text-anchor="start">字幕</text></g>
+    </g>
+
+    <!-- 收尾 -->
+    <g id="bye" text-anchor="middle" opacity="0">
+      <circle id="byeRing" cx="640" cy="320" r="90" fill="none" stroke="#7cf0b0" stroke-width="10" stroke-linecap="round" stroke-dasharray="566" stroke-dashoffset="566" transform="rotate(-90 640 320)"/>
+      <path id="byeCheck" d="M598 322 L628 352 L686 292" fill="none" stroke="#7cf0b0" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="130" stroke-dashoffset="130"/>
+      <text x="640" y="480" fill="#fff" font-size="52" font-weight="700">准备就绪</text>
+    </g>
+  </svg>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { mountScene, ease, lerp, clamp } from '/assets/player.js';
+
+const $ = id => document.getElementById(id);
+const TERMS = ['API', 'LLM', 'RAG', 'Agent', 'Claude Code', 'Three.js'];
+let renderer, scene3, camera;
+const cards = [];
+
+function scaleAround(el, cx, cy, s) {
+  el.setAttribute('transform', `translate(${cx} ${cy}) scale(${s}) translate(${-cx} ${-cy})`);
+}
+
+function makeLabel(text) {
+  const c = document.createElement('canvas');
+  c.width = 640; c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = 'rgba(124,156,255,0.16)';
+  g.strokeStyle = '#7c9cff';
+  g.lineWidth = 8;
+  g.beginPath(); g.roundRect(8, 8, 624, 240, 40); g.fill(); g.stroke();
+  g.fillStyle = '#ffffff';
+  g.font = `700 ${text.length > 8 ? 76 : 96}px "Segoe UI", system-ui, sans-serif`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(text, 320, 134);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
+}
+
+mountScene({
+  setup() {
+    renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, alpha: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    scene3 = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(38, 16 / 9, 0.1, 100);
+    camera.position.set(0, 2.2, 11.5);
+    camera.lookAt(0, 0.1, 0);
+    const grid = new THREE.GridHelper(40, 40, 0x2a3870, 0x18214a);
+    grid.position.y = -1.5;
+    scene3.add(grid);
+    for (const term of TERMS) {
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.8, 1.12),
+        new THREE.MeshBasicMaterial({ map: makeLabel(term), transparent: true, depthWrite: false }),
+      );
+      scene3.add(mesh);
+      cards.push(mesh);
+    }
+  },
+
+  resize({ width, height }) {
+    renderer.setSize(width, height, false);
+  },
+
+  seek(t, ctx) {
+    // 封面 / hello：t=0 时标题可见；进入 sync-intro 后淡出
+    const title = 1 - ctx.p('sync-intro', t, { dur: 0.4, ease: ease.linear });
+    $('title').setAttribute('opacity', title);
+    [0, 1, 2].forEach(i => $(`chip${i}`).setAttribute('opacity', ctx.p('hello', t, { at: 0.55 + i * 0.12, dur: 0.35 })));
+
+    // ① 声画同步：每个数字在自己的 beat 开始时亮起
+    $('sync').setAttribute('opacity', ctx.visible(t, 'sync-intro', 'terms'));
+    ['one', 'two', 'three'].forEach((id, i) => {
+      const on = ctx.p(id, t, { dur: 0.12, ease: ease.out });
+      const dot = $(`dot${i}`);
+      dot.querySelector('.glow').setAttribute('opacity', on * 0.9);
+      const pop = Math.sin(Math.PI * clamp((t - ctx.beat(id).start) / 0.35));
+      scaleAround(dot, 420 + i * 220, 360, 1 + 0.16 * pop);
+    });
+
+    // ② 中英混读：3D 术语转盘，按朗读顺序把每个词转到正前方
+    const termsVis = ctx.visible(t, 'terms', 'controls');
+    $('termsHead').setAttribute('opacity', termsVis);
+    $('gl').style.opacity = termsVis;
+    if (termsVis > 0) {
+      let c = 0;
+      for (let i = 1; i < TERMS.length; i++) c += ctx.p('terms', t, { at: 0.42 + i * 0.1, dur: 0.45 });
+      const n = TERMS.length;
+      const R = 4.4;
+      cards.forEach((m, i) => {
+        const theta = ((i - c) / n) * Math.PI * 2;
+        m.position.set(Math.sin(theta) * R, 0.15 + 0.08 * Math.sin(t * 1.7 + i), Math.cos(theta) * R - 1.2);
+        m.rotation.y = Math.sin(theta) * 0.35; // 始终大致朝向镜头，避免背面镜像文字
+        const focus = 1 - Math.min(1, Math.abs(c - i));
+        const lit = focus * ctx.p('terms', t, { at: 0.3, dur: 0.4 });
+        const depth = (Math.cos(theta) + 1) / 2; // 1 = 最前，0 = 最后
+        m.scale.setScalar(1 + 0.25 * lit);
+        m.material.color.setScalar(lerp(0.3 + 0.25 * depth, 1, lit));
+        m.renderOrder = Math.round(depth * 10);
+      });
+      scene3.rotation.x = lerp(0.12, 0.04, ctx.span('terms', t));
+      renderer.render(scene3, camera);
+    }
+
+    // ③ 播放器：模拟拖动进度条、切倍速、按 C
+    $('ctrl').setAttribute('opacity', ctx.visible(t, 'controls', 'bye'));
+    const drag = lerp(0.15, 0.68, ctx.p('controls', t, { at: 0.2, dur: 1.4 }));
+    $('knob').setAttribute('cx', 240 + 800 * drag);
+    $('ctrlFill').setAttribute('width', 800 * drag);
+    scaleAround($('speedChip'), 490, 482, 1 + 0.15 * Math.sin(Math.PI * ctx.p('controls', t, { at: 0.5, dur: 0.5, ease: ease.linear })));
+    scaleAround($('keyC'), 752, 482, 1 + 0.15 * Math.sin(Math.PI * ctx.p('controls', t, { at: 0.72, dur: 0.5, ease: ease.linear })));
+
+    // 收尾：画圈 + 打勾
+    $('bye').setAttribute('opacity', ctx.visible(t, 'bye'));
+    $('byeRing').setAttribute('stroke-dashoffset', 566 * (1 - ctx.p('bye', t, { dur: 0.9 })));
+    $('byeCheck').setAttribute('stroke-dashoffset', 130 * (1 - ctx.p('bye', t, { delay: 0.7, dur: 0.5, ease: ease.out })));
+  },
+});
+</script>
+</body>
+</html>

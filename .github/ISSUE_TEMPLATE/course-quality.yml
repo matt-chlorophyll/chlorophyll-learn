@@ -1,0 +1,91 @@
+name: 课程质量
+description: 生成的课程有事实错误、讲不清、页面坏了、配音或动画有问题、难度或时长不合适
+title: "[课程] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        issue 是公开的。请不要贴 API key。
+        `learner/` 下的学习档案、打卡、「问老师」的内容可能有个人信息，只贴和问题有关的片段；截图前也看一眼。
+
+  - type: input
+    id: topic
+    attributes:
+      label: 主题
+      description: 你在学的主题，或者它的 slug
+      placeholder: 例如 宏观经济学 / macroeconomics
+    validations:
+      required: true
+
+  - type: input
+    id: lesson
+    attributes:
+      label: 第几周第几天
+      placeholder: 例如 第 2 周 d3，或者 Day 0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: part
+    attributes:
+      label: 哪一部分
+      multiple: true
+      options:
+        - 文字讲解
+        - 交互组件
+        - 配音动画的画面
+        - 配音（读音、语速、声音）
+        - 小测、先猜题、热身题
+        - 「问老师」的回答
+        - 难度、时长、内容顺序
+        - 首页或迷雾地图
+        - 其他
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: 用哪一档生成的
+      options:
+        - 完整档（/build-week）
+        - 轻量档（/build-week N lite）
+        - 不确定
+    validations:
+      required: false
+
+  - type: dropdown
+    id: theme
+    attributes:
+      label: 视觉主题
+      options:
+        - quest
+        - ink
+        - anatomy
+        - 不确定
+    validations:
+      required: false
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 哪里不对
+      description: 具体位置（段落标题、组件或动画的名字、第几题），现在是什么样，你觉得应该是什么样。
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图
+      description: 把截图拖进这里。
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 发出前检查
+      options:
+        - label: 我没有贴 API key，也没有贴不想公开的学习记录或个人信息
+          required: true

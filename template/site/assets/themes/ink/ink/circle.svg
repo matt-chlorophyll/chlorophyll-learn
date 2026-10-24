@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 圈：老师批改时画的那一圈。起笔和收笔略有交叠。用作 mask -->
+  <filter id="dry" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="3" result="edge"/>
+    <feDisplacementMap in="SourceGraphic" in2="edge" scale="3.5" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <path filter="url(#dry)" fill="none" stroke="#000" stroke-width="7.5" stroke-linecap="round" d="M66 13 C44 4 14 14 10 44 C6 72 30 93 58 88 C84 83 95 58 89 36 C84 20 70 11 50 13"/>
+</svg>

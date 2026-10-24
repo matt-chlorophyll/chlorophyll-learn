@@ -1,0 +1,45 @@
+name: 建议
+description: 想要的新功能，或者觉得哪里可以改进
+title: "[建议] "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 关于哪一部分
+      options:
+        - 课程内容和教学方法
+        - 老师（对话、「问老师」）
+        - 命令（/new-topic、/today、/build-week）
+        - 课程网页、首页和迷雾地图
+        - 配音和动画
+        - 视觉主题
+        - 安装和更新
+        - 额度和用时
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 遇到了什么情况
+      description: 你在做什么的时候觉得不顺，或者缺了什么。
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: 你的想法
+      description: 希望它怎么做。没想好也可以不写。
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 其他补充
+      description: 现在的变通办法、参考的产品或资料、截图等。
+    validations:
+      required: false

@@ -1,0 +1,11 @@
+{
+  "name": "chlorophyll-learn",
+  "displayName": "Chlorophyll-Learn",
+  "version": "0.1.0",
+  "description": "AI 老师 + 多 agent 课件生成：按周生成带配音动画、交互组件和小测的 HTML 课程，记住你的进度并据此调整。中文。",
+  "author": { "name": "Matt Yang", "url": "https://github.com/matt-chlorophyll" },
+  "homepage": "https://github.com/matt-chlorophyll/chlorophyll-learn",
+  "repository": "https://github.com/matt-chlorophyll/chlorophyll-learn",
+  "license": "MIT",
+  "keywords": ["learning", "tutor", "education", "course", "chinese", "学习"]
+}

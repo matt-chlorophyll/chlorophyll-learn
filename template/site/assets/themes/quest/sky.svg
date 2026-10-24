@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+  <!-- 页面顶部的"天空"线稿：同心圆弧 + 斜向光带 + 点阵。只做氛围，透明度很低 -->
+  <defs>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.3" fill="#4AA3DA" opacity=".28"/>
+    </pattern>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="m"><rect width="1600" height="760" fill="url(#fade)"/></mask>
+  </defs>
+  <g mask="url(#m)">
+    <polygon points="930,0 1100,0 760,760 590,760" fill="#fff" opacity=".22"/>
+    <polygon points="1160,0 1210,0 870,760 820,760" fill="#fff" opacity=".18"/>
+    <g fill="none" transform="translate(1390 40)">
+      <circle r="200" stroke="#fff" stroke-width="1.2" opacity=".85"/>
+      <circle r="282" stroke="#8FD6E6" stroke-width="1" stroke-dasharray="2 7" opacity=".9"/>
+      <circle r="364" stroke="#fff" stroke-width="1" opacity=".7"/>
+      <circle r="446" stroke="#A9C6DD" stroke-width="1" opacity=".35"/>
+    </g>
+    <!-- 圆弧上的几个菱形节点 -->
+    <g fill="#E2A631">
+      <rect x="-5" y="-5" width="10" height="10" transform="translate(1146 158) rotate(45)"/>
+      <rect x="-4" y="-4" width="8" height="8" transform="translate(1046 330) rotate(45)" opacity=".7"/>
+    </g>
+    <g fill="#fff" stroke="#4AA3DA" stroke-width="1">
+      <rect x="-4" y="-4" width="8" height="8" transform="translate(1199 270) rotate(45)"/>
+      <rect x="-3.5" y="-3.5" width="7" height="7" transform="translate(1390 404) rotate(45)"/>
+    </g>
+    <rect x="40" y="30" width="330" height="200" fill="url(#dots)"/>
+  </g>
+</svg>

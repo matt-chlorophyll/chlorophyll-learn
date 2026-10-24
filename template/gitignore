@@ -1,0 +1,17 @@
+# 密钥
+.env
+
+# 依赖与缓存
+node_modules/
+.cache/
+
+# 生成的音频和视频：可由 script.json + tools/tts.mjs、tools/render-video.mjs 重新生成（TTS 结果缓存在 .cache/tts）
+site/**/*.mp3
+site/**/*.mp4
+
+# 临时文件
+*.log
+.tmp/
+
+# 平台更新时的备份
+.chlorophyll/backup/

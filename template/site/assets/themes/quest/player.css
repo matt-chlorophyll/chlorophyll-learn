@@ -1,0 +1,134 @@
+/* themes/quest/player.css — 配音动画播放器「今日委托」主题：明亮的天空舞台 + 深色 HUD（字幕、控制条）
+ * 由 /assets/player.js 按主题加载；场景页通常被课程页用 16:9 iframe 嵌入。
+ * 场景作者用契约 token（--ink --pen --climb …，见 /assets/themes/README.md）或下面的 --lh-* 取色（见 DESIGN.md「配音动画」）。
+ */
+
+@import url("https://cdn.jsdelivr.net/npm/cn-fontsource-smiley-sans-oblique-regular@1.0.1/font.css");
+
+:root {
+  /* 契约 token（和 component.css 同值） */
+  --paper: #F5F8FB; --paper-2: #EAF1F7; --ink: #18243A; --pencil: #5A6A80; --rule: #D5E0EA;
+  --marker: #FFDF85; --pen: #2F5FCC; --climb: #178256; --red: #C8413B; --screen: #EAF4FB;
+  --sans: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+  --display: "Smiley Sans Oblique", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --gold: #E2A631; --sky: #4AA3DA; --sky-ink: #1A6B9E;
+
+  /* 舞台专用 */
+  --lh-font: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --lh-display: "Smiley Sans Oblique", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --lh-mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+
+  --lh-bg: #EAF4FB;        /* 舞台底 */
+  --lh-panel: #FFFFFF;     /* 面板、卡片 */
+  --lh-panel-2: #F1F7FC;   /* 次级面板 */
+  --lh-line: #B6CADC;      /* 未激活的描边 */
+  --lh-accent: #1F7EC2;    /* 主色：激活描边、箭头、点亮的底 */
+  --lh-glow: #58B4E8;      /* 光晕 */
+  --lh-sky: #8FD6E6;       /* 深色 HUD 上的天青（控制条、进度） */
+  --lh-ink: #142038;       /* 标题、强调文字 */
+  --lh-text: #22324D;      /* 正文文字 */
+  --lh-mute: #5A6D88;      /* 次要文字（对比度 5.0） */
+  --lh-gold: #E2A631;      /* 暖金：完成、点缀 */
+  --lh-gold-ink: #946609;  /* 金色文字 */
+  --lh-ok: #17845A;        /* 成功 */
+  --lh-warn: #B9521A;      /* 警示 */
+  --lh-core: #1B2E55;      /* "核心"物件（比如模型）的深色底 */
+}
+
+html, body { margin: 0; height: 100%; background: var(--lh-bg); overflow: hidden; }
+body { font-family: var(--lh-font); color: var(--lh-ink); }
+
+.lh-player { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; outline: none; }
+.lh-frame {
+  position: relative; overflow: hidden; background: var(--lh-bg);
+  width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9;
+  --u: 1px; /* 逻辑单位：舞台宽 1280 个单位，由播放器按实际宽度更新 */
+}
+.lh-player:focus-visible .lh-frame { box-shadow: inset 0 0 0 3px var(--lh-accent); }
+
+/* 场景作者的舞台：逻辑尺寸 1280×720。SVG 用 viewBox="0 0 1280 720"，HTML 元素用 calc(var(--u) * N) */
+#stage { position: absolute; inset: 0; }
+#stage > svg { width: 100%; height: 100%; display: block; }
+
+/* 字幕：深色对白条，在明亮舞台上保证对比度；第二个声音（speaker b）用金色 + 菱形标记 */
+.lh-cc {
+  position: absolute; left: 0; right: 0; bottom: 5%; text-align: center;
+  pointer-events: none; transition: bottom .2s;
+}
+.lh-cc span {
+  display: inline-block; max-width: 86%; padding: .28em .8em; border-radius: calc(var(--u) * 4);
+  background: rgba(20, 32, 56, .86); color: #fff; line-height: 1.45; font-size: calc(var(--u) * 28);
+  box-shadow: inset 0 0 0 calc(var(--u) * 1.5) rgba(255, 255, 255, .14);
+}
+.lh-cc span.b { color: #FFD27A; }
+.lh-cc span.b::before {
+  content: ""; display: inline-block; width: .32em; height: .32em; margin: 0 .5em .12em 0; vertical-align: middle;
+  background: #FFD27A; transform: rotate(45deg);
+}
+.lh-cc span:empty, .lh-player.cc-off .lh-cc { display: none; }
+.lh-player:not(.idle) .lh-cc, .lh-player:not(.playing) .lh-cc { bottom: calc(5% + 46px); }
+
+/* 开始/重播按钮：只在开头（封面）和结尾出现，墨蓝胶囊 + 内圈金线 */
+.lh-big {
+  position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%);
+  display: none; align-items: center; gap: 12px; height: 52px; padding: 0 28px 0 8px;
+  border: 0; border-radius: 26px; cursor: pointer;
+  background: var(--lh-ink); color: #fff; font: 600 18px var(--lh-font);
+  box-shadow: inset 0 0 0 4px var(--lh-ink), inset 0 0 0 5px rgba(226, 166, 49, .85), 0 14px 30px -10px rgba(20, 32, 56, .55);
+  transition: transform .15s;
+}
+.lh-big .ico {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  background: var(--lh-gold); color: var(--lh-ink); font-size: 14px; padding-left: 2px;
+}
+.lh-big .t { font-variant-numeric: tabular-nums; opacity: .7; font-weight: 500; }
+.lh-big:hover { transform: translateX(-50%) scale(1.04); }
+.lh-big:focus-visible { outline: 3px solid var(--lh-accent); outline-offset: 3px; }
+.lh-player.at-start .lh-big, .lh-player.at-end .lh-big { display: flex; }
+.lh-player.playing .lh-big { display: none; }
+.lh-player.at-start .lh-cc, .lh-player.at-end .lh-cc { display: none; }
+
+/* 控制条：深色磨砂 HUD 条（和字幕对白条同一种材质），在明亮舞台和旧的深色舞台上都清楚；beat 刻度是小菱形 */
+.lh-controls {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 46px; padding: 0 12px;
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(20, 32, 56, .78); border-top: 1px solid rgba(255, 255, 255, .14);
+  backdrop-filter: blur(8px); transition: opacity .25s;
+  font: 500 13px var(--lh-font); color: #fff;
+}
+.lh-player.playing.idle .lh-controls { opacity: 0; }
+.lh-player.playing.idle { cursor: none; }
+.lh-controls button, .lh-controls .lh-dl {
+  display: inline-grid; place-items: center;
+  background: none; border: 0; color: #fff; cursor: pointer; font: inherit; text-decoration: none;
+  min-width: 34px; height: 30px; border-radius: 15px; padding: 0 8px;
+}
+.lh-controls button:hover, .lh-controls .lh-dl:hover { background: rgba(255, 255, 255, .14); }
+.lh-controls button:focus-visible, .lh-controls .lh-dl:focus-visible { outline: 2px solid var(--lh-sky); outline-offset: 1px; }
+.lh-controls .lh-ccbtn.on { color: var(--lh-sky); font-weight: 700; }
+/* 下载 mp4（导出过才出现）：细描边胶囊，前面一个小菱形 */
+.lh-controls .lh-dl { display: inline-flex; gap: 6px; padding: 0 10px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35); font-size: 12px; letter-spacing: .02em; }
+.lh-controls .lh-dl::before { content: ""; width: 5px; height: 5px; transform: rotate(45deg); background: var(--lh-gold); }
+.lh-time { font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, .82); min-width: 84px; }
+.lh-bar { position: relative; flex: 1; height: 20px; cursor: pointer; touch-action: none; margin: 0 6px; }
+.lh-bar::before { content: ""; position: absolute; left: 0; right: 0; top: 8px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .22); }
+.lh-fill { position: absolute; left: 0; top: 8px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--lh-glow), var(--lh-sky)); width: 0; }
+.lh-fill::after { /* 播放头：金色菱形 */
+  content: ""; position: absolute; right: -6px; top: -4px; width: 12px; height: 12px;
+  background: var(--lh-gold); transform: rotate(45deg); box-shadow: 0 0 0 2px rgba(20, 32, 56, .9);
+}
+.lh-tick {
+  position: absolute; top: 7px; width: 6px; height: 6px; margin-left: -3px; transform: rotate(45deg);
+  background: rgba(20, 32, 56, .9); box-shadow: 0 0 0 1px rgba(255, 255, 255, .7);
+}
+
+/* 出错时的提示层（reviewer 会截图看到） */
+.lh-error {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(120, 0, 0, .85); color: #fff; font: 16px var(--lh-mono); padding: 24px; text-align: center; white-space: pre-wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

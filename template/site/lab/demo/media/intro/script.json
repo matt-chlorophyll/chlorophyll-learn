@@ -1,0 +1,16 @@
+{
+  "beats": [
+    { "id": "hello", "text": "你好！这是 Chlorophyll-Learn 的配音动画测试，大约四十秒，用来检查三件事。" },
+    { "id": "sync-intro", "speaker": "b", "text": "第一件事交给我：声音和画面是否同步。听到数字的时候，对应的圆点应该正好亮起。", "pauseAfter": 0.5 },
+    { "id": "one", "speaker": "b", "text": "一。", "pauseAfter": 0.45 },
+    { "id": "two", "speaker": "b", "text": "二。", "pauseAfter": 0.45 },
+    { "id": "three", "speaker": "b", "text": "三。", "pauseAfter": 0.7 },
+    { "id": "terms", "text": "第二件事：中文里夹着英文术语时，读得自不自然。比如 API、LLM、RAG、Agent、Claude Code，还有 Three.js。" },
+    {
+      "id": "controls", "speaker": "b",
+      "text": "第三件事：播放器本身。你可以拖动进度条、切换 1.25 倍速，或者按 C 键开关字幕。",
+      "say": "第三件事：播放器本身。你可以拖动进度条、切换一点二五倍速，或者按 C 键开关字幕。"
+    },
+    { "id": "bye", "text": "如果这些都正常，我们就可以开始做真正的课程了。" }
+  ]
+}

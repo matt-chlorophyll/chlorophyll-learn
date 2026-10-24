@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node tools/*)",
+      "PowerShell(node tools/*)",
+      "Bash(ffmpeg *)",
+      "Bash(ffprobe *)",
+      "PowerShell(ffmpeg *)",
+      "PowerShell(ffprobe *)",
+      "Bash(curl -s http://127.0.0.1:4321/*)",
+      "Bash(cmd //c start*)",
+      "PowerShell(Start-Process http://localhost:4321/*)",
+      "Bash(date*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "PowerShell(git status*)",
+      "PowerShell(git diff*)",
+      "PowerShell(git log*)",
+      "PowerShell(git add *)",
+      "PowerShell(git commit *)",
+      "WebSearch",
+      "WebFetch",
+      "Bash(./start.sh*)",
+      "Bash(open http://localhost:4321/*)",
+      "Bash(xdg-open http://localhost:4321/*)",
+      "Bash(git init*)",
+      "PowerShell(curl -s http://127.0.0.1:4321/*)",
+      "Bash(git push)",
+      "PowerShell(git push)"
+    ]
+  }
+}

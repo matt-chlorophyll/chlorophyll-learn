@@ -1,0 +1,96 @@
+/* themes/ink/component.css — 主题「墨」的交互组件样式和 token：与课程页同一套纸、墨和颜料
+ *
+ * 画法：组件是课程页里的一页册页。背景是纸，图形用墨线和墨色晕染；
+ * 状态先靠墨色深浅（墨分五色）区分，颜料只做点缀：朱砂 = 危险/出错，石绿 = 正确/完成，花青 = 概念标签，赭石 = 被发现的错误。
+ * 颜色和字体一律用下面的变量，不写死 hex。笔触纹理在 /assets/themes/ink/ink/*.svg，可以当 mask 用（.ink-stroke / .ink-vstroke）。
+ */
+
+@import url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css");
+@import url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css");
+
+:root {
+  --paper: #EEEAE0;
+  --paper-2: #E4DFD2;
+  --silk: #D9DDD8;
+  --ink-jiao: #15130F;
+  --ink-nong: #2A2622;
+  --ink-zhong: #57514A;
+  --ink-dan: #8C857A;
+  --ink-qing: #C9C2B4;
+  --zhu: #A3301D;
+  --huaqing: #2E5770;
+  --shilv: #386A54;
+  --tenghuang: #E4C766;
+  --zheshi: #9A6838;
+
+  /* 平台通用名（以后的组件用这些） */
+  --ink: var(--ink-nong);
+  --pencil: var(--ink-zhong);
+  --rule: var(--ink-qing);
+  --marker: var(--tenghuang);
+  --pen: var(--huaqing);
+  --climb: var(--shilv);
+  --red: var(--zhu);
+  --screen: var(--paper-2);     /* 画布舞台：熟宣/绢的底色，不再是深色屏幕 */
+  --on-ink: #F6F1E7;            /* 压在浓墨上的字 */
+
+  --kai: "LXGW WenKai", "Noto Serif SC", "KaiTi", "STKaiti", serif;
+  --brush: "Ma Shan Zheng", "LXGW WenKai", "KaiTi", serif;
+  --sans: var(--kai);
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, "LXGW WenKai", monospace;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--paper) url("ink/paper.svg") repeat; background-size: 420px 420px; }
+body { margin: 0; padding: 22px; color: var(--ink-nong); font: 400 15.5px/1.65 var(--kai); -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--huaqing); outline-offset: 3px; border-radius: 2px; }
+
+h1, h2, h3 { margin: 0 0 .5em; font-weight: 700; line-height: 1.35; color: var(--ink-jiao); }
+h3 { font-size: 16px; }
+p { margin: 0 0 .7em; }
+code { font: .88em var(--mono); background: var(--paper-2); padding: .1em .35em; border-radius: 2px; }
+
+/* 控件：次按钮 = 细墨线框；按下/主按钮 = 一抹浓墨 */
+button {
+  padding: 7px 14px; border: 1px solid var(--ink-dan); border-radius: 2px; background: transparent; color: var(--ink-nong);
+  font: 700 14.5px/1.4 var(--kai); cursor: pointer; transition: border-color .15s, background .15s, color .15s;
+}
+button:hover { border-color: var(--ink-nong); background: color-mix(in srgb, var(--ink-nong) 6%, transparent); }
+button.primary, button[aria-pressed="true"] { background: var(--ink-nong); color: var(--on-ink); border-color: var(--ink-nong); }
+button:disabled { opacity: .5; cursor: default; }
+
+/* 滑块：一道清墨细线，墨走到哪（--fill，运行时写入）线就浓到哪；拖的是一个墨点 */
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: linear-gradient(to right, var(--ink-nong) var(--fill, 0%), var(--ink-qing) var(--fill, 0%)); }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7.5px; border-radius: 50% 46% 52% 48%;
+  background: var(--ink-nong); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink-nong) 14%, transparent);
+}
+input[type=range]::-moz-range-track { height: 3px; background: var(--ink-qing); }
+input[type=range]::-moz-range-progress { height: 3px; background: var(--ink-nong); }
+input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: var(--ink-nong); }
+input[type=range]:focus-visible { outline-offset: 2px; }
+input[type=checkbox], input[type=radio] { accent-color: var(--ink-nong); }
+input[type=text], input[type=number], select, textarea {
+  padding: 6px 9px; border: 1px solid var(--ink-qing); border-radius: 2px; background: color-mix(in srgb, #fff 32%, transparent);
+  color: var(--ink-nong); font: 400 14.5px/1.5 var(--kai);
+}
+label { font-size: 14.5px; }
+
+/* 常用布局 */
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.stack { display: grid; gap: 12px; }
+.muted { color: var(--ink-zhong); font-size: 13.5px; }
+.panel { padding: 14px 16px; border-top: 1px solid var(--ink-dan); border-bottom: 1px solid var(--ink-dan); background: color-mix(in srgb, var(--paper-2) 70%, transparent); }
+.stage { position: relative; width: 100%; overflow: hidden; background: var(--screen); box-shadow: inset 0 0 0 1px var(--ink-qing); }
+.stage canvas { display: block; width: 100%; height: 100%; }
+.mark { background: color-mix(in srgb, var(--tenghuang) 70%, transparent); padding: 0 .15em; }
+.ok { color: var(--shilv); }
+.bad { color: var(--zhu); }
+
+/* 笔触 mask：<span class="ink-stroke"></span> 给宽高和 background-color 就是一笔墨 */
+.ink-stroke { -webkit-mask: url("ink/stroke.svg") center / 100% 100% no-repeat; mask: url("ink/stroke.svg") center / 100% 100% no-repeat; background: var(--ink-nong); }
+.ink-vstroke { -webkit-mask: url("ink/vstroke.svg") center / 100% 100% no-repeat; mask: url("ink/vstroke.svg") center / 100% 100% no-repeat; background: var(--ink-nong); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }

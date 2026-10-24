@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="lh-theme" content="ink">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>为什么 demo 能跑，产品却不一定能用</title>
+<link rel="stylesheet" href="/assets/component.css">
+<style>
+  /* 画法：100 个请求 = 100 个墨点。正确 = 重墨点，静默出错 = 朱砂点 + ×，明确报错 = 赭石点 + !（形状 + 颜色双重区分） */
+  :root {
+    --ok: var(--ink-zhong);
+    --silent: var(--zhu);
+    --flag: var(--zheshi);
+  }
+  .wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 16px; }
+
+  /* 结果区：墨点 + 数字 */
+  .result { display: grid; grid-template-columns: auto 1fr; gap: 14px 30px; align-items: start; }
+  .gridbox { margin: 0; }
+  .gtitle { margin: 0 0 8px; font: 700 13.5px/1.4 var(--kai); color: var(--ink-zhong); letter-spacing: .04em; }
+  #grid { display: block; width: 220px; height: 220px; }
+  .dot circle { fill: var(--ok); transition: fill .3s; }
+  .dot .x, .dot .bang { display: none; }
+  .dot.silent circle { fill: var(--silent); }
+  .dot.silent .x { display: inline; }
+  .dot.flag circle { fill: var(--flag); }
+  .dot.flag .bang { display: inline; }
+  .x { stroke: var(--on-ink); stroke-width: 1.9; stroke-linecap: round; fill: none; }
+  .bang line { stroke: var(--on-ink); stroke-width: 2; stroke-linecap: round; }
+  .bang circle { fill: var(--on-ink) !important; }
+
+  .info { min-width: 0; }
+  .lbl { display: block; font: 700 13.5px/1.4 var(--kai); color: var(--ink-zhong); letter-spacing: .04em; }
+  .num { display: block; font: 700 50px/1.05 var(--kai); font-variant-numeric: tabular-nums; color: var(--ink-jiao); }
+  .num.done { color: var(--shilv); }
+  .formula { margin: 4px 0 0; font-size: 13.5px; color: var(--ink-zhong); }
+  .legend { list-style: none; margin: 12px 0 10px; padding: 0; display: grid; gap: 4px; font-size: 14.5px; }
+  .legend li { display: flex; align-items: center; gap: 7px; }
+  .legend svg { flex: none; width: 16px; height: 16px; }
+  .legend b { font-weight: 700; white-space: nowrap; }
+  .cnt { min-width: 2.2ch; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+  .legend .muted { font-size: 13px; }
+  .calls { margin: 0; font-size: 14.5px; }
+  .calls b { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .say { position: relative; min-height: calc(2 * 1.65em + 4px); margin: 12px 0 0; padding: 2px 0 2px 16px; font-size: 15px; line-height: 1.65; }
+  .say::before { content: ""; position: absolute; left: 0; top: 2px; bottom: 2px; width: 6px; background: var(--ink-nong);
+    -webkit-mask: url("/assets/themes/ink/ink/vstroke.svg") center / 100% 100% no-repeat; mask: url("/assets/themes/ink/ink/vstroke.svg") center / 100% 100% no-repeat; }
+  .say.done::before { background: var(--shilv); }
+
+  /* 控件区 */
+  .controls { display: grid; gap: 12px; padding: 14px 4px; }
+  .presets { gap: 8px; }
+  .presets button { padding: 5px 12px; font-size: 14px; }
+  .ctl2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 30px; }
+  .ctl { min-width: 0; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 700; color: var(--ink-jiao); }
+  .head b { font-variant-numeric: tabular-nums; font-size: 16px; }
+  .ctl input[type=range] { display: block; margin: 4px 0 2px; }
+  .tag { margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink-zhong); }
+  .layer {
+    display: inline-block; margin-right: 6px; padding: 0 6px; border: 1px solid var(--huaqing); border-radius: 2px;
+    color: var(--huaqing); font: 700 12.5px/18px var(--kai); white-space: nowrap; letter-spacing: .04em;
+  }
+  .plus { margin-right: 6px; color: var(--huaqing); font-weight: 700; }
+  .seg { display: flex; gap: 6px; margin: 4px 0 4px; }
+  .seg button { flex: 1; padding: 4px 0; font-size: 14px; }
+  .toggle { display: inline-flex; align-items: center; gap: 9px; font-size: 15.5px; font-weight: 700; color: var(--ink-jiao); cursor: pointer; }
+  .toggle input { width: 17px; height: 17px; margin: 0; cursor: pointer; }
+  .sep { border-top: 1px solid var(--ink-qing); padding-top: 10px; }
+
+  .challenge { margin: 0; padding: 7px 12px; border: 1px dashed var(--ink-dan); border-radius: 2px; font-size: 14px; }
+  .challenge .badge { display: none; margin-right: 7px; padding: 0 7px; border-radius: 2px; background: var(--shilv); color: var(--on-ink); font: 700 12.5px/19px var(--kai); }
+  .challenge.done { border: 1px solid var(--shilv); }
+  .challenge.done .badge { display: inline-block; }
+  .challenge.done .pre { display: none; }
+  .note { margin: -4px 0 0; font-size: 12.5px; line-height: 1.6; }
+
+  @media (max-width: 560px) {
+    .result { grid-template-columns: 1fr; }
+    .ctl2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="result">
+    <figure class="gridbox">
+      <figcaption class="gtitle">100 个用户请求</figcaption>
+      <svg id="grid" viewBox="0 0 220 220" role="img" aria-label="100 个用户请求"><defs><filter id="dab" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.16" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.8" xChannelSelector="R" yChannelSelector="G"/></filter></defs><g id="dots" filter="url(#dab)"></g></svg>
+    </figure>
+    <div class="info">
+      <span class="lbl">端到端成功率</span>
+      <span class="num" id="E">77%</span>
+      <p class="formula" id="formula"></p>
+      <ul class="legend">
+        <li><svg viewBox="-8 -8 16 16" aria-hidden="true"><g class="dot"><circle r="7.5"/></g></svg><b>正确</b><span class="cnt" id="cOk"></span></li>
+        <li><svg viewBox="-8 -8 16 16" aria-hidden="true"><g class="dot silent"><circle r="7.5"/><path class="x" d="M-3,-3L3,3M3,-3L-3,3"/></g></svg><b>静默出错</b><span class="cnt" id="cSilent"></span><span class="muted">用户拿到错答案，没人发现</span></li>
+        <li><svg viewBox="-8 -8 16 16" aria-hidden="true"><g class="dot flag"><circle r="7.5"/><g class="bang"><line x1="0" y1="-4" x2="0" y2="1"/><circle cy="3.6" r="1.1"/></g></g></svg><b>明确报错</b><span class="cnt" id="cFlag"></span><span class="muted">系统发现了，可以提示用户或转人工</span></li>
+      </ul>
+      <p class="calls">平均每个请求调用模型 <b id="calls">5.0</b> 次（≈ 成本和等待时间）</p>
+      <p class="say" id="say" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div class="controls panel">
+    <div class="row presets" role="group" aria-label="预设：只改步骤数">
+      <span class="muted">先点预设，再拖滑块：</span>
+      <button type="button" data-preset="single" data-n="1">一次问答（1 步）</button>
+      <button type="button" data-preset="workflow" data-n="5">固定流程（5 步）</button>
+      <button type="button" data-preset="agent" data-n="15">Agent 任务（15 步）</button>
+    </div>
+
+    <div class="ctl2">
+      <div class="ctl">
+        <label class="head" for="p"><span>单步成功率</span><b id="pv"></b></label>
+        <input type="range" id="p" min="80" max="99.9" step="0.1" value="95">
+        <p class="tag"><span class="layer">上下文</span>指令和资料给得好不好</p>
+      </div>
+      <div class="ctl">
+        <label class="head" for="n"><span>步骤数</span><b id="nv"></b></label>
+        <input type="range" id="n" min="1" max="20" step="1" value="5">
+        <p class="tag"><span class="layer">控制</span>流程设计，能少一步就少一步</p>
+      </div>
+    </div>
+
+    <div class="sep">
+      <label class="toggle"><input type="checkbox" id="checks"> 加上检查和重试</label>
+    </div>
+
+    <div class="ctl2" id="checkCtl" hidden>
+      <div class="ctl">
+        <label class="head" for="d"><span>检查能发现多少错误</span><b id="dv"></b></label>
+        <input type="range" id="d" min="0" max="99" step="1" value="80">
+        <p class="tag"><span class="layer">检验</span>格式检查、规则校验</p>
+      </div>
+      <div class="ctl" role="group" aria-labelledby="kLbl">
+        <div class="head"><span id="kLbl">最多重试次数</span><b id="kv"></b></div>
+        <div class="seg" id="kSeg">
+          <button type="button" data-k="0">0 次</button>
+          <button type="button" data-k="1">1 次</button>
+          <button type="button" data-k="2">2 次</button>
+          <button type="button" data-k="3">3 次</button>
+        </div>
+        <p class="tag"><span class="layer">控制</span><span class="plus">+</span><span class="layer">运维</span>重试，代价是成本和等待</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="challenge" id="challenge"><span class="badge">挑战完成</span><span class="pre">挑战：</span>在「Agent 任务（15 步）」下，把成功率拉到 90% 以上。看看要付出多少次调用。</p>
+  <p class="muted note">简化假设：每一步相互独立；检查发现错误就重试这一步；检查没发现的错误会一直传到最后；重试用完还没成功，就停下报错。</p>
+</div>
+
+<script type="module">
+import { emit } from '/assets/component.js';
+
+const $ = id => document.getElementById(id);
+const st = { p: 95, n: 5, checks: false, d: 80, k: 1 };
+const sent = { checks: false, challenge: false };
+
+// ---- 模型（见页面底部的简化假设）----
+function model({ p, n, checks, d, k }) {
+  const P = p / 100, D = checks ? d / 100 : 0, K = checks ? k : 0;   // 关闭检查 = d 0、k 0
+  const q = (1 - P) * D;                                              // 失败且被发现
+  let A = 0;                                                          // 这一步的期望尝试次数
+  for (let i = 0; i <= K; i++) A += q ** i;
+  const S = P * A;                                                    // 单步最终成功
+  const Fs = (1 - P) * (1 - D) * A;                                   // 单步静默出错
+  const Fl = q ** (K + 1);                                            // 单步明确报错（重试用完）
+  const E = S ** n;
+  const rest = 1 - E;
+  const silent = Fs + Fl > 0 ? rest * Fs / (Fs + Fl) : 0;
+  let geo = 0;
+  for (let j = 0; j < n; j++) geo += (1 - Fl) ** j;                   // 明确报错会终止流程
+  return { E, S, silent, flag: rest - silent, calls: A * geo };
+}
+
+// ---- 格式 ----
+const fmtP = v => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+function fmtE(E) {
+  const v = E * 100;
+  if (v >= 99) return (Math.floor(v * 10) / 10).toFixed(1);          // ≥99% 显示一位小数
+  const r = Math.round(v);
+  if (v < 90 && r >= 90) return (Math.floor(v * 10) / 10).toFixed(1); // 不把 89.6% 显示成 90%
+  return String(r);
+}
+function fmtS(S) {
+  const v = S * 100;
+  if (v >= 99) return (Math.floor(v * 100) / 100).toFixed(2);
+  return v.toFixed(1).replace(/\.0$/, '');
+}
+
+// ---- 10×10 网格：固定种子的伪随机顺序，同样的数字永远是同样的图案 ----
+function mulberry32(a) {
+  return () => {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const order = [...Array(100).keys()];
+{
+  const rnd = mulberry32(20261016);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+}
+const svg = $('grid');
+const layer = $('dots');   // 墨点都画在这一层：整层加毛边滤镜，每个点的边缘都不一样
+const NS = 'http://www.w3.org/2000/svg';
+const dots = order.map(() => null);
+for (let i = 0; i < 100; i++) {
+  const g = document.createElementNS(NS, 'g');
+  g.setAttribute('class', 'dot');
+  g.setAttribute('transform', `translate(${11 + (i % 10) * 22} ${11 + Math.floor(i / 10) * 22})`);
+  g.innerHTML = '<circle r="8.6"/><path class="x" d="M-3.2,-3.2L3.2,3.2M3.2,-3.2L-3.2,3.2"/>'
+    + '<g class="bang"><line x1="0" y1="-4.4" x2="0" y2="1.1"/><circle cy="3.9" r="1.2"/></g>';
+  layer.append(g);
+  dots[i] = g;
+}
+
+// ---- 控件 ----
+const pIn = $('p'), nIn = $('n'), dIn = $('d'), chk = $('checks');
+const presetBtns = [...document.querySelectorAll('[data-preset]')];
+const kBtns = [...document.querySelectorAll('[data-k]')];
+
+pIn.addEventListener('input', () => { st.p = Math.round(Number(pIn.value) * 10) / 10; update(); });
+nIn.addEventListener('input', () => { st.n = Number(nIn.value); update(); });
+dIn.addEventListener('input', () => { st.d = Number(dIn.value); update(); });
+chk.addEventListener('change', () => {
+  st.checks = chk.checked;
+  if (st.checks && !sent.checks) { sent.checks = true; emit('viz_reliability_checks_on', {}); }
+  update();
+});
+presetBtns.forEach(b => b.addEventListener('click', () => {
+  st.n = Number(b.dataset.n);
+  nIn.value = st.n;
+  emit('viz_reliability_preset', { preset: b.dataset.preset });
+  update();
+}));
+kBtns.forEach(b => b.addEventListener('click', () => { st.k = Number(b.dataset.k); update(); }));
+
+function update() {
+  const m = model(st);
+  const { p, n, checks } = st;
+  const E = fmtE(m.E), calls = m.calls.toFixed(1);
+  const done = n >= 15 && m.E >= 0.9;
+
+  // 控件状态
+  $('pv').textContent = `${fmtP(p)}%`;
+  pIn.setAttribute('aria-valuetext', `${fmtP(p)}%`);
+  $('nv').textContent = `${n} 步`;
+  nIn.setAttribute('aria-valuetext', `${n} 步`);
+  $('dv').textContent = `${st.d}%`;
+  dIn.setAttribute('aria-valuetext', `${st.d}%`);
+  $('kv').textContent = `${st.k} 次`;
+  $('checkCtl').hidden = !checks;
+  presetBtns.forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.n) === n)));
+  kBtns.forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.k) === st.k)));
+
+  // 数字
+  $('E').textContent = `${E}%`;
+  $('E').classList.toggle('done', done);
+  $('formula').textContent = checks
+    ? `= 算上检查和重试，单步 ${fmtS(m.S)}%，连乘 ${n} 次`
+    : n === 1 ? '= 单步成功率本身' : `= 单步 ${fmtP(p)}% 连乘 ${n} 次`;
+  $('calls').textContent = calls;
+
+  // 网格：四舍五入，静默 = 100 − 正确 − 报错
+  const ok = Math.round(m.E * 100);
+  const fl = Math.min(Math.round(m.flag * 100), 100 - ok);
+  const si = 100 - ok - fl;
+  order.forEach((cell, rank) => {
+    dots[cell].setAttribute('class', rank < ok ? 'dot' : rank < ok + fl ? 'dot flag' : 'dot silent');
+  });
+  $('cOk').textContent = ok;
+  $('cSilent').textContent = si;
+  $('cFlag').textContent = fl;
+  svg.setAttribute('aria-label', `100 个用户请求：正确 ${ok} 个，静默出错 ${si} 个，明确报错 ${fl} 个`);
+
+  // 解读
+  let say;
+  if (done) say = `做到了：${n} 步，成功率 ${E}%，平均每个请求调用 ${calls} 次。`;
+  else if (!checks && n === 1) say = p >= 90
+    ? `只问一次，${fmtP(p)}% 看起来很好。这就是 demo。`
+    : `只问一次，成功率就是单步的 ${fmtP(p)}%。把步骤数往上拖，看看会怎样。`;
+  else if (!checks) say = `单步 ${fmtP(p)}%，${n} 步之后只剩 ${E}%。失败的那些全是静默的：用户拿到错答案，系统不知道。`;
+  else if (ok === 100) say = '100 个里几乎全对。检查抓不住的那一小部分错误仍然存在，只能靠上线前的测试问题提前发现。';
+  else if (m.silent >= m.flag) say = '剩下的错误大多是检查没抓住的，只能靠上线前的测试问题提前发现。';
+  else say = `大部分错误被发现了，可以提示用户或转人工。代价：平均每个请求调用模型 ${calls} 次。`;
+  $('say').textContent = say;
+  $('say').classList.toggle('done', done);
+
+  if (done) $('challenge').classList.add('done');
+  if (done && !sent.challenge) {
+    sent.challenge = true;
+    emit('viz_reliability_challenge_done', {
+      p, n, d: checks ? st.d : 0, k: checks ? st.k : 0,
+      success: Math.round(m.E * 1000) / 10, calls: Math.round(m.calls * 10) / 10,
+    });
+  }
+}
+
+update();
+</script>
+</body>
+</html>
