@@ -400,9 +400,12 @@ lh-quiz .opts button.right .k::after {
 lh-quiz .opts button.wrong .k { color: var(--zhu); }
 lh-quiz .opts button.wrong span:last-child { text-decoration: line-through; text-decoration-color: var(--zhu); text-decoration-thickness: 2px; }
 lh-quiz .opts button.dim { opacity: .6; }
+/* 选了「还不确定」不算答错，用花青；.verdict.soft 也用于先猜没猜中 */
+lh-quiz .opts button.unsure .k { color: var(--huaqing); }
 lh-quiz .verdict { margin: 12px 0 0; font: 700 16px/1.6 var(--kai); }
 lh-quiz .verdict.ok { color: var(--shilv); }
 lh-quiz .verdict.no { color: var(--zhu); }
+lh-quiz .verdict.soft { color: var(--huaqing); }
 lh-quiz .why { margin-top: 10px; padding: 14px 18px; background: var(--paper-2); font: 400 15.5px/1.85 var(--kai); }
 lh-quiz .why > :last-child { margin-bottom: 0; }
 lh-quiz .why[hidden] { display: none; }

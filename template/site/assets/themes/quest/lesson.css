@@ -423,12 +423,18 @@ lh-quiz .opts button.wrong .k { color: #fff; }
 lh-quiz .opts button.wrong .k::before { background: var(--red); border-color: var(--red); }
 lh-quiz .opts button.wrong span:last-child { text-decoration: line-through; text-decoration-color: var(--red); }
 lh-quiz .opts button.dim { opacity: .5; }
+/* 选了「还不确定」不算答错，用中性的蓝色；.verdict.soft 也用于先猜没猜中 */
+lh-quiz .opts button.unsure { border-color: var(--pen); border-style: dashed; }
+lh-quiz .opts button.unsure .k { color: #fff; }
+lh-quiz .opts button.unsure .k::before { background: var(--pen); border-color: var(--pen); }
 lh-quiz .verdict { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; font: 700 15px/1.6 var(--sans); }
 lh-quiz .verdict::before { content: "✓"; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #fff; font-size: 12px; line-height: 1; }
 lh-quiz .verdict.ok { color: var(--climb); }
 lh-quiz .verdict.ok::before { background: var(--climb); }
 lh-quiz .verdict.no { color: var(--red); }
 lh-quiz .verdict.no::before { content: "×"; background: var(--red); font-size: 15px; }
+lh-quiz .verdict.soft { color: var(--pen); }
+lh-quiz .verdict.soft::before { content: "→"; background: var(--pen); }
 lh-quiz .why {
   margin-top: 10px; padding: 12px 16px; background: #F2F8FC; border-left: 2px solid var(--sky);
   font: 400 15px/1.8 var(--sans);

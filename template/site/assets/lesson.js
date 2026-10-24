@@ -10,7 +10,7 @@
 // - 犯困了：提示框 .lh-sleepy 列出马上能做的几件事，可以从这里直接暂停；每次点开记一条 lesson_sleepy
 // - 回指回看（lh-recall.js）：正文里的 <lh-recall> 点开小窗，看之前学过的题、讲解、留言的快照
 // - 从回看的「去原文」打开（?from=recall）时只读：不计时，不记进度、作答和打卡，停在锚点上
-// - QA 钩子 window.__LESSON：{ ready, theme, slots, errors, sections, quizzes, recalls, est }
+// - QA 钩子 window.__LESSON：{ ready, theme, slots, errors, sections, quizzes, guesses, recalls, est }
 //
 // DOM 结构、类名和状态由这里统一生成，所有主题都一样；主题只负责外观（CSS）和装饰（theme.js 的 setup）。
 
@@ -21,7 +21,7 @@ import { createRecall, land } from './lh-recall.js';
 
 const main = document.querySelector('main.lesson');
 const PAGE = location.pathname;
-const QA = (window.__LESSON = { ready: false, theme: null, slots: { total: 0, filled: 0, missing: [] }, errors: [], warnings: [], sections: [], quizzes: 0, recalls: 0, est: 0 });
+const QA = (window.__LESSON = { ready: false, theme: null, slots: { total: 0, filled: 0, missing: [] }, errors: [], warnings: [], sections: [], quizzes: 0, guesses: 0, recalls: 0, est: 0 });
 addEventListener('error', e => QA.errors.push(`${e.message} @ ${e.filename}:${e.lineno}`));
 addEventListener('unhandledrejection', e => QA.errors.push(`unhandledrejection: ${e.reason}`));
 
@@ -81,6 +81,7 @@ const DEFAULTS = {
     media: '配音动画',
     viz: '交互',
     quiz: (n, total) => `小测 ${n}/${total}`,
+    guess: '先猜',
     reveal: '回想题',
     done: '已打卡',
     statRoute: '路线',
@@ -334,7 +335,12 @@ addEventListener('message', e => {
 
 // ---------- 小测 ----------
 
-function setupChoice(q, id, sec) {
+// 先猜题（id p1、p2…，选择题或回想题）：猜错是预期的，标「先猜」，不占小测编号，不计入正确率；事件里记 guess: true
+const GUESS_ID = /^p\d+$/;
+// 「还不确定」选项（诊断题的 data-k="x"）：不算答错，显示中性的提示；事件里记 unsure: true
+const UNSURE = 'x';
+
+function setupChoice(q, id, sec, guess) {
   const answer = (q.getAttribute('answer') || '').trim().toLowerCase();
   const list = q.querySelector(':scope > ul, :scope > ol');
   const why = q.querySelector(':scope > .why');
@@ -358,27 +364,34 @@ function setupChoice(q, id, sec) {
 
   const show = (choice, fresh) => {
     const right = choice === answer;
+    const unsure = !right && choice === UNSURE;
     for (const b of buttons) {
       b.disabled = true;
       if (b.dataset.k === answer) b.classList.add('right');
-      else if (b.dataset.k === choice) b.classList.add('wrong');
+      else if (b.dataset.k === choice) b.classList.add(unsure ? 'unsure' : 'wrong');
       else b.classList.add('dim');
     }
     q.classList.add('is-answered');
     q.classList.toggle('is-right', right);
-    q.classList.toggle('is-wrong', !right);
+    q.classList.toggle('is-wrong', !right && !unsure);
+    q.classList.toggle('is-unsure', unsure);
+    const A = answer.toUpperCase(), next = why ? '先看解析' : '往下看讲解';
     verdict.hidden = false;
-    verdict.className = `verdict ${right ? 'ok' : 'no'}`;
-    verdict.textContent = right ? '答对了。' : `不对，正确答案是 ${answer.toUpperCase()}。`;
+    verdict.className = `verdict ${right ? 'ok' : unsure || guess ? 'soft' : 'no'}`;
+    verdict.textContent = right ? (guess ? '猜中了。' : '答对了。')
+      : unsure ? `没关系，正确答案是 ${A}，${next}。`
+      : guess ? `没猜中，答案是 ${A}。猜错很正常，${next}。`
+      : `不对，正确答案是 ${A}。`;
     if (why) why.hidden = false;
-    emit('quiz', { id, q, kind: 'choice', right, choice, fresh });
+    emit('quiz', { id, q, kind: 'choice', right, unsure, guess, choice, fresh });
   };
   const prev = store.get(`quiz:${id}`, null);
   if (prev) show(prev.choice, false);
   buttons.forEach(b => b.addEventListener('click', e => {
     const choice = b.dataset.k;
     if (!READONLY) store.set(`quiz:${id}`, { choice });
-    log('quiz_answer', { id, sec, kind: 'choice', choice, correct: choice === answer });
+    const unsure = choice === UNSURE && choice !== answer;
+    log('quiz_answer', { id, sec, kind: 'choice', choice, correct: choice === answer, ...(guess && { guess: true }), ...(unsure && { unsure: true }) });
     q.style.setProperty('--hit-x', `${e.offsetX}px`); // 主题做"从点击处扩散"之类的效果时用
     q.style.setProperty('--hit-y', `${e.offsetY}px`);
     show(choice, true);
@@ -386,7 +399,7 @@ function setupChoice(q, id, sec) {
 }
 
 const SELF = [['got', '想对了'], ['partial', '想到一部分'], ['missed', '没想到']];
-function setupReveal(q, id, sec) {
+function setupReveal(q, id, sec, guess) {
   const why = q.querySelector(':scope > .why');
   if (!why) { QA.warnings.push(`小测 ${id}（reveal）缺少 .why 参考答案`); return; }
   const qbox = h('div', { class: 'q' });
@@ -403,9 +416,9 @@ function setupReveal(q, id, sec) {
     q.classList.add('is-answered');
     if (!quiet && !READONLY) {
       store.set(`quiz:${id}`, { self: k, note: note.value });
-      log('quiz_answer', { id, sec, kind: 'reveal', self: k, correct: k === 'got' ? 1 : k === 'partial' ? 0.5 : 0, note: note.value.slice(0, 500) });
+      log('quiz_answer', { id, sec, kind: 'reveal', self: k, correct: k === 'got' ? 1 : k === 'partial' ? 0.5 : 0, note: note.value.slice(0, 500), ...(guess && { guess: true }) });
     }
-    emit('quiz', { id, q, kind: 'reveal', self: k, fresh: !quiet });
+    emit('quiz', { id, q, kind: 'reveal', self: k, guess, fresh: !quiet });
   };
   for (const [k, label] of SELF) self.append(h('button', { type: 'button', 'data-k': k, onclick: () => rate(k) }, label));
   const open = () => { why.hidden = false; self.hidden = false; btn.parentElement.hidden = true; q.classList.add('is-open'); };
@@ -415,7 +428,8 @@ function setupReveal(q, id, sec) {
 }
 
 const allQuiz = [...main.querySelectorAll('lh-quiz')];
-const choiceTotal = allQuiz.filter(q => q.getAttribute('type') !== 'reveal').length;
+const isGuess = q => GUESS_ID.test(q.getAttribute('id') || '');
+const choiceTotal = allQuiz.filter(q => q.getAttribute('type') !== 'reveal' && !isGuess(q)).length;
 const quizIds = new Set();
 let choiceN = 0;
 for (const q of allQuiz) {
@@ -424,9 +438,12 @@ for (const q of allQuiz) {
   quizIds.add(id);
   const sec = sectionOf(q);
   const isReveal = q.getAttribute('type') === 'reveal';
-  (isReveal ? setupReveal : setupChoice)(q, id, sec);
-  q.prepend(h('div', { class: 'lh-qlabel' }, isReveal ? T.labels.reveal : T.labels.quiz(++choiceN, choiceTotal)));
-  QA.quizzes++;
+  const guess = isGuess(q);
+  (isReveal ? setupReveal : setupChoice)(q, id, sec, guess);
+  if (guess) q.classList.add('is-guess');
+  q.prepend(h('div', { class: 'lh-qlabel' }, guess ? T.labels.guess : isReveal ? T.labels.reveal : T.labels.quiz(++choiceN, choiceTotal)));
+  if (guess) QA.guesses++;
+  else QA.quizzes++;
 }
 
 // ---------- 回指回看 ----------

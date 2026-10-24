@@ -29,6 +29,11 @@ const events = (await readFile(FILE, 'utf8')).split(/\r?\n/).filter(Boolean).fla
   try { return [JSON.parse(l)]; } catch { return []; }
 }).filter(e => (!since || e.ts >= since) && (!until || e.ts < until));
 
+// 先猜题：id p1、p2…，选择题和回想题都有（新事件另有 guess: true）。「还不确定」：选项 x（新事件另有 unsure: true），和答错分开写
+const isGuess = a => a.guess === true || /^p\d+$/.test(a.id);
+const isUnsure = a => a.unsure === true || (a.kind === 'choice' && a.choice === 'x' && a.correct !== true);
+const missOf = a => (a.kind === 'reveal' ? `${a.id}(自评 ${a.self})` : isUnsure(a) ? `${a.id}(还不确定)` : `${a.id}(选 ${a.choice})`);
+
 // 写回看快照用：一节课里每道题的第一次作答、打卡和留言，原样带上 ts（快照的 data-at）
 if (answersOf) {
   const evs = events.filter(e => e.page === answersOf || e.page === `${answersOf}index.html`);
@@ -37,7 +42,7 @@ if (answersOf) {
   for (const a of evs.filter(e => e.type === 'quiz_answer')) {
     if (seen.has(a.id)) continue;
     seen.add(a.id);
-    console.log(a.kind === 'reveal' ? `- 题 ${a.id}：自评 ${a.self}${a.note ? `，写了 ${JSON.stringify(a.note)}` : ''}（${a.ts}）` : `- 题 ${a.id}：选 ${a.choice}${a.correct ? '（对）' : ''}（${a.ts}）`);
+    console.log(a.kind === 'reveal' ? `- 题 ${a.id}：自评 ${a.self}${a.note ? `，写了 ${JSON.stringify(a.note)}` : ''}（${a.ts}）` : `- 题 ${a.id}：选 ${a.choice}${a.correct ? '（对）' : isUnsure(a) ? '（还不确定）' : ''}（${a.ts}）`);
   }
   const ck = evs.filter(e => e.type === 'checkin').at(-1);
   console.log(ck ? `- 打卡 ts=${ck.ts}：上面没列出的题，算当时跳过了（data-was="skip"）` : '- 没有打卡记录：没列出的题写不了 data-was，小窗会显示"没找到当时的作答"');
@@ -90,15 +95,21 @@ for (const [key, evs] of [...lessons].sort((a, b) => a[1][0].ts.localeCompare(b[
     out.push(`- 犯困 ${sleepy.length} 次：${sleepy.map(e => `已学 ${Math.floor((e.active_s || 0) / 60)} 分钟，${e.title ? `读到「${e.title}」` : '还没读到第 1 段'}（${e.ts.slice(11, 16)}）`).join('；')}`);
   }
 
-  // 小测：每题只算第一次作答
+  // 小测：每题只算第一次作答。先猜题单独一行，不计入得分
   const firstAnswer = new Map();
   for (const a of of('quiz_answer')) if (!firstAnswer.has(a.id)) firstAnswer.set(a.id, a);
   if (firstAnswer.size) {
     const all = [...firstAnswer.values()];
-    const score = all.reduce((s, a) => s + (a.correct === true ? 1 : a.correct === false ? 0 : Number(a.correct) || 0), 0);
-    const misses = all.filter(a => a.correct !== true && a.correct !== 1)
-      .map(a => (a.kind === 'reveal' ? `${a.id}(自评 ${a.self})` : `${a.id}(选 ${a.choice})`));
-    out.push(`- 小测 ${all.length} 题，得分 ${score}/${all.length} = ${Math.round((score / all.length) * 100)}%${misses.length ? `；没拿满：${misses.join('，')}` : ''}`);
+    const scored = all.filter(a => !isGuess(a)), guesses = all.filter(isGuess);
+    if (scored.length) {
+      const score = scored.reduce((s, a) => s + (a.correct === true ? 1 : a.correct === false ? 0 : Number(a.correct) || 0), 0);
+      const misses = scored.filter(a => a.correct !== true && a.correct !== 1).map(missOf);
+      out.push(`- 小测 ${scored.length} 题${guesses.length ? '（不含先猜）' : ''}，得分 ${score}/${scored.length} = ${Math.round((score / scored.length) * 100)}%${misses.length ? `；没拿满：${misses.join('，')}` : ''}`);
+    }
+    if (guesses.length) {
+      const misses = guesses.filter(a => a.correct !== true && a.correct !== 1).map(missOf);
+      out.push(`- 先猜 ${guesses.length} 题（不计分），猜中 ${guesses.length - misses.length}${misses.length ? `；没猜中：${misses.join('，')}` : ''}`);
+    }
   }
 
   const ck = of('checkin').at(-1);

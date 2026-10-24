@@ -248,9 +248,12 @@ lh-quiz .opts button.wrong { background: #FDF3F3; box-shadow: inset 2px 0 0 var(
 lh-quiz .opts button.wrong .k { color: var(--red); }
 lh-quiz .opts button.wrong span:last-child { text-decoration: line-through; text-decoration-color: var(--red); }
 lh-quiz .opts button.dim { color: var(--pencil); }
+/* 选了「还不确定」不算答错，用中性的蓝色；.verdict.soft 也用于先猜没猜中 */
+lh-quiz .opts button.unsure .k { color: var(--pen); }
 lh-quiz .verdict { margin: 14px 0 0; font: 600 15px/1.6 var(--sans); }
 lh-quiz .verdict.ok { color: var(--climb); }
 lh-quiz .verdict.no { color: var(--red); }
+lh-quiz .verdict.soft { color: var(--pen); }
 lh-quiz .why { margin-top: 10px; padding: 14px 16px; background: var(--paper); border-radius: 8px; font: 400 15px/1.8 var(--sans); }
 lh-quiz .why > :last-child { margin-bottom: 0; }
 lh-quiz .why[hidden] { display: none; }

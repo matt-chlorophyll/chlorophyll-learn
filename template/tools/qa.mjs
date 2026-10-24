@@ -159,6 +159,7 @@ try {
     report.est = L.est;
     report.sections = L.sections;
     report.quizzes = L.quizzes;
+    report.guesses = L.guesses;
     report.missing = L.slots.missing;
     report.warnings.push(...L.warnings.map(w => `[lesson] ${w}`));
     L.errors.forEach(e => err('lesson', e));
@@ -240,7 +241,7 @@ await mkdir(OUT, { recursive: true });
 await writeFile(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2) + '\n');
 const mediaMin = report.media.reduce((a, m) => a + (m.duration || 0), 0) / 60;
 console.log(`QA ${lessonPath}${only ? `${only.kind}/${only.id}` : ''}`);
-console.log(`  预计 ${report.est} 分钟（其中配音动画共 ${mediaMin.toFixed(1)} 分钟），${report.sections?.length ?? 0} 段，${report.quizzes ?? 0} 道小测，${report.media.length} 个配音动画，${report.viz.length} 个交互组件`);
+console.log(`  预计 ${report.est} 分钟（其中配音动画共 ${mediaMin.toFixed(1)} 分钟），${report.sections?.length ?? 0} 段，${report.quizzes ?? 0} 道小测${report.guesses ? `（另有 ${report.guesses} 道先猜）` : ''}，${report.media.length} 个配音动画，${report.viz.length} 个交互组件`);
 console.log(`  错误 ${report.errors.length}，警告 ${report.warnings.length}，截图 ${report.screenshots.length} 张 → ${fwd(path.relative(ROOT, OUT))}/`);
 for (const e of report.errors) console.log(`  ✗ ${e}`);
 for (const w of report.warnings) console.log(`  ⚠ ${w}`);

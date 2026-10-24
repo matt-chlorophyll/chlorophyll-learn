@@ -51,7 +51,7 @@ themes/<名字>/
 - 正文元素：`mark`、`dfn`（术语，运行时收集成 `api.codex`）、`p.takeaway`、`pre > code` + `button.lh-copy`、`table`
 - 配音动画 `figure.lh-slot.lh-media.wide > .screen > iframe` + `figcaption > span.kind + span.ttl + span.dur`
 - 交互组件 `figure.lh-slot.lh-viz[.wide] > iframe` + `figcaption > span.kind + span.ttl + span.hint`
-- 小测 `lh-quiz`（作答后 `.is-answered`，选择题再加 `.is-right` / `.is-wrong`，回想题看过答案 `.is-open`）：`.lh-qlabel`、`.q`、`ul.opts > li > button[.right/.wrong/.dim] > span.k + span`、`p.verdict.ok/.no`、`.why`；回想题另有 `textarea`、`.reveal-row > button.reveal`、`.self > button[.picked]`。点击位置在 `--hit-x`、`--hit-y`
+- 小测 `lh-quiz`（作答后 `.is-answered`，选择题再加 `.is-right` / `.is-wrong` / `.is-unsure`（选了「还不确定」），回想题看过答案 `.is-open`；先猜题一直有 `.is-guess`）：`.lh-qlabel`、`.q`、`ul.opts > li > button[.right/.wrong/.unsure/.dim] > span.k + span`、`p.verdict.ok/.no/.soft`（`.soft`：选了「还不确定」或先猜没猜中，用中性色）、`.why`；回想题另有 `textarea`、`.reveal-row > button.reveal`、`.self > button[.picked]`。点击位置在 `--hit-x`、`--hit-y`
 - 打卡 `lh-checkin`（已打卡 `.is-done`）`> .lh-stub`：
   - 表单：`h2`、`p.sub`、`form > .lh-field`（`label`、`span.hint`、`input`、`textarea`）、`fieldset.lh-field > legend`、`.lh-scale > label > input[type=radio] + span.key + span.dt`、`.lh-chips > label > input[type=checkbox]`、`button.lh-btn`、`p.lh-err`
   - 结算：`.lh-done > .lh-reward[.celebrate] > .lh-emblem`（空，给主题放徽记）`+ .lh-rtext > h2.rt + p.rs`；`dl.lh-stats > div > dt + dd > small`；`p.lh-done-msg`；`p.lh-done-edit > button.lh-btn.ghost`
@@ -102,7 +102,7 @@ export function setup(api) {
   // api.theme / main / head（.lesson-head）/ top / toc / route / sections（{ el, id, title, min, stretch, index }）
   // api.codex（{ text, sec, el, got }）/ est / h(tag, props, ...kids) / store / qa（QA 模式）/ current / seen / finished()
   // api.on('progress', ({ current, seen, finished, done, total }) => …)   当前段或读过的段变了（订阅时立刻收到一次当前状态）
-  // api.on('quiz', ({ id, q, kind, right, self, fresh }) => …)            作答；fresh = 这次是学习者刚点的
+  // api.on('quiz', ({ id, q, kind, right, unsure, guess, self, fresh }) => …) 作答；fresh = 这次是学习者刚点的
   // api.on('checkin', ({ fresh, box, reward, emblem }) => …)              打卡结算渲染；fresh = 刚提交（只在这时放庆祝动效）
 }
 ```

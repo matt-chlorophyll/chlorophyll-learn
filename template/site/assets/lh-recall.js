@@ -145,7 +145,8 @@ export function createRecall({ h, main, page, log, warn, paused, onOpen }) {
     if (!was) return '没找到当时的作答。';
     if (was.v === 'skip') return '当时跳过了。';
     if (reveal) return `你当时的自评：${SELF[was.v] ?? was.v}。`;
-    return was.v === answer ? `你当时选了 ${was.v.toUpperCase()}，答对了。` : `你当时选了 ${was.v.toUpperCase()}。`;
+    if (was.v === answer) return `你当时选了 ${was.v.toUpperCase()}，答对了。`;
+    return was.v === 'x' ? '你当时选了「还不确定」。' : `你当时选了 ${was.v.toUpperCase()}。`;
   }
 
   function copyBody(snap) {
