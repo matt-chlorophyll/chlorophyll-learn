@@ -1,0 +1,767 @@
+/* themes/quest/lesson.css — 课程页「今日委托」主题（结构契约见 /assets/themes/README.md）
+ *
+ * 视觉约定：
+ * - 每天的课是一张"今日委托"：侧边一直可见的「委托目标」（运行时的 nav.lh-toc，菱形节点，读过变金），
+ *   页头委托卡（时间分配细条 + 本课图鉴），小测是"挑战"，课末打卡是"委托完成"——整页唯一一个编排好的庆祝动效。
+ * - 游戏感只放在边缘和结构上（双线框、菱形、天青渐变、暖金点缀）；正文栏不加框、不加装饰，保持安静。
+ * - 右侧页边仍是"现在不用管"的区域：🔭 后面会讲（蓝）、🧗 Stretch（绿）。
+ */
+
+@import url("https://cdn.jsdelivr.net/npm/cn-fontsource-smiley-sans-oblique-regular@1.0.1/font.css");
+
+:root {
+  /* ---- 颜色（契约 token：paper paper-2 ink pencil rule marker pen climb red screen） ---- */
+  --paper: #F5F8FB;       /* 页面底色：带一点天空蓝的白 */
+  --paper-2: #EAF1F7;     /* 行内代码、输入框底、次级面板 */
+  --card: #FFFFFF;        /* 双线框里的面板 */
+  --ink: #18243A;         /* 正文、标题：墨蓝 */
+  --pencil: #5A6A80;      /* 次要文字 */
+  --rule: #D5E0EA;        /* 细分隔线 */
+  --line: #A9C6DD;        /* 结构线：双线框内线、路线 */
+  --line-soft: #D3E4F1;   /* 双线框外线 */
+  --sky: #4AA3DA;         /* 天青：当前位置、结构强调 */
+  --sky-2: #8FD6E6;       /* 浅青：渐变 */
+  --sky-ink: #1A6B9E;     /* 天青色文字（对比度 5.4） */
+  --gold: #E2A631;        /* 暖金：完成、菱形点缀（只做填充和描边） */
+  --gold-ink: #8C6210;    /* 金色文字（对比度 5.1） */
+  --gold-soft: #FFF4D6;   /* 一句话总结的底 */
+  --marker: #FFDF85;      /* 荧光笔：每段最该记住的一句 */
+  --pen: #2F5FCC;         /* 🔭 后面会讲、链接 */
+  --climb: #178256;       /* 🧗 Stretch、答对 */
+  --red: #C8413B;         /* 答错、缺失组件、超时 */
+  --screen: #EAF4FB;      /* 配音动画舞台底色（明亮的天空舞台） */
+
+  /* ---- 字体 ---- */
+  --display: "Smiley Sans Oblique", "Noto Sans SC", "Microsoft YaHei", sans-serif;  /* 得意黑：标题、编号、大数字、系统标签 */
+  --sans: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;   /* 正文和界面 */
+  --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;              /* 保留给引文，默认不用 */
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, "Noto Sans SC", monospace;
+
+  /* ---- 版式 ---- */
+  --main: 36rem;          /* 正文栏：约 36 个汉字一行 */
+  --gap: 3rem;
+  --side: 14rem;          /* 右页边 */
+  --toc: 252px;           /* 左侧「委托目标」 */
+  --toc-gap: 64px;        /* 委托目标和正文之间（段落编号菱形挂在这里） */
+  --rail: 52px;           /* 段落编号菱形到正文左缘的距离 */
+  --bar-h: 48px;
+  --r: 2px;               /* 框：几乎直角 */
+  --r-pill: 999px;        /* 按钮：胶囊 */
+
+  /* ---- 阴影：双线框 = 内线(border) + 留白 + 外线 ---- */
+  --frame: 0 0 0 3px var(--paper), 0 0 0 4px var(--line-soft);
+  --lift: 0 22px 44px -30px rgba(26, 107, 158, .45);
+
+  /* ---- 动效 ---- */
+  --t-fast: .15s;
+  --t-mid: .3s;
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-back: cubic-bezier(.34, 1.56, .64, 1);
+
+  font-size: 18px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-padding-top: calc(var(--bar-h) + 20px); }
+body {
+  margin: 0; color: var(--ink);
+  background:
+    url("sky.svg") right top / 1600px 760px no-repeat,
+    radial-gradient(1100px 520px at 80% -140px, rgba(143, 214, 230, .5), transparent 70%) no-repeat,
+    linear-gradient(180deg, #DCEEFA 0, #E9F4FC 360px, var(--paper) 780px) no-repeat;
+  background-color: var(--paper);
+  font: 400 1rem/1.85 var(--sans);
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: var(--pen); text-underline-offset: .2em; }
+:focus-visible { outline: 2px solid var(--sky-ink); outline-offset: 2px; border-radius: 2px; }
+::selection { background: color-mix(in srgb, var(--sky-2) 55%, transparent); }
+
+/* 菱形：整套设计唯一的图形母题 */
+.dia { display: inline-block; width: 8px; height: 8px; flex: none; transform: rotate(45deg); background: var(--gold); }
+
+/* ---------- 顶部条 ---------- */
+.lh-top {
+  position: sticky; top: 0; z-index: 20; height: var(--bar-h);
+  display: flex; align-items: center; gap: 18px; padding: 0 20px;
+  background: rgba(255, 255, 255, .84); backdrop-filter: blur(10px) saturate(1.15);
+  border-bottom: 1px solid var(--line-soft);
+  font: 500 13px/1 var(--sans); color: var(--pencil);
+}
+.lh-top::after { /* 双线的第二条 */
+  content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 1px; background: var(--line-soft); opacity: .7;
+}
+.lh-back {
+  display: inline-flex; align-items: center; height: 28px; padding: 0 12px 0 10px;
+  border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--ink); text-decoration: none; white-space: nowrap; background: var(--card);
+}
+.lh-back:hover { border-color: var(--sky); color: var(--sky-ink); }
+.lh-top .lh-title { display: none; } /* 课程标题就在委托卡上；顶部条只追踪正在读的目标 */
+.lh-track { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 340px; color: var(--ink); }
+.lh-track::before { content: ""; flex: none; width: 7px; height: 7px; transform: rotate(45deg); background: var(--sky); }
+.lh-track .no { font: 400 15px/1 var(--display); color: var(--sky-ink); font-variant-numeric: tabular-nums; }
+.lh-track .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lh-top .lh-mini { flex: 1; display: flex; gap: 3px; height: 6px; max-width: 560px; margin: 0 auto; }
+.lh-mini span { background: var(--rule); transition: background var(--t-mid); }
+.lh-mini span:first-child { border-radius: 3px 0 0 3px; }
+.lh-mini span:last-child { border-radius: 0 3px 3px 0; }
+.lh-mini span.seen { background: var(--gold); }
+.lh-mini span.now { background: linear-gradient(90deg, var(--sky-2), var(--sky)); }
+.lh-mini span.stretch:not(.seen):not(.now) { background: repeating-linear-gradient(-45deg, var(--rule) 0 3px, color-mix(in srgb, var(--climb) 35%, var(--rule)) 3px 6px); }
+.lh-clock { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lh-clock.over { color: var(--red); font-weight: 700; }
+
+/* ---------- 页面骨架：宽屏左侧「委托目标」一直可见 ---------- */
+main.lesson {
+  display: grid; grid-template-columns: var(--toc) minmax(0, 1fr); column-gap: var(--toc-gap); align-items: start;
+  max-width: calc(var(--toc) + var(--toc-gap) + var(--main) + var(--gap) + var(--side) + 48px);
+  margin: 0 auto; padding: 64px 24px 180px;
+}
+main.lesson > * { grid-column: 2; min-width: 0; }
+main.lesson > .lh-toc { /* 占满左列所有行，自己 sticky：一直留在视口里 */
+  grid-column: 1; grid-row: 1 / span 60; align-self: start;
+  position: sticky; top: calc(var(--bar-h) + 24px);
+  max-height: calc(100vh - var(--bar-h) - 48px); overflow-y: auto; overscroll-behavior: contain;
+}
+
+/* ---------- 委托目标（侧边今日路线 nav.lh-toc） ---------- */
+.lh-toc-h {
+  display: flex; align-items: baseline; gap: 10px; margin: 0; padding: 4px 0 12px;
+  border-bottom: 3px double var(--line-soft);
+}
+.lh-toc-h .lbl { font: 400 21px/1.3 var(--display); color: var(--ink); font-synthesis: none; }
+.lh-toc-h .lbl::before { content: ""; display: inline-block; width: 8px; height: 8px; margin: 0 10px .2em 2px; transform: rotate(45deg); background: var(--gold); }
+.lh-toc-count { font: 400 18px/1 var(--display); color: var(--gold-ink); font-variant-numeric: tabular-nums; }
+.lh-toc-body { position: relative; margin-top: 10px; padding: 2px 0; }
+.lh-toc ol { position: relative; z-index: 1; list-style: none; margin: 0; padding: 0; }
+.lh-toc li { position: relative; margin: 0; }
+.lh-toc li:not(:last-child)::after { /* 节点之间的连线（从这个菱形中心到下一个）：这一段读过就变金 */
+  content: ""; position: absolute; z-index: -1; left: 19px; top: 19px; bottom: -19px; width: 1px; background: var(--line);
+  transition: background var(--t-mid);
+}
+.lh-toc li.seen:not(:last-child)::after { background: var(--gold); }
+.lh-toc a {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; column-gap: 10px; align-items: start;
+  padding: 7px 6px 7px 6px; color: var(--ink); text-decoration: none; border-radius: var(--r);
+}
+.lh-toc a:hover .t { color: var(--sky-ink); }
+.lh-toc .no { /* 编号在菱形里 */
+  position: relative; isolation: isolate; display: grid; place-items: center; width: 26px; height: 26px; margin-top: -1px;
+  font: 400 13px/1 var(--display); color: var(--sky-ink); font-variant-numeric: tabular-nums;
+}
+.lh-toc .no::before {
+  content: ""; position: absolute; inset: 5px; z-index: -1; transform: rotate(45deg);
+  background: var(--card); border: 1.5px solid var(--line); transition: background var(--t-mid), border-color var(--t-mid);
+}
+.lh-toc .t {
+  font: 400 14px/1.55 var(--sans);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.lh-toc .m { font: 400 12px/1.8 var(--sans); color: var(--pencil); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lh-toc li.stretch .no::before { border-style: dashed; border-color: var(--climb); }
+.lh-toc li.stretch .m { color: var(--climb); }
+.lh-toc li.seen .no { color: #fff; }
+.lh-toc li.seen .no::before { background: var(--gold); border-color: var(--gold); }
+.lh-toc li.seen .t { color: var(--pencil); }
+.lh-toc li.now .no { color: #fff; }
+.lh-toc li.now .no::before { background: var(--sky); border-color: var(--sky-ink); box-shadow: 0 0 0 3px rgba(74, 163, 218, .22); }
+.lh-toc li.now .t { font-weight: 600; color: var(--ink); }
+.lh-toc-mark { /* 当前段：从左边滑过来的一条天青光带 */
+  position: absolute; left: 0; right: 0; top: calc(2px + var(--mark-y, 0px)); height: var(--mark-h, 0px); z-index: 0;
+  background: linear-gradient(90deg, rgba(74, 163, 218, .16), rgba(74, 163, 218, 0) 92%);
+  border-left: 2px solid var(--sky);
+  transition: top var(--t-mid) var(--ease-out), height var(--t-mid) var(--ease-out);
+}
+
+/* ---------- 委托卡（.lesson-head） ---------- */
+.lesson-head {
+  position: relative; margin: 0; padding: 46px 44px 32px; /* 段落自带 margin-top，grid 里外边距不折叠 */
+  display: grid; grid-template-columns: 6.5em minmax(0, 1fr); column-gap: 24px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .55), 0 0 0 5px var(--line-soft), var(--lift);
+}
+.lesson-head > * { grid-column: 1 / -1; }
+.lesson-head::before, .lesson-head::after { /* 对角两枚金色菱形 */
+  content: ""; position: absolute; width: 11px; height: 11px; background: var(--gold);
+  outline: 2px solid var(--card); transform: rotate(45deg);
+}
+.lesson-head::before { left: -6px; top: -6px; }
+.lesson-head::after { right: -6px; bottom: -6px; }
+.lh-tab { /* theme.js 加的系统标签，压在框线上 */
+  position: absolute; top: -15px; left: 36px;
+  display: inline-flex; align-items: center; gap: 8px; padding: 5px 18px 5px 14px;
+  background: var(--ink); color: #fff; font: 400 16px/1.2 var(--display); letter-spacing: .04em;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+.lh-tab .dia { width: 7px; height: 7px; }
+.lesson-when { margin: 0 0 8px; font: 500 14px/1.5 var(--sans); color: var(--pencil); }
+.lesson-head h1 {
+  margin: 0 0 16px; max-width: 19em; text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere;
+  font: 400 2.6rem/1.18 var(--display); letter-spacing: .005em; color: var(--ink); font-synthesis: none;
+}
+.lesson-goal { margin: 0; max-width: var(--main); font-size: 1rem; line-height: 1.85; color: #2A374D; }
+
+/* 委托卡下半部分：左列小标题，右列内容（时间分配细条、本课图鉴） */
+.lesson-head > .lh-route, .lesson-head > .lh-codex {
+  display: grid; grid-template-columns: subgrid; align-items: start; row-gap: 8px;
+}
+.lesson-head > .lh-route { margin-top: 28px; padding-top: 22px; border-top: 3px double var(--line-soft); }
+.lesson-head > .lh-codex { margin-top: 22px; }
+.lh-cardh { grid-column: 1; grid-row: 1 / span 2; margin: 0; font: 400 17px/1.35 var(--display); color: var(--ink); font-synthesis: none; }
+.lh-cardh b { display: block; margin-top: 2px; font: 400 16px/1 var(--display); color: var(--gold-ink); font-variant-numeric: tabular-nums; }
+
+/* 时间分配：按分钟数等比例的一排段落，下面标编号（和左侧委托目标的编号一致） */
+.lh-route ol { grid-column: 2; display: flex; gap: 3px; margin: 4px 0 0; padding: 0; list-style: none; counter-reset: seg; }
+.lh-route li { min-width: 0; margin: 0; counter-increment: seg; }
+.lh-route a { display: block; color: inherit; text-decoration: none; }
+.lh-route .seg { display: block; height: 8px; background: var(--rule); transition: background var(--t-mid); }
+.lh-route li:first-child .seg { border-radius: 4px 0 0 4px; }
+.lh-route li:last-child .seg { border-radius: 0 4px 4px 0; }
+.lh-route a::after { content: counter(seg); display: block; margin-top: 4px; text-align: center; font: 400 13px/1 var(--display); color: var(--pencil); }
+.lh-route .t, .lh-route .m { display: none; }
+.lh-route li.stretch .seg { background: repeating-linear-gradient(-45deg, var(--rule) 0 3px, color-mix(in srgb, var(--climb) 35%, var(--rule)) 3px 6px); }
+.lh-route li.seen .seg { background: var(--gold); }
+.lh-route li.now .seg { background: linear-gradient(90deg, var(--sky-2), var(--sky)); }
+.lh-route li.now a::after { color: var(--sky-ink); }
+.lh-route-total { grid-column: 2; margin: 0; font: 400 13px/1.5 var(--sans); color: var(--pencil); }
+
+/* 本课图鉴（theme.js 生成）：正文里的 <dfn> 术语，读到它所在的段落就收录 */
+.lh-codex ul { grid-column: 2; list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.lh-codex li {
+  display: flex; align-items: center; gap: 9px; margin: 0; padding: 5px 14px 5px 12px;
+  background: var(--paper); border: 1px dashed var(--line); border-radius: var(--r);
+  font: 400 14.5px/1.5 var(--sans); color: var(--pencil);
+  transition: background var(--t-mid), border-color var(--t-mid), color var(--t-mid);
+}
+.lh-codex li .dia { width: 8px; height: 8px; background: transparent; border: 1.5px solid var(--line); }
+.lh-codex li.got { background: var(--card); border: 1px solid var(--line); color: var(--ink); font-weight: 600; }
+.lh-codex li.got .dia { background: var(--gold); border-color: var(--gold); }
+.lh-codex .hint { grid-column: 2; margin: 0; font: 400 13px/1.6 var(--sans); color: var(--pencil); }
+
+/* ---------- 段落 ---------- */
+.lesson > section {
+  position: relative; padding-right: calc(var(--gap) + var(--side));
+  margin-top: 84px;
+}
+.lesson > section::after { content: ""; display: table; clear: both; }
+
+.lesson h2 {
+  position: relative; display: flex; align-items: baseline; gap: 14px; max-width: var(--main);
+  margin: 0 0 24px; padding: 0 0 14px; border-bottom: 3px double var(--line-soft);
+  font: 400 1.75rem/1.3 var(--display); letter-spacing: .005em; color: var(--ink); font-synthesis: none;
+}
+.lesson h2 .ttl { min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
+.lesson h2 .rule { display: none; }
+.lesson h2 .n { /* 段落编号：挂在左页边的菱形里，状态和左侧委托目标同步 */
+  position: absolute; left: calc(-1 * var(--rail)); top: 2px;
+  display: grid; place-items: center; width: 29px; height: 29px; isolation: isolate;
+  font: 400 15px/1 var(--display); color: var(--sky-ink); font-variant-numeric: tabular-nums;
+}
+.lesson h2 .n::before {
+  content: ""; position: absolute; inset: 4px; z-index: -1; transform: rotate(45deg);
+  background: var(--card); border: 1.5px solid var(--line); transition: background var(--t-mid), border-color var(--t-mid);
+}
+.lesson > section.is-now h2 .n { color: #fff; }
+.lesson > section.is-now h2 .n::before { background: var(--sky); border-color: var(--sky-ink); box-shadow: 0 0 0 4px rgba(74, 163, 218, .2); }
+.lesson > section.is-done h2 .n { color: #fff; }
+.lesson > section.is-done h2 .n::before { background: var(--gold); border-color: var(--gold); }
+.lesson > section[data-stretch] h2 .n::before { border-color: var(--climb); border-style: dashed; }
+.lesson h2 .min {
+  margin-left: auto; padding-left: 8px; font: 400 13px/1 var(--sans); color: var(--pencil); white-space: nowrap;
+  font-variant-numeric: tabular-nums; letter-spacing: 0;
+}
+.lesson h3 { margin: 2em 0 .6em; font: 700 1.08rem/1.5 var(--sans); }
+.lesson > section p, .lesson > section li { margin: 0 0 1em; }
+.lesson > section ul, .lesson > section ol { padding-left: 1.4em; margin: 0 0 1.1em; }
+.lesson > section ol > li::marker { color: var(--sky-ink); font-weight: 600; }
+.lesson > section > ul, lh-quiz .why ul { list-style: none; padding-left: 1.3em; }
+.lesson > section > ul > li, lh-quiz .why ul > li { position: relative; }
+.lesson > section > ul > li::before, lh-quiz .why ul > li::before { /* 列表符号：天青小菱形 */
+  content: ""; position: absolute; left: -1.05em; top: .78em; width: 6px; height: 6px; transform: rotate(45deg); background: var(--sky);
+}
+.lesson strong { font-weight: 700; }
+
+/* 术语第一次出现：带一枚金色小菱形，和委托卡里的"图鉴"对应 */
+.lesson dfn { font-style: normal; font-weight: 700; color: var(--sky-ink); }
+.lesson dfn::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 .38em .16em .12em; vertical-align: middle;
+  transform: rotate(45deg); background: var(--gold);
+}
+
+/* 荧光笔：每段最多一处 */
+.lesson mark {
+  color: inherit; padding: 0 .1em; box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  background: linear-gradient(180deg, transparent 48%, var(--marker) 48%, var(--marker) 94%, transparent 94%);
+}
+
+/* 一句话总结 */
+.lesson .takeaway {
+  position: relative; margin: 1.8em 0; padding: 12px 20px;
+  background: var(--gold-soft); border-left: 3px solid var(--gold);
+  font: 600 1.02rem/1.75 var(--sans); color: var(--ink);
+}
+
+/* 代码 */
+.lesson code { font: .86em/1.5 var(--mono); background: var(--paper-2); padding: .12em .38em; border-radius: 3px; }
+.lesson pre {
+  position: relative; margin: 1.3em 0 1.5em; padding: 14px 18px; overflow-x: auto; font: 14px/1.7 var(--mono);
+  background: var(--card); border: 1px solid var(--rule); border-left: 3px solid var(--sky); border-radius: var(--r);
+}
+.lesson pre code { background: none; padding: 0; font: inherit; }
+.lh-copy {
+  position: absolute; top: 8px; right: 8px; padding: 2px 10px; border: 1px solid var(--line); border-radius: var(--r-pill);
+  background: var(--card); color: var(--sky-ink); font: 500 12px/1.6 var(--sans); cursor: pointer; opacity: 0; transition: opacity var(--t-fast);
+}
+.lesson pre:hover .lh-copy, .lh-copy:focus-visible { opacity: 1; }
+
+/* 表格 */
+.lesson table {
+  border-collapse: collapse; margin: 1.4em 0 1.8em; max-width: var(--main);
+  font: 15px/1.65 var(--sans); background: var(--card); border: 1px solid var(--rule);
+}
+.lesson th, .lesson td { padding: 8px 14px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+.lesson th { background: #EEF5FA; color: var(--sky-ink); font-weight: 700; font-size: 14px; border-bottom: 1px solid var(--line); }
+.lesson tbody tr:last-child td { border-bottom: 0; }
+.lesson td:first-child { font-weight: 600; word-break: keep-all; overflow-wrap: break-word; } /* 短标签列不在词中间断开 */
+.lesson td code { white-space: nowrap; }
+
+/* ---------- 页边注 ---------- */
+/* 写在它所注释的段落"之前"，出现在该段右侧 */
+.lesson aside {
+  position: relative; float: right; clear: right; width: var(--side);
+  margin: .4em calc(-1 * (var(--gap) + var(--side))) 1.4em 0; padding-top: 12px;
+  border-top: 1px solid var(--rule);
+  font: 400 14px/1.75 var(--sans); color: var(--pencil);
+}
+.lesson aside::before {
+  content: ""; position: absolute; left: 0; top: -4.5px; width: 7px; height: 7px; transform: rotate(45deg);
+  background: var(--paper); border: 1px solid var(--line);
+}
+.lesson aside > :last-child { margin-bottom: 0; }
+.lesson aside p { margin: 0 0 .6em; }
+.lesson aside .tag { display: block; margin-bottom: 4px; font: 700 13px/1.5 var(--sans); letter-spacing: .02em; }
+.lesson aside .tag .emo { margin-right: 5px; }
+.lesson aside.later { color: #34497A; border-top-color: color-mix(in srgb, var(--pen) 45%, var(--paper)); }
+.lesson aside.later::before { border-color: var(--pen); }
+.lesson aside.later .tag { color: var(--pen); }
+.lesson aside.stretch-tag { border-top-color: color-mix(in srgb, var(--climb) 50%, var(--paper)); }
+.lesson aside.stretch-tag::before { border-color: var(--climb); background: var(--climb); }
+.lesson aside.stretch-tag .tag { color: var(--climb); }
+
+/* ---------- 插槽：配音动画 / 交互组件 ---------- */
+.lh-slot { position: relative; margin: 2.2em 0 2.4em; }
+.lh-slot.wide, .lesson .wide { clear: right; margin-right: calc(-1 * (var(--gap) + var(--side))); }
+.lh-slot iframe { display: block; width: 100%; border: 0; }
+.lh-slot .screen {
+  overflow: hidden; background: var(--screen); aspect-ratio: 16 / 9;
+  border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--frame), var(--lift);
+}
+.lh-slot .screen iframe { height: 100%; }
+.lh-media::before, .lh-media::after { /* 舞台上方两角的菱形 */
+  content: ""; position: absolute; top: -6px; z-index: 1; width: 9px; height: 9px; transform: rotate(45deg);
+  background: var(--gold); outline: 2px solid var(--paper);
+}
+.lh-media::before { left: -6px; }
+.lh-media::after { right: -6px; }
+.lh-slot.lh-viz iframe {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r); min-height: 120px; box-shadow: var(--frame);
+}
+.lh-slot figcaption { margin-top: 14px; font: 400 14px/1.6 var(--sans); color: var(--pencil); max-width: var(--main); }
+.lh-slot figcaption .kind {
+  display: inline-block; margin-right: 8px; padding: 1px 12px 1px 9px; vertical-align: 1px;
+  background: var(--ink); color: #fff; font: 400 13px/1.5 var(--display); letter-spacing: .04em;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+.lh-slot figcaption .ttl { color: var(--ink); font-weight: 600; }
+.lh-slot figcaption .dur { margin-left: 8px; font-variant-numeric: tabular-nums; color: var(--sky-ink); }
+.lh-slot figcaption .hint { display: block; margin-top: 4px; }
+.lh-missing {
+  margin: 2em 0; padding: 22px; border: 2px dashed var(--red); border-radius: var(--r);
+  color: var(--red); background: #fff4f2; font: 600 15px/1.6 var(--mono);
+}
+
+/* ---------- 小测 = 挑战 ---------- */
+lh-quiz {
+  position: relative; display: block; margin: 2.6em 0 2.4em; max-width: var(--main); padding: 28px 24px 20px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--frame);
+}
+.lh-qlabel {
+  position: absolute; top: -13px; left: 18px;
+  display: inline-flex; align-items: center; gap: 7px; padding: 3px 14px 3px 11px;
+  background: var(--ink); color: #fff; font: 400 14px/1.25 var(--display); letter-spacing: .04em;
+  clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+}
+.lh-qlabel::before { content: ""; width: 6px; height: 6px; transform: rotate(45deg); background: var(--sky-2); transition: background var(--t-mid); }
+lh-quiz.is-right .lh-qlabel::before { background: var(--gold); }
+lh-quiz.is-wrong .lh-qlabel::before { background: #8A97AA; }
+lh-quiz > .q { margin: 0 0 .9em; font-weight: 600; }
+lh-quiz > .q p { margin: 0 0 .5em; }
+lh-quiz > .q ol { margin-bottom: .4em; font-weight: 500; }
+lh-quiz .opts { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+lh-quiz .opts li { margin: 0; }
+lh-quiz .opts button {
+  display: flex; gap: 12px; align-items: baseline; width: 100%; padding: 9px 14px; text-align: left;
+  background: var(--paper); border: 1px solid transparent; border-radius: var(--r); color: var(--ink);
+  font: 400 16px/1.65 var(--sans); cursor: pointer; transition: border-color var(--t-fast), background var(--t-fast);
+}
+lh-quiz .opts button:hover:not(:disabled) { border-color: var(--sky); background: var(--card); }
+lh-quiz .opts .k { /* 选项字母：菱形徽记 */
+  position: relative; isolation: isolate; flex: none; display: grid; place-items: center; width: 22px; height: 22px; top: 1px;
+  font: 400 13px/1 var(--display); color: var(--sky-ink);
+}
+lh-quiz .opts .k::before {
+  content: ""; position: absolute; inset: 3px; z-index: -1; transform: rotate(45deg);
+  border: 1.5px solid var(--line); background: var(--card);
+}
+lh-quiz .opts button:disabled { cursor: default; }
+lh-quiz .opts button.right { border-color: var(--climb); background: #ECF7F1; }
+lh-quiz .opts button.right .k { color: #fff; }
+lh-quiz .opts button.right .k::before { background: var(--climb); border-color: var(--climb); }
+lh-quiz .opts button.wrong { border-color: var(--red); background: #FCEFED; }
+lh-quiz .opts button.wrong .k { color: #fff; }
+lh-quiz .opts button.wrong .k::before { background: var(--red); border-color: var(--red); }
+lh-quiz .opts button.wrong span:last-child { text-decoration: line-through; text-decoration-color: var(--red); }
+lh-quiz .opts button.dim { opacity: .5; }
+lh-quiz .verdict { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; font: 700 15px/1.6 var(--sans); }
+lh-quiz .verdict::before { content: "✓"; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #fff; font-size: 12px; line-height: 1; }
+lh-quiz .verdict.ok { color: var(--climb); }
+lh-quiz .verdict.ok::before { background: var(--climb); }
+lh-quiz .verdict.no { color: var(--red); }
+lh-quiz .verdict.no::before { content: "×"; background: var(--red); font-size: 15px; }
+lh-quiz .why {
+  margin-top: 10px; padding: 12px 16px; background: #F2F8FC; border-left: 2px solid var(--sky);
+  font: 400 15px/1.8 var(--sans);
+}
+lh-quiz .why > :last-child { margin-bottom: 0; }
+lh-quiz .why[hidden] { display: none; }
+lh-quiz .why ol { padding-left: 1.3em; }
+lh-quiz .reveal-row { margin-top: 12px; }
+
+/* 按钮：主按钮 = 墨蓝胶囊 + 内圈细线；次按钮 = 白底胶囊 */
+lh-quiz .reveal, lh-quiz .self button, .lh-btn {
+  padding: 9px 20px; border: 0; border-radius: var(--r-pill); background: var(--ink); color: #fff;
+  box-shadow: inset 0 0 0 3px var(--ink), inset 0 0 0 4px rgba(255, 255, 255, .28);
+  font: 600 14px/1.4 var(--sans); cursor: pointer; transition: background var(--t-fast), box-shadow var(--t-fast);
+}
+lh-quiz .reveal:hover, .lh-btn:hover:not(:disabled) { background: #22385C; box-shadow: inset 0 0 0 3px #22385C, inset 0 0 0 4px rgba(226, 166, 49, .8); }
+.lh-btn:disabled { opacity: .6; cursor: default; }
+lh-quiz .self { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; font: 400 14px/1.4 var(--sans); color: var(--pencil); }
+lh-quiz .self button, .lh-btn.ghost {
+  padding: 7px 16px; background: var(--card); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line);
+}
+lh-quiz .self button:hover, .lh-btn.ghost:hover { background: var(--card); color: var(--sky-ink); box-shadow: inset 0 0 0 1px var(--sky); }
+lh-quiz .self button.picked { background: var(--ink); color: #fff; box-shadow: inset 0 0 0 3px var(--ink), inset 0 0 0 4px rgba(226, 166, 49, .8); }
+lh-quiz textarea { width: 100%; }
+
+/* ---------- 课末打卡 = 委托完成 ---------- */
+lh-checkin { position: relative; display: block; margin-top: 104px; max-width: var(--main); }
+.lh-stub {
+  position: relative; padding: 38px 32px 30px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  box-shadow: var(--frame), var(--lift); font-family: var(--sans);
+}
+lh-checkin.is-done .lh-stub::before { /* 完成后左上角也有一枚金菱形 */
+  content: ""; position: absolute; left: -6px; top: -6px; width: 11px; height: 11px; transform: rotate(45deg);
+  background: var(--gold); outline: 2px solid var(--card);
+}
+.lh-stub h2 { border: 0; padding: 0; margin: 0 0 6px; font-size: 1.6rem; }
+.lh-stub > p.sub { margin: 0 0 26px; font-size: 15px; color: var(--pencil); }
+.lh-field { margin: 0 0 22px; border: 0; padding: 0; }
+.lh-field > label, .lh-field > legend { display: block; margin-bottom: 8px; padding: 0; font: 600 15px/1.5 var(--sans); }
+.lh-field .hint { font-weight: 400; color: var(--pencil); margin-left: 6px; font-size: 13px; }
+.lh-field input[type=number] { width: 6em; }
+.lh-scale, .lh-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.lh-scale label, .lh-chips label {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 14px; border-radius: var(--r-pill);
+  background: var(--paper); box-shadow: inset 0 0 0 1px var(--rule); font: 400 14px/1.4 var(--sans); cursor: pointer;
+  transition: background var(--t-fast), box-shadow var(--t-fast);
+}
+.lh-scale .key { font: 400 15px/1 var(--display); color: var(--sky-ink); font-variant-numeric: tabular-nums; }
+.lh-scale label:hover, .lh-chips label:hover { box-shadow: inset 0 0 0 1px var(--sky); }
+.lh-scale input, .lh-chips input { position: absolute; opacity: 0; pointer-events: none; }
+.lh-scale label:has(input:checked), .lh-chips label:has(input:checked) {
+  background: var(--ink); color: #fff; box-shadow: inset 0 0 0 3px var(--ink), inset 0 0 0 4px rgba(226, 166, 49, .85);
+}
+.lh-scale label:has(input:checked) .key { color: var(--gold); }
+.lh-scale label:has(input:focus-visible), .lh-chips label:has(input:focus-visible) { outline: 2px solid var(--sky-ink); outline-offset: 2px; }
+.lesson input[type=number], .lesson textarea, .lh-pop textarea, .lh-ask textarea {
+  padding: 8px 12px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink);
+  font: 400 15px/1.6 var(--sans); transition: border-color var(--t-fast), background var(--t-fast);
+}
+.lesson input[type=number]:focus, .lesson textarea:focus, .lh-pop textarea:focus, .lh-ask textarea:focus { border-color: var(--sky); background: var(--card); }
+.lesson textarea { width: 100%; min-height: 4.5em; resize: vertical; }
+.lh-err { color: var(--red); font: 500 14px/1.6 var(--sans); margin: 10px 0 0; }
+
+/* 结算：徽记（theme.js 画进 .lh-emblem）+ 三格数字 + 说明 */
+.lh-reward { display: flex; align-items: center; gap: 22px; margin: 4px 0 22px; }
+.lh-emblem { position: relative; flex: none; width: 92px; height: 92px; }
+.lh-emblem svg { position: relative; z-index: 1; display: block; width: 100%; height: 100%; overflow: visible; }
+.lh-emblem .ray, .lh-emblem .spark { position: absolute; left: 50%; top: 50%; opacity: 0; pointer-events: none; }
+.lh-emblem .ray { width: 70px; height: 1.5px; margin-top: -.75px; background: linear-gradient(90deg, var(--gold), rgba(226, 166, 49, 0)); transform-origin: 0 50%; }
+.lh-emblem .spark { width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; background: var(--gold); }
+.lh-emblem .spark:nth-of-type(even) { background: var(--sky); }
+.lh-rtext { min-width: 0; }
+.lh-stub .lh-rtext .rt {
+  position: relative; display: inline-block; margin: 0; overflow: hidden;
+  font: 400 2.5rem/1.1 var(--display); color: var(--ink); font-synthesis: none;
+}
+.lh-rtext .rs { margin: 6px 0 0; font: 400 14px/1.5 var(--sans); color: var(--pencil); }
+.lh-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 0 20px; border: 1px solid var(--rule); border-radius: var(--r); }
+.lh-stats > div { padding: 10px 16px; }
+.lh-stats > div + div { border-left: 1px solid var(--rule); }
+.lh-stats dt { font: 400 13px/1.4 var(--sans); color: var(--pencil); }
+.lh-stats dd { margin: 2px 0 0; font: 400 1.7rem/1.15 var(--display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.lh-stats dd small { margin-left: 3px; font: 400 13px/1 var(--sans); color: var(--pencil); }
+.lh-done-msg { margin: 0; padding: 14px 18px; border-left: 3px solid var(--gold); background: var(--gold-soft); font: 400 15.5px/1.75 var(--sans); }
+.lh-done-edit { margin: 14px 0 0; }
+
+/* 委托完成的庆祝：只在刚提交时（.celebrate）播放一次 */
+.lh-reward.celebrate .lh-emblem svg { animation: lh-pop .7s var(--ease-back) both; }
+.lh-reward.celebrate .lh-emblem .chk { stroke-dasharray: 60; animation: lh-draw .45s .38s var(--ease-out) both; }
+.lh-reward.celebrate .lh-emblem .ray { animation: lh-ray .9s .2s var(--ease-out) both; }
+.lh-reward.celebrate .lh-emblem .spark { animation: lh-spark 1s .25s var(--ease-out) both; }
+.lh-reward.celebrate .rt { animation: lh-wipe .55s .32s var(--ease-out) both; }
+.lh-reward.celebrate .rt::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-120%);
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .85) 50%, transparent 70%);
+  animation: lh-sheen .8s .9s ease-in-out both;
+}
+.lh-reward.celebrate + .lh-stats > div { animation: lh-rise .45s var(--ease-out) both; }
+.lh-reward.celebrate + .lh-stats > div:nth-child(1) { animation-delay: .6s; }
+.lh-reward.celebrate + .lh-stats > div:nth-child(2) { animation-delay: .7s; }
+.lh-reward.celebrate + .lh-stats > div:nth-child(3) { animation-delay: .8s; }
+@keyframes lh-pop { 0% { transform: scale(.3) rotate(-30deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes lh-draw { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
+@keyframes lh-ray {
+  0% { opacity: 0; transform: rotate(var(--a)) translateX(30px) scaleX(.2); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(58px) scaleX(1); }
+}
+@keyframes lh-spark {
+  0% { opacity: 0; transform: rotate(var(--a)) translateX(20px) rotate(45deg) scale(.4); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) rotate(45deg) scale(1); }
+}
+@keyframes lh-wipe { from { clip-path: inset(0 100% 0 0); transform: translateX(-10px); } to { clip-path: inset(0 0 0 0); transform: none; } }
+@keyframes lh-sheen { to { transform: translateX(120%); } }
+@keyframes lh-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ---------- 捕获按钮（问老师 / 这里没懂 / 犯困了 / 暂停）和「这里没懂」的弹窗 ---------- */
+.lh-capture {
+  position: fixed; right: 20px; bottom: 20px; z-index: 30;
+  display: flex; gap: 2px; padding: 4px;
+  background: rgba(255, 255, 255, .94); border: 1px solid var(--line); border-radius: var(--r-pill);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .75), 0 0 0 4px var(--line-soft), 0 12px 28px -14px rgba(24, 36, 58, .4);
+  backdrop-filter: blur(8px);
+}
+.lh-capture button {
+  padding: 7px 14px; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--ink); cursor: pointer;
+  font: 600 13px/1.3 var(--sans); transition: background var(--t-fast), color var(--t-fast);
+}
+.lh-capture button:hover { background: #E6F2FA; color: var(--sky-ink); }
+.lh-capture.floating { position: absolute; right: auto; bottom: auto; background: var(--ink); border-color: var(--ink); box-shadow: 0 0 0 3px rgba(255, 255, 255, .9), 0 0 0 4px var(--line), 0 10px 24px -12px rgba(24, 36, 58, .5); }
+.lh-capture.floating button { color: #fff; }
+.lh-capture.floating button:hover { background: rgba(255, 255, 255, .14); color: #fff; }
+
+.lh-pop {
+  position: fixed; right: 20px; bottom: 76px; z-index: 31; width: min(380px, calc(100vw - 40px));
+  padding: 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  box-shadow: var(--frame), 0 20px 44px -18px rgba(24, 36, 58, .45); font: 400 14px/1.6 var(--sans);
+}
+.lh-pop::before {
+  content: ""; position: absolute; left: -5px; top: -5px; width: 9px; height: 9px; transform: rotate(45deg);
+  background: var(--gold); outline: 2px solid var(--card);
+}
+.lh-pop h4 { margin: 0 0 4px; font: 400 18px/1.4 var(--display); }
+.lh-pop .why { margin: 0 0 10px; color: var(--pencil); font-size: 13px; }
+.lh-pop blockquote { margin: 0 0 10px; padding: 6px 10px; border-left: 2px solid var(--gold); background: var(--gold-soft); max-height: 6.4em; overflow: auto; }
+.lh-pop textarea { width: 100%; min-height: 4.2em; resize: vertical; }
+.lh-pop .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+/* ---------- 问老师：右侧的对话面板（lh-ask.js） ---------- */
+.lh-capture button[data-kind=ask] { background: var(--ink); color: #fff; }
+.lh-capture button[data-kind=ask]:hover { background: #22385C; color: #fff; }
+.lh-capture.floating button[data-kind=ask] { background: var(--gold); color: var(--ink); }
+.lh-capture.floating button[data-kind=ask]:hover { background: #F0BC4E; color: var(--ink); }
+/* 角标：后台答好了、还没看的回答条数，金色小胶囊挂在按钮右上角 */
+.lh-capture button[data-kind=ask] { position: relative; }
+.lh-badge {
+  position: absolute; top: -7px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--gold); color: var(--ink); font: 700 11px/18px var(--sans); text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+}
+.lh-ask {
+  position: fixed; right: 20px; top: calc(var(--bar-h) + 16px); bottom: 76px; z-index: 32; width: min(380px, calc(100vw - 40px));
+  display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  box-shadow: var(--frame), 0 20px 44px -18px rgba(24, 36, 58, .45); color: var(--ink); font: 400 14.5px/1.7 var(--sans);
+}
+.lh-ask::before {
+  content: ""; position: absolute; left: -5px; top: -5px; width: 9px; height: 9px; transform: rotate(45deg);
+  background: var(--gold); outline: 2px solid var(--card);
+}
+.lh-ask-h h4 { margin: 0; font: 400 18px/1.4 var(--display); }
+.lh-ask[hidden], .lh-ask-quote[hidden] { display: none; }
+.lh-ask-h { display: flex; align-items: baseline; gap: 12px; padding: 14px 10px 10px 18px; border-bottom: 1px solid var(--rule); }
+.lh-ask-ctx { flex: 1; min-width: 0; margin: 0; color: var(--pencil); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lh-ask-x { align-self: center; padding: 0 8px; border: 0; background: none; color: var(--pencil); font: 400 22px/1 var(--sans); cursor: pointer; }
+.lh-ask-x:hover { color: var(--ink); }
+.lh-ask-log { flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 18px; }
+.lh-ask-empty { margin: 0; color: var(--pencil); font-size: 13.5px; }
+.lh-ask-turn { display: flex; flex-direction: column; gap: 8px; }
+.lh-ask-q { align-self: flex-end; max-width: 88%; padding: 8px 12px; background: var(--paper-2); border-radius: var(--r); }
+.lh-ask-q p { margin: 0; white-space: pre-wrap; }
+.lh-ask-q blockquote { margin: 0 0 6px; padding: 0 0 0 8px; border-left: 2px solid var(--gold); color: var(--pencil); font-size: 12.5px; line-height: 1.6; max-height: 4.8em; overflow: hidden; }
+.lh-ask-a p, .lh-ask-a ul, .lh-ask-a ol, .lh-ask-a pre { margin: 0 0 .6em; }
+.lh-ask-a > :last-child { margin-bottom: 0; }
+.lh-ask-a ul, .lh-ask-a ol { padding-left: 1.3em; }
+.lh-ask-a code { padding: 0 .3em; background: var(--paper-2); border-radius: 3px; font: .9em/1.5 var(--mono); }
+.lh-ask-a pre { padding: 8px 10px; background: var(--paper-2); border-radius: 3px; overflow-x: auto; font: 12.5px/1.55 var(--mono); }
+.lh-ask-a pre code { padding: 0; background: none; font-size: inherit; }
+.lh-ask-a.is-pending:empty::before { content: "老师在想……"; color: var(--pencil); animation: lh-ask-wait 1.1s ease-in-out infinite alternate; }
+.lh-ask-a .err { margin: 0; color: var(--red); font-size: 13.5px; }
+.lh-ask-a .lh-ask-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 0; color: var(--pencil); font-size: 12.5px; }
+.lh-ask-a .lh-ask-retry { margin: 8px 0 0; }
+.lh-ask-a .lh-ask-hint .lh-btn, .lh-ask-a .lh-ask-retry .lh-btn { padding: 4px 12px; font-size: 12.5px; }
+/* 归类：回答末尾一行小字，前面一个菱形；想深挖用 🔭 的蓝，周末问用 🧗 的绿 */
+.lh-ask-a .lh-ask-cat { position: relative; margin: 10px 0 0; padding: 8px 0 0 15px; border-top: 1px dashed var(--rule); color: var(--pencil); font-size: 12.5px; line-height: 1.6; }
+.lh-ask-a .lh-ask-cat::before { content: ""; position: absolute; left: 1px; top: 15px; width: 7px; height: 7px; transform: rotate(45deg); background: var(--line); }
+.lh-ask-a .lh-ask-cat b { font-weight: 600; color: var(--ink); }
+.lh-ask-a .lh-ask-cat[data-cat=dig]::before { background: var(--pen); }
+.lh-ask-a .lh-ask-cat[data-cat=dig] b { color: var(--pen); }
+.lh-ask-a .lh-ask-cat[data-cat=weekend]::before { background: var(--climb); }
+.lh-ask-a .lh-ask-cat[data-cat=weekend] b { color: var(--climb); }
+.lh-ask-f { padding: 10px 18px 14px; border-top: 1px solid var(--rule); }
+.lh-ask-quote { display: flex; gap: 6px; align-items: flex-start; margin: 0 0 8px; padding: 4px 4px 4px 8px; border-left: 2px solid var(--gold); background: var(--gold-soft); color: var(--pencil); font-size: 12.5px; line-height: 1.6; }
+.lh-ask-quote span { flex: 1; max-height: 3.2em; overflow: hidden; }
+.lh-ask-quote button { padding: 0 4px; border: 0; background: none; color: var(--pencil); font: 400 16px/1.2 var(--sans); cursor: pointer; }
+.lh-ask textarea { width: 100%; min-height: 3.4em; max-height: 10em; resize: vertical; }
+.lh-ask-f .row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.lh-ask-f .hint { flex: 1 0 100%; margin-top: -4px; color: var(--pencil); font-size: 12px; } /* 三个按钮放不下提示，提示单独一行 */
+@keyframes lh-ask-wait { from { opacity: .4; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .lh-ask-a.is-pending:empty::before { animation: none; } }
+.lh-ask-f .lh-btn { padding: 7px 18px; }
+.lh-ask-f .lh-btn.stop { background: var(--red); box-shadow: inset 0 0 0 3px var(--red), inset 0 0 0 4px rgba(255, 255, 255, .3); }
+@media (max-width: 760px) { .lh-ask { left: 12px; right: 12px; width: auto; top: auto; height: min(72vh, 600px); bottom: 70px; } .lh-ask-f .hint { display: none; } }
+
+.lh-toast {
+  position: fixed; left: 50%; bottom: 28px; z-index: 40; transform: translate(-50%, 12px); opacity: 0;
+  display: flex; align-items: center; gap: 10px;
+  max-width: min(520px, calc(100vw - 40px)); padding: 10px 20px 10px 16px; border-radius: var(--r-pill);
+  background: var(--ink); color: #fff; font: 500 14px/1.6 var(--sans);
+  box-shadow: inset 0 0 0 3px var(--ink), inset 0 0 0 4px rgba(226, 166, 49, .7), 0 12px 28px -12px rgba(24, 36, 58, .5);
+  transition: opacity .2s, transform .2s var(--ease-out); pointer-events: none;
+}
+.lh-toast::before { content: ""; flex: none; width: 7px; height: 7px; transform: rotate(45deg); background: var(--gold); }
+.lh-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* 服务器连不上 / 用 file:// 打开时的提示条 */
+.lh-banner { position: sticky; top: var(--bar-h); z-index: 19; padding: 10px 20px; background: #FFF1C9; border-bottom: 1px solid #E8CF84; font: 500 14px/1.6 var(--sans); }
+
+/* ---------- 犯困了 + 暂停：捕获按钮最后两个，前面一道竖线和提问、记录隔开 ---------- */
+.lh-capture button[data-kind=sleepy], .lh-capture button[data-kind=pause] { color: var(--pencil); }
+.lh-capture button[data-kind=sleepy] { position: relative; margin-left: 9px; }
+.lh-capture button[data-kind=sleepy]::before { content: ""; position: absolute; left: -6px; top: 9px; bottom: 9px; width: 1px; background: var(--line); }
+
+/* 犯困了：捕获按钮上方一张小委托卡，三件事编号在菱形里；盖在问老师面板和弹窗上面（z-index 高于它们，低于提示和暂停层） */
+.lh-sleepy {
+  position: fixed; right: 20px; bottom: 76px; z-index: 33; width: min(400px, calc(100vw - 40px));
+  padding: 18px 20px 16px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  box-shadow: var(--frame), 0 20px 44px -18px rgba(24, 36, 58, .45); color: var(--ink); font: 400 14px/1.6 var(--sans);
+  animation: lh-sleepy-in .2s var(--ease-out) both;
+}
+.lh-sleepy::before {
+  content: ""; position: absolute; left: -5px; top: -5px; width: 9px; height: 9px; transform: rotate(45deg);
+  background: var(--gold); outline: 2px solid var(--card);
+}
+.lh-sleepy h4 { margin: 0 0 2px; font: 400 20px/1.4 var(--display); }
+.lh-sleepy .why { margin: 0 0 12px; color: var(--pencil); font-size: 13px; }
+.lh-sleepy ol { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; counter-reset: tip; }
+.lh-sleepy li { position: relative; padding: 8px 12px 8px 44px; background: var(--paper); border-radius: var(--r); counter-increment: tip; }
+.lh-sleepy li::before { /* 编号在菱形里，和委托目标一样：::before 画菱形，::after 写数字 */
+  content: ""; position: absolute; left: 15px; top: 13px; width: 14px; height: 14px; transform: rotate(45deg);
+  background: var(--card); border: 1.5px solid var(--line);
+}
+.lh-sleepy li::after {
+  content: counter(tip); position: absolute; left: 11px; top: 9px; display: grid; place-items: center; width: 22px; height: 22px;
+  font: 400 13px/1 var(--display); color: var(--sky-ink);
+}
+.lh-sleepy li b { font-weight: 600; }
+.lh-sleepy .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+@keyframes lh-sleepy-in { from { opacity: 0; transform: translateY(6px); } }
+
+/* ---------- 暂停：虚化层盖住整页，中间一张委托卡，只留「继续学习」 ---------- */
+html.lh-paused { overflow: hidden; scrollbar-gutter: stable; }
+.lh-pause {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px;
+  background: color-mix(in srgb, var(--paper) 58%, transparent); backdrop-filter: blur(10px) saturate(.9);
+  animation: lh-pause-in .25s var(--ease-out) both;
+}
+.lh-pause-card {
+  position: relative; width: min(360px, 100%); padding: 30px 28px 26px; text-align: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  box-shadow: var(--frame), 0 22px 48px -20px rgba(24, 36, 58, .45);
+}
+.lh-pause-card::before {
+  content: ""; position: absolute; left: -5px; top: -5px; width: 9px; height: 9px; transform: rotate(45deg);
+  background: var(--gold); outline: 2px solid var(--card);
+}
+.lh-pause h2 { margin: 0; font: 400 28px/1.3 var(--display); color: var(--ink); }
+.lh-pause-sub { margin: 8px 0 22px; color: var(--pencil); font: 400 14px/1.6 var(--sans); }
+@keyframes lh-pause-in { from { opacity: 0; } }
+
+/* ---------- 不够放侧边栏时（<1320px）：委托目标接在委托卡下面，顶部条的追踪和细条一直可见 ---------- */
+@media (max-width: 1319px) {
+  main.lesson { grid-template-columns: minmax(0, 1fr); max-width: calc(var(--main) + var(--gap) + var(--side) + 48px); }
+  main.lesson > * { grid-column: 1; }
+  main.lesson > .lesson-head { grid-row: 1; margin-bottom: 0; }
+  main.lesson > .lh-toc { grid-column: 1; grid-row: 2; align-self: start; margin: 18px 0 8px; padding: 20px 28px 16px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--frame); }
+  main.lesson > .lh-toc { position: static; max-height: none; overflow: visible; }
+  .lh-toc-body { margin-top: 12px; }
+  .lh-toc ol { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; grid-auto-flow: column; grid-template-rows: repeat(var(--rows, 4), auto); }
+  .lh-toc li:not(:last-child)::after { display: none; }
+  .lh-toc .t { -webkit-line-clamp: 1; }
+  .lh-toc-mark { display: none; }
+  .lh-toc li.now a { background: linear-gradient(90deg, rgba(74, 163, 218, .14), rgba(74, 163, 218, 0) 92%); }
+}
+/* 中等宽度：页边注收进正文 */
+@media (max-width: 1100px) {
+  main.lesson { max-width: calc(var(--main) + 3rem + 48px); } /* 一行仍保持在 40 字以内 */
+  .lesson > section { padding-right: 0; }
+  .lesson h2 .n { position: relative; left: auto; top: 3px; flex: none; margin-left: -2px; }
+  .lesson aside {
+    float: none; width: auto; max-width: var(--main); margin: 1.2em 0; padding: 10px 14px;
+    border: 1px solid var(--rule); border-left: 3px solid var(--line); background: var(--card);
+  }
+  .lesson aside::before { display: none; }
+  .lesson aside.later { border-color: color-mix(in srgb, var(--pen) 22%, var(--paper)); border-left-color: var(--pen); }
+  .lesson aside.stretch-tag { border-color: color-mix(in srgb, var(--climb) 22%, var(--paper)); border-left-color: var(--climb); }
+  .lh-slot.wide, .lesson .wide { margin-right: 0; }
+  .lesson-head { padding: 42px 32px 30px; }
+}
+@media (max-width: 760px) {
+  .lh-toc ol { grid-template-columns: 1fr; grid-auto-flow: row; grid-template-rows: none; }
+  .lesson-head { grid-template-columns: minmax(0, 1fr); }
+  .lesson-head > .lh-route, .lesson-head > .lh-codex { grid-template-columns: minmax(0, 1fr); }
+  .lh-cardh, .lh-route ol, .lh-route-total, .lh-codex ul, .lh-codex .hint { grid-column: 1; grid-row: auto; }
+  .lh-cardh b { display: inline; margin-left: 8px; }
+}
+@media (max-width: 640px) {
+  :root { font-size: 17px; }
+  main.lesson { padding-top: 40px; }
+  .lesson-head { padding: 36px 20px 24px; }
+  .lesson-head h1 { font-size: 2rem; }
+  .lh-track .t { display: none; }
+  .lh-capture button { padding: 7px 9px; font-size: 12.5px; } /* 窄屏上按钮收紧一点 */
+  .lh-stats dd { font-size: 1.35rem; }
+}
+
+/* 一次性动效直接到终点：QA 截图（html.lh-still）和减少动态效果 */
+html.lh-still .lh-reward.celebrate *, html.lh-still .lh-reward.celebrate + .lh-stats > div { animation: none !important; }
+html.lh-still .lh-reward.celebrate .rt::after { display: none; }
+html.lh-still .lh-toc-mark { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; scroll-behavior: auto !important; }
+  .lh-reward.celebrate *, .lh-reward.celebrate + .lh-stats > div, .lh-pause, .lh-sleepy { animation: none !important; }
+  .lh-reward.celebrate .rt::after { display: none; }
+}

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <!-- 课程页题头的一滴墨：写意的晕染（不确定的模型），落在界画式的细线上（lesson.css 用 CSS 画的乌丝栏）。
+       墨分五色：外晕 = 清/淡，水渍边 = 淡，墨身 = 重，墨心 = 焦；右边拖出一笔枯笔飞白。 -->
+  <defs>
+    <filter id="halo" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.009" numOctaves="3" seed="21" result="n1"/>
+      <feDisplacementMap in="SourceGraphic" in2="n1" scale="80" xChannelSelector="R" yChannelSelector="G" result="d1"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.22" numOctaves="2" seed="5" result="n2"/>
+      <feDisplacementMap in="d1" in2="n2" scale="7" xChannelSelector="R" yChannelSelector="G" result="d2"/>
+      <feGaussianBlur in="d2" stdDeviation="8"/>
+    </filter>
+    <filter id="rim" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.009" numOctaves="3" seed="21" result="n1"/>
+      <feDisplacementMap in="SourceGraphic" in2="n1" scale="80" xChannelSelector="R" yChannelSelector="G" result="d1"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.22" numOctaves="2" seed="5" result="n2"/>
+      <feDisplacementMap in="d1" in2="n2" scale="7" xChannelSelector="R" yChannelSelector="G" result="d2"/>
+      <feGaussianBlur in="d2" stdDeviation="1.1"/>
+    </filter>
+    <filter id="body" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.013" numOctaves="3" seed="8" result="n1"/>
+      <feDisplacementMap in="SourceGraphic" in2="n1" scale="52" xChannelSelector="R" yChannelSelector="G" result="d1"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.3" numOctaves="2" seed="3" result="n2"/>
+      <feDisplacementMap in="d1" in2="n2" scale="5" xChannelSelector="R" yChannelSelector="G" result="d2"/>
+      <feGaussianBlur in="d2" stdDeviation="1.6"/>
+    </filter>
+    <filter id="core" x="-40%" y="-40%" width="180%" height="180%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="15" result="n1"/>
+      <feDisplacementMap in="SourceGraphic" in2="n1" scale="30" xChannelSelector="R" yChannelSelector="G" result="d1"/>
+      <feGaussianBlur in="d1" stdDeviation="5"/>
+    </filter>
+    <filter id="dry" x="-5%" y="-40%" width="110%" height="180%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="4" result="edge"/>
+      <feDisplacementMap in="SourceGraphic" in2="edge" scale="6" xChannelSelector="R" yChannelSelector="G" result="rough"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.004 0.3" numOctaves="2" seed="19" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -6.5 0 0 0 3.9" result="streak"/>
+      <feComposite in="rough" in2="streak" operator="in"/>
+    </filter>
+    <filter id="wet" x="-5%" y="-40%" width="110%" height="180%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="4" result="edge"/>
+      <feDisplacementMap in="SourceGraphic" in2="edge" scale="6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <!-- 笔里的墨：起笔处饱满，越往后越干，只剩飞白丝 -->
+    <linearGradient id="tailwet" x1="0" x2="1">
+      <stop offset="0" stop-color="#2A2622" stop-opacity="0.88"/>
+      <stop offset="0.3" stop-color="#2A2622" stop-opacity="0.6"/>
+      <stop offset="0.55" stop-color="#2A2622" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="g" cx="0.42" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#15130F" stop-opacity="0.92"/>
+      <stop offset="0.55" stop-color="#2A2622" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#3A352F" stop-opacity="0.5"/>
+    </radialGradient>
+    <linearGradient id="tail" x1="0" x2="1">
+      <stop offset="0" stop-color="#2A2622" stop-opacity="0.85"/>
+      <stop offset="0.7" stop-color="#2A2622" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#2A2622" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 外晕（清墨）：水把墨带出去的那一圈 -->
+  <circle cx="190" cy="186" r="128" fill="#3A352F" fill-opacity="0.09" filter="url(#halo)"/>
+  <!-- 水渍边（淡墨）：墨在晕的边缘堆积 -->
+  <circle cx="190" cy="186" r="128" fill="none" stroke="#3A352F" stroke-opacity="0.16" stroke-width="2" filter="url(#rim)"/>
+  <!-- 墨身（重墨） -->
+  <circle cx="186" cy="182" r="80" fill="url(#g)" filter="url(#body)"/>
+  <!-- 墨心（焦墨） -->
+  <ellipse cx="172" cy="176" rx="44" ry="36" fill="#15130F" fill-opacity="0.5" filter="url(#core)"/>
+  <!-- 枯笔：从墨里拖出去的一笔，越往右越干 -->
+  <path filter="url(#wet)" fill="url(#tailwet)" d="M230 170 C292 150 372 132 452 124 C508 119 560 118 600 121 C606 123 605 127 598 129 C552 134 498 141 440 152 C374 165 306 184 240 206 C226 200 222 180 230 170 Z"/>
+  <path filter="url(#dry)" fill="url(#tail)" d="M230 170 C292 150 372 132 452 124 C508 119 560 118 600 121 C606 123 605 127 598 129 C552 134 498 141 440 152 C374 165 306 184 240 206 C226 200 222 180 230 170 Z"/>
+  <!-- 溅出的墨点 -->
+  <circle cx="318" cy="250" r="4" fill="#2A2622" fill-opacity="0.7"/>
+  <circle cx="92" cy="300" r="2.4" fill="#2A2622" fill-opacity="0.5"/>
+  <circle cx="338" cy="236" r="2" fill="#2A2622" fill-opacity="0.6"/>
+</svg>

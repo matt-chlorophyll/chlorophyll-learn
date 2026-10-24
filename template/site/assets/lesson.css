@@ -1,0 +1,5 @@
+/* lesson.css — 引导样式。真正的样式在 /assets/themes/<主题>/lesson.css，由 lesson.js 按主题加载（见 lh-theme.js）。
+ * 主题样式加载完之前先不显示页面，避免闪一下没样式的内容；3 秒后无论如何显示。 */
+[hidden] { display: none !important; }
+html:not(.lh-themed) body { visibility: hidden; animation: lh-reveal 0s 3s forwards; }
+@keyframes lh-reveal { to { visibility: visible; } }

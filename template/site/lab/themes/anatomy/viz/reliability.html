@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="lh-theme" content="anatomy">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>为什么 demo 能跑，产品却不一定能用</title>
+<link rel="stylesheet" href="/assets/component.css">
+<style>
+  .wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 18px; }
+
+  /* 机器图版 */
+  .plate { padding: 38px 14px 34px; }
+  .gtitle { margin: 0; }
+
+  /* 读数：大数字 + 图例 */
+  .result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); grid-template-rows: auto auto 1fr auto; gap: 0 28px; align-items: start; padding: 0 4px; }
+  .info { display: contents; }
+  .info > * { grid-column: 1; }
+  .legend { grid-column: 2; grid-row: 1 / 4; }
+  .info > .calls { grid-column: 1 / -1; grid-row: 4; }
+  .lbl { display: block; font: 500 13px/1.4 var(--sans); color: var(--pencil); }
+  .num { display: block; margin: 2px 0 4px; font: 300 52px/1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -.02em; color: var(--ink); }
+  .num.done { color: var(--climb); }
+  .formula { margin: 0; font-size: 13px; color: var(--pencil); font-variant-numeric: tabular-nums; }
+  .calls { margin: 14px 0 0; font-size: 14px; color: var(--ink); }
+  .calls b { font: italic 500 20px/1 var(--accent); font-variant-numeric: tabular-nums; }
+  .legend { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 0; font-size: 14px; }
+  .legend li { display: grid; grid-template-columns: 18px auto 2.4ch 1fr; align-items: baseline; gap: 0 9px; padding: 7px 0; border-top: 1px solid var(--rule); }
+  .legend li:last-child { border-bottom: 1px solid var(--rule); }
+  .legend svg { width: 16px; height: 16px; align-self: center; overflow: visible; }
+  .legend b { font-weight: 600; white-space: nowrap; }
+  .cnt { font: italic 500 17px/1 var(--accent); font-variant-numeric: tabular-nums; text-align: right; }
+  .legend .muted { font-size: 12.5px; line-height: 1.5; }
+  .sw-x { stroke: #fff; stroke-width: 1.6; stroke-linecap: round; fill: none; }
+  .sw-bang line { stroke: #fff; stroke-width: 1.7; stroke-linecap: round; }
+  .sw-bang circle { fill: #fff; }
+
+  .say {
+    min-height: calc(2 * 1.75em + 4px); margin: 0 4px; padding: 1px 0 1px 14px; border-left: 1px solid var(--ink);
+    font: 400 15.5px/1.75 var(--serif); color: var(--ink);
+  }
+  .say.done { border-left-color: var(--climb); }
+
+  /* 控件区 */
+  .controls { display: grid; gap: 16px; padding: 16px 4px 18px; }
+  .presets { gap: 8px; }
+  .presets button { padding: 5px 13px; font-size: 13.5px; }
+  .ctl2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 32px; }
+  .ctl { min-width: 0; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 600; font-size: 14.5px; }
+  .head b { font: italic 500 18px/1 var(--accent); font-variant-numeric: tabular-nums; }
+  .ctl input[type=range] { display: block; margin: 6px 0 4px; }
+  .tag { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--pencil); }
+  .layer {
+    display: inline-block; margin-right: 6px; padding: 0 7px; border: 1px solid var(--rule-2); border-radius: 4px;
+    color: var(--ink); font: 500 12px/18px var(--sans); white-space: nowrap; background: var(--card);
+  }
+  .plus { margin-right: 6px; color: var(--pencil); }
+  .seg { display: flex; gap: 0; margin: 6px 0 6px; border: 1px solid var(--rule-2); border-radius: 999px; overflow: hidden; background: var(--card); }
+  .seg button { flex: 1; padding: 4px 0; font-size: 13.5px; border: 0; border-radius: 0; background: transparent; }
+  .seg button + button { border-left: 1px solid var(--rule); }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .toggle { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .toggle input {
+    -webkit-appearance: none; appearance: none; position: relative; width: 30px; height: 18px; margin: 0; border-radius: 999px;
+    background: var(--rule-2); cursor: pointer; transition: background .2s;
+  }
+  .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px #0003; transition: transform .25s var(--iso-ease); }
+  .toggle input:checked { background: var(--ink); }
+  .toggle input:checked::after { transform: translateX(12px); }
+  .sep { border-top: 1px solid var(--rule); padding-top: 14px; }
+
+  .challenge { margin: 0 4px; padding: 9px 14px; border: 1px dashed var(--rule-2); border-radius: 8px; font-size: 13.5px; background: var(--card); }
+  .challenge .badge { display: none; margin-right: 8px; padding: 0 8px; border-radius: 999px; background: var(--climb); color: #fff; font: 600 12px/19px var(--sans); }
+  .challenge.done { border: 1px solid var(--climb); }
+  .challenge.done .badge { display: inline-block; }
+  .challenge.done .pre { display: none; }
+  .note { margin: -6px 4px 0; font-size: 12px; line-height: 1.6; }
+
+  @media (max-width: 560px) {
+    .result { grid-template-columns: 1fr; }
+    .legend { grid-column: 1; grid-row: auto; margin-top: 12px; }
+    .ctl2 { grid-template-columns: 1fr; }
+    #machine { width: 112%; margin-left: -6%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <figure class="plate gridbox" style="margin:0">
+    <span class="corner fig" aria-hidden="true">Fig. 1</span>
+    <figcaption class="corner ttl gtitle">100 个用户请求</figcaption>
+    <svg id="machine" viewBox="0 0 600 260" role="img" aria-label="100 个用户请求"></svg>
+    <span class="corner read" id="readout" aria-hidden="true"></span>
+  </figure>
+
+  <div class="result">
+    <div class="info">
+      <span class="lbl">端到端成功率</span>
+      <span class="num" id="E">77%</span>
+      <p class="formula" id="formula"></p>
+      <p class="calls">平均每个请求调用模型 <b id="calls">5.0</b> 次（≈ 成本和等待时间）</p>
+    </div>
+    <ul class="legend">
+      <li><svg viewBox="-8 -8 16 16" aria-hidden="true"><circle class="iso-ball" r="7"/></svg><b>正确</b><span class="cnt" id="cOk"></span><span></span></li>
+      <li><svg viewBox="-8 -8 16 16" aria-hidden="true"><circle class="iso-ball" data-kind="bad" r="7"/><path class="sw-x" d="M-2.8,-2.8L2.8,2.8M2.8,-2.8L-2.8,2.8"/></svg><b>静默出错</b><span class="cnt" id="cSilent"></span><span class="muted">用户拿到错答案，没人发现</span></li>
+      <li><svg viewBox="-8 -8 16 16" aria-hidden="true"><circle class="iso-ball" data-kind="flag" r="7"/><g class="sw-bang"><line x1="0" y1="-3.8" x2="0" y2="0.8"/><circle cy="3.3" r="1.05"/></g></svg><b>明确报错</b><span class="cnt" id="cFlag"></span><span class="muted">系统发现了，可以提示用户或转人工</span></li>
+    </ul>
+  </div>
+  <p class="say" id="say" aria-live="polite"></p>
+
+  <div class="controls panel">
+    <div class="row presets" role="group" aria-label="预设：只改步骤数">
+      <span class="muted">先点预设，再拖滑块：</span>
+      <button type="button" data-preset="single" data-n="1">一次问答（1 步）</button>
+      <button type="button" data-preset="workflow" data-n="5">固定流程（5 步）</button>
+      <button type="button" data-preset="agent" data-n="15">Agent 任务（15 步）</button>
+    </div>
+
+    <div class="ctl2">
+      <div class="ctl">
+        <label class="head" for="p"><span>单步成功率</span><b id="pv"></b></label>
+        <input type="range" id="p" min="80" max="99.9" step="0.1" value="95">
+        <p class="tag"><span class="layer">上下文</span>指令和资料给得好不好</p>
+      </div>
+      <div class="ctl">
+        <label class="head" for="n"><span>步骤数</span><b id="nv"></b></label>
+        <input type="range" id="n" min="1" max="20" step="1" value="5">
+        <p class="tag"><span class="layer">控制</span>流程设计，能少一步就少一步</p>
+      </div>
+    </div>
+
+    <div class="sep">
+      <label class="toggle"><input type="checkbox" id="checks"> 加上检查和重试</label>
+    </div>
+
+    <div class="ctl2" id="checkCtl" hidden>
+      <div class="ctl">
+        <label class="head" for="d"><span>检查能发现多少错误</span><b id="dv"></b></label>
+        <input type="range" id="d" min="0" max="99" step="1" value="80">
+        <p class="tag"><span class="layer">检验</span>格式检查、规则校验</p>
+      </div>
+      <div class="ctl" role="group" aria-labelledby="kLbl">
+        <div class="head"><span id="kLbl">最多重试次数</span><b id="kv"></b></div>
+        <div class="seg" id="kSeg">
+          <button type="button" data-k="0">0 次</button>
+          <button type="button" data-k="1">1 次</button>
+          <button type="button" data-k="2">2 次</button>
+          <button type="button" data-k="3">3 次</button>
+        </div>
+        <p class="tag"><span class="layer">控制</span><span class="plus">+</span><span class="layer">运维</span>重试，代价是成本和等待</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="challenge" id="challenge"><span class="badge">挑战完成</span><span class="pre">挑战：</span>在「Agent 任务（15 步）」下，把成功率拉到 90% 以上。看看要付出多少次调用。</p>
+  <p class="muted note">简化假设：每一步相互独立；检查发现错误就重试这一步；检查没发现的错误会一直传到最后；重试用完还没成功，就停下报错。</p>
+</div>
+
+<script type="module">
+import { emit } from '/assets/component.js';
+import { camera, solid, cyl, ball, ns, defs, line, poly, spring, reducedMotion } from '/assets/themes/anatomy/iso.js';
+
+const $ = id => document.getElementById(id);
+const st = { p: 95, n: 5, checks: false, d: 80, k: 1 };
+const sent = { checks: false, challenge: false };
+
+// ---- 模型（见页面底部的简化假设）：读数、机器上的零件、托盘里的弹珠，全部来自这一个函数 ----
+function model({ p, n, checks, d, k }) {
+  const P = p / 100, D = checks ? d / 100 : 0, K = checks ? k : 0;   // 关闭检查 = d 0、k 0
+  const q = (1 - P) * D;                                              // 失败且被发现
+  let A = 0;                                                          // 这一步的期望尝试次数
+  for (let i = 0; i <= K; i++) A += q ** i;
+  const S = P * A;                                                    // 单步最终成功
+  const Fs = (1 - P) * (1 - D) * A;                                   // 单步静默出错
+  const Fl = q ** (K + 1);                                            // 单步明确报错（重试用完）
+  const E = S ** n;
+  const rest = 1 - E;
+  const silent = Fs + Fl > 0 ? rest * Fs / (Fs + Fl) : 0;
+  let geo = 0;
+  for (let j = 0; j < n; j++) geo += (1 - Fl) ** j;                   // 明确报错会终止流程
+  return { E, S, silent, flag: rest - silent, calls: A * geo, q };
+}
+
+// ---- 格式 ----
+const fmtP = v => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+function fmtE(E) {
+  const v = E * 100;
+  if (v >= 99) return (Math.floor(v * 10) / 10).toFixed(1);          // ≥99% 显示一位小数
+  const r = Math.round(v);
+  if (v < 90 && r >= 90) return (Math.floor(v * 10) / 10).toFixed(1); // 不把 89.6% 显示成 90%
+  return String(r);
+}
+function fmtS(S) {
+  const v = S * 100;
+  if (v >= 99) return (Math.floor(v * 100) / 100).toFixed(2);
+  return v.toFixed(1).replace(/\.0$/, '');
+}
+
+// ---- 固定种子的伪随机：同样的数字永远是同样的图案 ----
+function mulberry32(a) {
+  return () => {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const order = [...Array(100).keys()];
+{
+  const rnd = mulberry32(20261016);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+}
+const rankOf = new Array(100);
+order.forEach((cell, rank) => { rankOf[cell] = rank; });
+const hash = (a, b = 0) => { let h = Math.imul(a + 1, 2654435761) ^ Math.imul(b + 7, 40503); h ^= h >>> 15; h = Math.imul(h, 2246822519); h ^= h >>> 13; return (h >>> 0) / 4294967296; };
+
+// =====================================================================
+// 机器：一条弹珠流水线。每个弹珠 = 一个用户请求；每座门架 = 一次模型调用（一步）。
+//   门架后面的立柱 = 走到这一步还"正确"的比例（单步成功率连乘）；最后一根就是端到端成功率。
+//   右边托盘 = 交到用户手里的 100 个回答：红色是静默出错，和正确的混在一起。
+//   打开检查和重试：每座门架后多一个检查臂，抓到的错珠重做；重试用完的扔进后面的报错箱。
+// =====================================================================
+const svg = $('machine');
+defs(svg);
+const W = 600;
+const L = 270;                    // 门架区长度
+const TRK = { x0: -22, x1: L + 30, y: 17, z: 6 };   // 弹珠中心线
+const RB = 3.6;                   // 弹珠半径
+const COLY = 48, COLH = 62;       // 立柱所在的一排、100% 的高度
+const TRAY = { x: L + 34, y: -30, pitch: 9 };       // 10×10 托盘内格原点
+const BIN = { x: L + 40, y: 84, w: 46, d: 26 };
+
+const cam = camera({ az: 26, el: 32 });
+const H = cam.fitWidth([[-62, -2, -12], [L + 24, -2, -12], [L + 24, -34, -12], [L + 140, -34, -12], [L + 140, 112, -12], [-62, 66, 44], [-16, 52, COLH + 4], [L, 54, COLH + 4]], W, 8);
+svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+svg.style.aspectRatio = `${W} / ${H}`;
+
+const G = {}; ['plate', 'cols', 'back', 'rail', 'balls', 'front', 'arms', 'tray', 'fly'].forEach(k => { G[k] = ns(svg, 'g'); });
+
+// ---- 底座：两块板 + 脚 + 凹槽 + 螺丝 ----
+function slab(parent, x, y, z, dx, dy, dz, tone = '') { return solid(parent, { tone }).set(x, y, z, dx, dy, dz, cam); }
+function foot(parent, x, y) { cyl(parent, { tone: '' }).set(x, y, -11, 4.2, 5, cam); }
+function groove(parent, x, y, dx, dy, z) { ns(parent, 'path', { class: 'iso-line', 'data-tone': 'faint', d: poly([cam.P(x, y, z), cam.P(x + dx, y, z), cam.P(x + dx, y + dy, z), cam.P(x, y + dy, z)]) }); }
+function screw(parent, x, y, z) { const [sx, sy] = cam.P(x, y, z); ns(parent, 'circle', { class: 'iso-dot', cx: sx, cy: sy, r: 0.9 * cam.scale }); ns(parent, 'ellipse', { class: 'iso-line', 'data-tone': 'faint', cx: sx, cy: sy, rx: 2.4 * cam.scale, ry: 1.3 * cam.scale }); }
+{
+  const P = G.plate;
+  const halo = ns(P, 'path', { class: 'iso-halo', d: poly([cam.P(-58, -2, -9), cam.P(L + 24, -2, -9), cam.P(L + 24, -32, -9), cam.P(L + 138, -32, -9), cam.P(L + 138, 112, -9), cam.P(-58, 66, -9)]) });
+  halo.setAttribute('transform', 'translate(0 4)');
+  [[-52, 60], [L + 132, 108], [L + 132, -26], [L + 26, 108], [-52, 2], [L + 26, -26]].forEach(([x, y]) => foot(P, x, y));
+  slab(P, L + 22, -32, -7, 118, 144, 7);         // 托盘台（后画：更靠后）
+  slab(P, -58, -2, -7, L + 82, 66, 7);           // 长底板
+  groove(P, -54, 2, L + 74, 58, 0);
+  groove(P, L + 26, -28, 110, 136, 0);
+  [[-54, 2], [-54, 60], [L + 20, 2], [L + 20, 60], [L + 26, -28], [L + 136, -28], [L + 136, 108], [L + 26, 108]].forEach(([x, y]) => screw(P, x + (x > 0 && x < L + 24 ? -2 : 2), y + (y > 30 ? -2 : 2), 0));
+  // 料斗：一切请求从这里出发
+  slab(P, -50, 4, 0, 26, 28, 30, 'mid');
+  slab(P, -54, 0, 30, 34, 36, 10, 'mid');
+  ns(P, 'path', { class: 'iso-face iso-front', d: poly([cam.P(-50, 4, 40), cam.P(-24, 4, 40), cam.P(-24, 32, 40), cam.P(-50, 32, 40)]), style: 'fill:var(--iso-s0)' });
+  for (let i = 0; i < 6; i++) ball(P).set(cam, -46 + (i % 3) * 8, 10 + Math.floor(i / 3) * 10, 37.5, RB);
+  // 刻度柱：0–100%，每 10% 一格，50% 和 100% 是长刻度
+  slab(P, -16, COLY, 0, 4, 4, COLH + 2, 'mid');
+  for (let i = 0; i <= 10; i++) {
+    const z = (COLH * i) / 10, len = i % 5 === 0 ? 5 : 2.6;
+    ns(P, 'path', { class: 'iso-line', 'data-tone': i % 5 === 0 ? 'mid' : '', d: line([cam.P(-16, COLY, z), cam.P(-16 - len, COLY, z)]) });
+  }
+  // 100% 参考线
+  ns(P, 'path', { class: 'iso-line', 'data-tone': 'mid', 'data-dash': '', d: line([cam.P(-12, COLY + 4, COLH), cam.P(L + 6, COLY + 4, COLH)]) });
+  // 导轨支架
+  for (let x = -14; x <= L + 24; x += 34) slab(P, x, 9, 0, 3, 16, TRK.z - 1);
+}
+
+// ---- 托盘（交给用户的回答）和报错箱 ----
+const pocketAt = cell => [TRAY.x + 4.5 + (cell % 10) * TRAY.pitch, TRAY.y + 4.5 + Math.floor(cell / 10) * TRAY.pitch];
+const trayBack = ns(G.tray, 'g'), trayBalls = ns(G.tray, 'g'), trayFront = ns(G.tray, 'g');
+{
+  const x0 = TRAY.x - 3, y0 = TRAY.y - 3, s = 96;
+  slab(trayBack, x0, y0, 0, s, s, 2.2);                                   // 托盘底
+  slab(trayBack, x0, y0 + s, 0, s, 2.4, 6);                               // 后壁
+  slab(trayBack, x0 + s, y0, 0, 2.4, s + 2.4, 6);                         // 右壁
+  for (let c = 0; c < 100; c++) { const [x, y] = pocketAt(c); const a = cam.P(x, y, 2.2); ns(trayBack, 'ellipse', { class: 'iso-line', 'data-tone': 'faint', cx: a[0], cy: a[1], rx: 3.4 * cam.scale, ry: 1.75 * cam.scale }); }
+  slab(trayFront, x0 - 2.4, y0 - 2.4, 0, 2.4, s + 4.8, 6);                // 左壁（入口处开口用一段斜坡代替）
+  slab(trayFront, x0, y0 - 2.4, 0, s + 2.4, 2.4, 6);                      // 前壁
+  // 报错箱
+  slab(trayBack, BIN.x, BIN.y, 0, BIN.w, BIN.d, 2, 'mid');
+  slab(trayBack, BIN.x, BIN.y + BIN.d, 0, BIN.w, 2.4, 12, 'mid');
+  slab(trayBack, BIN.x + BIN.w, BIN.y, 0, 2.4, BIN.d + 2.4, 12, 'mid');
+}
+const binBalls = ns(G.tray, 'g');
+const binFront = ns(G.tray, 'g');
+slab(binFront, BIN.x - 2.4, BIN.y - 2.4, 0, 2.4, BIN.d + 4.8, 12, 'mid');
+slab(binFront, BIN.x, BIN.y - 2.4, 0, BIN.w + 2.4, 2.4, 12, 'mid');
+// 托盘里的 100 个弹珠（按深度从后往前）
+const cellsByDepth = [...Array(100).keys()].sort((a, b) => { const pa = pocketAt(a), pb = pocketAt(b); return cam.depth(pb[0], pb[1]) - cam.depth(pa[0], pa[1]); });
+const trayBall = new Array(100);
+for (const c of cellsByDepth) { const [x, y] = pocketAt(c); trayBall[c] = ball(trayBalls).set(cam, x, y, 1.6, 3.2); }
+// 报错箱里的弹珠堆：每层 8×4，最多 100 个
+const binSlots = [];
+for (let layer = 0; layer < 4; layer++) for (let r = 3; r >= 0; r--) for (let c = 7; c >= 0; c--) binSlots.push([BIN.x + 3.5 + c * 5.6 + (layer % 2) * 1.4, BIN.y + 3.5 + r * 5.8 + (layer % 2) * 1.4, 2 + layer * 4.2]);
+const binOrder = binSlots.map((s, i) => i).sort((a, b) => { const A = binSlots[a], B = binSlots[b]; return A[2] - B[2] || cam.depth(B[0], B[1]) - cam.depth(A[0], A[1]); });
+const binBall = binOrder.map(i => { const b = ball(binBalls, 'flag').set(cam, ...binSlots[i], 2.6); b.el.style.display = 'none'; return { b, slot: i }; });
+const binFill = binSlots.map((s, i) => i).sort((a, b) => binSlots[a][2] - binSlots[b][2] || (a - b)); // 填充顺序：先铺底层
+
+// ---- 门架（每一步 = 一次模型调用）、检查臂、立柱 ----
+const MAXN = 20;
+const gates = Array.from({ length: MAXN }, (_, i) => ({
+  i,
+  x: spring(gx(i, st.n)), h: spring(i < st.n ? 1 : 0), col: spring(0),
+  tube: ns(G.cols, 'path', { class: 'iso-line', 'data-tone': 'mid', 'data-dash': '' }),
+  col3: solid(G.cols, { tone: 'mid' }),
+  postB: solid(G.back, { tone: 'mid' }),
+  postF: solid(G.front, { tone: 'mid' }),
+  bar: solid(G.front, { tone: 'mid' }),
+  chip: solid(G.front, { tone: 'hi', cls: 'chip' }),
+  iPost: solid(G.back, { tone: 'mid' }),
+  iArm: solid(G.arms, { tone: 'mid' }),
+  iHead: solid(G.arms, { tone: 'hi' }),
+  iLamps: ns(G.arms, 'g'),
+}));
+function gx(i, n) { return (L * (i + 0.5)) / n; }
+// 同一层里先画远的（x 大的更靠后）
+for (const k of ['cols', 'back', 'front', 'arms']) {
+  const kids = [...G[k].children];
+  kids.reverse().forEach(c => G[k].appendChild(c));
+}
+const insp = spring(0);
+const lit = { what: 'end', until: 0 };
+
+// 导轨：后轨 → 弹珠 → 前轨
+const railB = solid(G.rail, { tone: 'mid' }).set(TRK.x0, TRK.y + 4.4, TRK.z - 1, TRK.x1 - TRK.x0, 1.6, 1.6, cam);
+const railF = solid(G.front, { tone: 'mid' });
+G.front.insertBefore(railF.g, G.front.firstChild);
+railF.set(TRK.x0, TRK.y - 6, TRK.z - 1, TRK.x1 - TRK.x0, 1.6, 1.6, cam);
+
+function drawGates() {
+  const sp = L / Math.max(1, st.n);
+  const w = Math.min(6, sp * 0.4);
+  for (const g of gates) {
+    const h = g.h.v, x = g.x.v;
+    const on = h > 0.01;
+    for (const s of [g.postB, g.postF, g.bar, g.chip, g.col3, g.iPost, g.iArm, g.iHead]) s.show(on);
+    g.tube.style.display = on ? '' : 'none';
+    g.iLamps.style.display = on ? '' : 'none';
+    if (!on) continue;
+    const z = 26 * h;
+    g.postB.set(x - w / 2, TRK.y + 9, 0, w * 0.6, 3, z, cam);
+    g.postF.set(x - w / 2, TRK.y - 12, 0, w * 0.6, 3, z, cam);
+    g.bar.set(x - w / 2 - 0.5, TRK.y - 12, z, w * 0.6 + 1, 24, 3.4, cam);
+    g.chip.set(x - w / 2 - 1.2, TRK.y - 7, z + 3.4, w * 0.6 + 2.4, 14, 4.2 * h, cam);
+    // 立柱：走到这一步还正确的比例
+    const cw = Math.min(7, sp * 0.46);
+    const ch = Math.max(0.4, COLH * g.col.v * h), top = COLH * h;
+    g.col3.set(x - cw / 2, COLY, 0, cw, 6, ch, cam);
+    // 空着的那一截 = 已经丢掉的请求：画成只有轮廓的"玻璃管"
+    const P = (a, b, c) => cam.P(a, b, c);
+    const x0 = x - cw / 2, x1 = x + cw / 2, y0 = COLY, y1 = COLY + 6;
+    g.tube.setAttribute('d', top - ch < 0.5 ? '' :
+      line([P(x0, y0, ch), P(x0, y0, top), P(x1, y0, top), P(x1, y0, ch)]) + line([P(x0, y0, top), P(x0, y1, top), P(x1, y1, top), P(x1, y0, top)]));
+    // 检查臂
+    const k = insp.v * h, ix = x + Math.min(8, sp * 0.42);
+    const showI = k > 0.01;
+    for (const s of [g.iPost, g.iArm, g.iHead]) s.show(showI);
+    g.iLamps.style.display = showI ? '' : 'none';
+    if (showI) {
+      g.iPost.set(ix - 1.2, TRK.y + 13, 0, 2.4, 2.4, 30 * k, cam);
+      g.iArm.set(ix - 1.2, TRK.y - 1, 30 * k - 2, 2.4, 16.4, 2, cam);
+      g.iHead.set(ix - 2, TRK.y - 2.6, 30 * k - 2 - 6 * k, 4, 5.2, 6 * k, cam);
+    }
+  }
+  // 亮起的零件（一次只亮一类）
+  const now = performance.now();
+  const what = now < lit.until ? lit.what : 'end';
+  gates.forEach(g => {
+    g.chip.lit(what === 'chip');
+    g.postF.lit(what === 'gate'); g.bar.lit(what === 'gate'); g.postB.lit(what === 'gate');
+    g.iHead.lit(what === 'insp'); g.iArm.lit(what === 'insp');
+    g.col3.lit(what === 'end' && g.i === st.n - 1);
+  });
+}
+function drawLamps() {
+  // 每个检查臂上方：k 个小灯 = 最多重试次数
+  for (const g of gates) {
+    g.iLamps.replaceChildren();
+    if (!st.checks || g.h.to < 0.5) continue;
+    const ix = g.x.to + Math.min(8, (L / st.n) * 0.42);
+    for (let j = 0; j < st.k; j++) { const [sx, sy] = cam.P(ix, TRK.y + 14.2, 31 + j * 3.2); ns(g.iLamps, 'circle', { class: 'iso-dot', cx: sx, cy: sy, r: 1.05 * cam.scale, style: 'fill:var(--iso-hi)' }); }
+  }
+}
+
+// ---- 流动的弹珠 ----
+const SPEED = 24, GAP = 21, FLY = 1.5;
+const LEN = TRK.x1 - TRK.x0;
+const pool = Array.from({ length: 24 }, () => ball(G.balls));
+const flyPool = Array.from({ length: 8 }, () => ball(G.fly, 'flag'));
+const fate = new Map();
+let counts = { ok: 77, fl: 0, si: 23 }, m = model(st);
+function fateOf(j) {
+  let f = fate.get(j);
+  if (f) return f;
+  const rank = rankOf[j % 100];
+  const kind = rank < counts.ok ? 'ok' : rank < counts.ok + counts.fl ? 'flag' : 'bad';
+  f = { kind, gate: Math.floor(hash(j, 3) * MAXN) };
+  fate.set(j, f);
+  if (fate.size > 80) fate.delete(fate.keys().next().value);
+  return f;
+}
+const binPos = () => [BIN.x + BIN.w / 2, BIN.y + BIN.d / 2, 14];
+function drawBalls(T) {
+  const head = Math.floor((T * SPEED) / GAP);
+  let used = 0, fused = 0;
+  const n = st.n, sp = L / n;
+  for (let j = head; j > head - 24 && j >= 0; j--) {
+    const s = T * SPEED - j * GAP;
+    if (s < 0 || s > LEN + FLY * SPEED) continue;
+    const x = TRK.x0 + s;
+    const f = fateOf(j);
+    const g = Math.min(f.gate % n, n - 1);
+    const gX = gates[g].x.v, catchX = gX + Math.min(8, sp * 0.42);
+    if (f.kind === 'flag' && st.checks && x > catchX) {
+      // 被检查臂抓住、重试用完：抛进报错箱
+      const tau = (x - catchX) / SPEED;
+      if (tau < FLY && fused < flyPool.length) {
+        const k = tau / FLY, [bx, by, bz] = binPos();
+        const px = catchX + (bx - catchX) * k, py = TRK.y + (by - TRK.y) * k, pz = TRK.z + (bz - TRK.z) * k + 34 * Math.sin(Math.PI * k);
+        flyPool[fused++].set(cam, px, py, pz, RB).el.style.display = '';
+      }
+      continue;
+    }
+    if (s > LEN) continue;
+    const b = pool[used++];
+    let z = TRK.z;
+    if (st.checks && m.q > 0) {
+      // 检查抓到错误、重试成功：在检查臂下面跳一下（多花一次调用）
+      for (let i = 0; i < n; i++) {
+        const ix = gates[i].x.v + Math.min(8, sp * 0.42), dx = x - ix;
+        if (dx > -5 && dx < 5 && hash(j, 100 + i) < m.q * 2.2) z += 7 * Math.sin(Math.PI * (dx + 5) / 10);
+      }
+    }
+    const fade = s > LEN - 8 ? (LEN - s) / 8 : s < 6 ? s / 6 : 1;
+    b.el.style.display = '';
+    b.el.style.opacity = fade.toFixed(2);
+    b.kind(f.kind === 'bad' && x > gX + 2 ? 'bad' : '');
+    b.set(cam, x, TRK.y, z, RB);
+  }
+  for (let i = used; i < pool.length; i++) pool[i].el.style.display = 'none';
+  for (let i = fused; i < flyPool.length; i++) flyPool[i].el.style.display = 'none';
+}
+
+function drawTray() {
+  order.forEach((cell, rank) => trayBall[cell].kind(rank < counts.ok ? '' : rank < counts.ok + counts.fl ? 'ghost' : 'bad'));
+  binBall.forEach(({ b, slot }) => { b.el.style.display = binFill.indexOf(slot) < counts.fl ? '' : 'none'; });
+}
+
+// ---- 动画循环：只在看得见时跑；减少动效时停在一帧 ----
+let T = 9.3, last = 0, raf = 0, visible = true;
+const RM = reducedMotion();
+function settle(dt) {
+  let moving = false;
+  for (const g of gates) { moving = g.x.step(dt) | moving; moving = g.h.step(dt) | moving; moving = g.col.step(dt) | moving; }
+  moving = insp.step(dt) | moving;
+  return moving;
+}
+function frame(now) {
+  const dt = Math.min(0.05, (now - (last || now)) / 1000);
+  last = now;
+  T += dt;
+  settle(dt);
+  drawGates();
+  drawBalls(T);
+  raf = visible ? requestAnimationFrame(frame) : 0;
+}
+function kick() { if (RM) { for (const g of gates) { g.x.jump(g.x.to); g.h.jump(g.h.to); g.col.jump(g.col.to); } insp.jump(insp.to); drawGates(); drawBalls(T); return; } if (!raf && visible) { last = 0; raf = requestAnimationFrame(frame); } }
+new IntersectionObserver(es => { visible = es.some(e => e.isIntersecting) && document.visibilityState === 'visible'; if (visible) kick(); }).observe(svg);
+document.addEventListener('visibilitychange', () => { visible = document.visibilityState === 'visible'; if (visible) kick(); });
+function light(what) { lit.what = what; lit.until = performance.now() + 1600; if (RM) { drawGates(); setTimeout(drawGates, 1650); } }
+
+// ---- 控件 ----
+const pIn = $('p'), nIn = $('n'), dIn = $('d'), chk = $('checks');
+const presetBtns = [...document.querySelectorAll('[data-preset]')];
+const kBtns = [...document.querySelectorAll('[data-k]')];
+const fill = el => el.style.setProperty('--fill', `${((el.value - el.min) / (el.max - el.min)) * 100}%`);
+
+pIn.addEventListener('input', () => { st.p = Math.round(Number(pIn.value) * 10) / 10; light('chip'); update(); });
+nIn.addEventListener('input', () => { st.n = Number(nIn.value); light('gate'); update(); });
+dIn.addEventListener('input', () => { st.d = Number(dIn.value); light('insp'); update(); });
+chk.addEventListener('change', () => {
+  st.checks = chk.checked;
+  if (st.checks && !sent.checks) { sent.checks = true; emit('viz_reliability_checks_on', {}); }
+  light(st.checks ? 'insp' : 'end');
+  update();
+});
+presetBtns.forEach(b => b.addEventListener('click', () => {
+  st.n = Number(b.dataset.n);
+  nIn.value = st.n;
+  emit('viz_reliability_preset', { preset: b.dataset.preset });
+  light('gate');
+  update();
+}));
+kBtns.forEach(b => b.addEventListener('click', () => { st.k = Number(b.dataset.k); light('insp'); update(); }));
+
+function update() {
+  m = model(st);
+  const { p, n, checks } = st;
+  const E = fmtE(m.E), calls = m.calls.toFixed(1);
+  const done = n >= 15 && m.E >= 0.9;
+
+  // 控件状态
+  $('pv').textContent = `${fmtP(p)}%`;
+  pIn.setAttribute('aria-valuetext', `${fmtP(p)}%`);
+  $('nv').textContent = `${n} 步`;
+  nIn.setAttribute('aria-valuetext', `${n} 步`);
+  $('dv').textContent = `${st.d}%`;
+  dIn.setAttribute('aria-valuetext', `${st.d}%`);
+  $('kv').textContent = `${st.k} 次`;
+  $('checkCtl').hidden = !checks;
+  presetBtns.forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.n) === n)));
+  kBtns.forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.k) === st.k)));
+  [pIn, nIn, dIn].forEach(fill);
+
+  // 数字
+  $('E').textContent = `${E}%`;
+  $('E').classList.toggle('done', done);
+  $('formula').textContent = checks
+    ? `= 算上检查和重试，单步 ${fmtS(m.S)}%，连乘 ${n} 次`
+    : n === 1 ? '= 单步成功率本身' : `= 单步 ${fmtP(p)}% 连乘 ${n} 次`;
+  $('calls').textContent = calls;
+  $('readout').innerHTML = `<span class="num-accent">${fmtS(m.S)}%<sup>${n}</sup></span> = ${E}%`;
+
+  // 100 个请求：四舍五入，静默 = 100 − 正确 − 报错
+  const ok = Math.round(m.E * 100);
+  const fl = Math.min(Math.round(m.flag * 100), 100 - ok);
+  const si = 100 - ok - fl;
+  if (ok !== counts.ok || fl !== counts.fl) fate.clear();
+  counts = { ok, fl, si };
+  $('cOk').textContent = ok;
+  $('cSilent').textContent = si;
+  $('cFlag').textContent = fl;
+  svg.setAttribute('aria-label', `100 个用户请求：正确 ${ok} 个，静默出错 ${si} 个，明确报错 ${fl} 个`);
+
+  // 机器：门架数、立柱高度（单步成功率的 i 次方）、检查臂
+  gates.forEach((g, i) => {
+    if (i < n) { g.x.to = gx(i, n); g.h.to = 1; g.col.to = m.S ** (i + 1); }
+    else { g.h.to = 0; g.col.to = 0; }
+  });
+  insp.to = checks ? 1 : 0;
+  drawLamps();
+  drawTray();
+  kick();
+
+  // 解读
+  let say;
+  if (done) say = `做到了：${n} 步，成功率 ${E}%，平均每个请求调用 ${calls} 次。`;
+  else if (!checks && n === 1) say = p >= 90
+    ? `只问一次，${fmtP(p)}% 看起来很好。这就是 demo。`
+    : `只问一次，成功率就是单步的 ${fmtP(p)}%。把步骤数往上拖，看看会怎样。`;
+  else if (!checks) say = `单步 ${fmtP(p)}%，${n} 步之后只剩 ${E}%。失败的那些全是静默的：用户拿到错答案，系统不知道。`;
+  else if (ok === 100) say = '100 个里几乎全对。检查抓不住的那一小部分错误仍然存在，只能靠上线前的测试问题提前发现。';
+  else if (m.silent >= m.flag) say = '剩下的错误大多是检查没抓住的，只能靠上线前的测试问题提前发现。';
+  else say = `大部分错误被发现了，可以提示用户或转人工。代价：平均每个请求调用模型 ${calls} 次。`;
+  $('say').textContent = say;
+  $('say').classList.toggle('done', done);
+
+  if (done) $('challenge').classList.add('done');
+  if (done && !sent.challenge) {
+    sent.challenge = true;
+    emit('viz_reliability_challenge_done', {
+      p, n, d: checks ? st.d : 0, k: checks ? st.k : 0,
+      success: Math.round(m.E * 1000) / 10, calls: Math.round(m.calls * 10) / 10,
+    });
+  }
+}
+
+// 初始：立柱直接到位，不播放入场动画
+update();
+for (const g of gates) { g.x.jump(g.x.to); g.h.jump(g.h.to); g.col.jump(g.col.to); }
+drawGates();
+drawBalls(T);
+</script>
+</body>
+</html>

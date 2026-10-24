@@ -1,0 +1,91 @@
+/* themes/quest/component.css — 交互组件（viz/*.html）的基础样式「今日委托」主题：与课程页同一套颜色和字体
+ * 由 /assets/component.js 按主题加载。组件里一律用这些变量取色（契约见 /assets/themes/README.md）；
+ * 画法规则见 DESIGN.md「交互组件」，参考实现 /lab/themes/quest/viz/reliability.html。
+ */
+
+@import url("https://cdn.jsdelivr.net/npm/cn-fontsource-smiley-sans-oblique-regular@1.0.1/font.css");
+
+:root {
+  /* 与 lesson.css 同名同值 */
+  --paper: #F5F8FB;
+  --paper-2: #EAF1F7;
+  --card: #FFFFFF;
+  --ink: #18243A;
+  --pencil: #5A6A80;
+  --rule: #D5E0EA;
+  --line: #A9C6DD;
+  --line-soft: #D3E4F1;
+  --sky: #4AA3DA;
+  --sky-2: #8FD6E6;
+  --sky-ink: #1A6B9E;
+  --gold: #E2A631;
+  --gold-ink: #8C6210;
+  --gold-soft: #FFF4D6;
+  --marker: #FFDF85;
+  --pen: #2F5FCC;
+  --climb: #178256;
+  --red: #C8413B;
+  --amber: #E89A2C;       /* 图形里的"警示/被发现"（只做填充） */
+  --mint: #3FB68E;        /* 图形里的"正确/成功"（只做填充） */
+  --screen: #EAF4FB;      /* 画布舞台底色 */
+  --display: "Smiley Sans Oblique", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --sans: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, "Noto Sans SC", monospace;
+  --frame: 0 0 0 3px var(--card), 0 0 0 4px var(--line-soft);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--card); }
+body { margin: 0; padding: 20px; color: var(--ink); font: 400 15px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--sky-ink); outline-offset: 2px; border-radius: 2px; }
+
+h1, h2, h3 { margin: 0 0 .5em; font-weight: 700; line-height: 1.35; }
+h3 { font-size: 16px; }
+p { margin: 0 0 .7em; }
+code { font: .9em var(--mono); background: var(--paper-2); padding: .1em .35em; border-radius: 3px; }
+
+/* 控件：胶囊按钮；按下/选中 = 墨蓝 + 内圈金线 */
+button {
+  padding: 7px 16px; border: 0; border-radius: 999px; background: var(--card); color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font: 600 14px/1.4 var(--sans); cursor: pointer; transition: box-shadow .15s, background .15s, color .15s;
+}
+button:hover { box-shadow: inset 0 0 0 1px var(--sky); color: var(--sky-ink); }
+button.primary, button[aria-pressed="true"] {
+  background: var(--ink); color: #fff; box-shadow: inset 0 0 0 3px var(--ink), inset 0 0 0 4px rgba(226, 166, 49, .85);
+}
+button:disabled { opacity: .5; cursor: default; }
+
+/* 滑块：细轨道 + 菱形滑块 */
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--sky) var(--fill, 50%), var(--rule) var(--fill, 50%)); }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; transform: rotate(45deg);
+  background: var(--gold); border: 2px solid var(--card); box-shadow: 0 0 0 1px var(--gold-ink);
+}
+input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--rule); }
+input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--sky); }
+input[type=range]::-moz-range-thumb { width: 13px; height: 13px; transform: rotate(45deg); border-radius: 0; background: var(--gold); border: 2px solid var(--card); box-shadow: 0 0 0 1px var(--gold-ink); }
+input[type=range]:focus-visible { outline: none; }
+input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 1px var(--gold-ink), 0 0 0 5px rgba(74, 163, 218, .45); }
+input[type=checkbox], input[type=radio] { accent-color: var(--sky-ink); }
+input[type=text], input[type=number], select, textarea {
+  padding: 6px 10px; border: 1px solid var(--rule); border-radius: 2px; background: var(--paper); color: var(--ink); font: 400 14px/1.5 var(--sans);
+}
+label { font-size: 14px; }
+
+/* 常用布局 */
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.stack { display: grid; gap: 12px; }
+.muted { color: var(--pencil); font-size: 13px; }
+.panel { position: relative; padding: 14px 16px; border: 1px solid var(--line); border-radius: 2px; background: var(--paper); box-shadow: var(--frame); }
+.stage { position: relative; width: 100%; border-radius: 2px; overflow: hidden; background: var(--screen); border: 1px solid var(--line); }
+.stage canvas { display: block; width: 100%; height: 100%; }
+.mark { background: var(--marker); padding: 0 .15em; }
+.ok { color: var(--climb); }
+.bad { color: var(--red); }
+.num { font-family: var(--display); font-variant-numeric: tabular-nums; font-synthesis: none; }   /* 大数字用得意黑（只有一个字重，不合成粗体） */
+.dia { display: inline-block; width: 8px; height: 8px; transform: rotate(45deg); background: var(--gold); flex: none; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

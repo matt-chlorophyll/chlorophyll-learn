@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="lh-theme" content="anatomy">
+<title>一次请求的旅程：模型外面的四层</title>
+<link rel="stylesheet" href="/assets/player.css">
+<style>
+  /* 浅色舞台 + 很淡的点阵地面（Anatomy 式的"图版"） */
+  #stage { background: radial-gradient(circle, #00000010 1px, transparent 1.4px) 0 0 / calc(var(--u) * 32) calc(var(--u) * 32), var(--lh-bg); }
+  svg text { font-family: var(--lh-font); }
+  #stage .iso-face { stroke-width: 1.5px; }
+  #stage .iso-solid[data-lit] .iso-face { stroke-width: 2.2px; }
+</style>
+</head>
+<body>
+<div id="stage"><svg viewBox="0 0 1280 720" id="svg">
+  <defs>
+    <filter id="blur" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="12"/></filter>
+    <filter id="halo" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+</svg></div>
+
+<script type="module">
+import { mountScene, ease, lerp, clamp } from '/assets/player.js';
+import { camera, solid } from '/assets/themes/anatomy/iso.js';
+
+// ---------- 小工具 ----------
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('svg');
+function mk(parent, tag, attrs = {}, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text != null) e.textContent = text;
+  parent.appendChild(e);
+  return e;
+}
+const set = (e, attrs) => { for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); };
+const op = (e, v) => e.setAttribute('opacity', clamp(v).toFixed(3));
+const place = (e, x, y, s = 1, r = 0) => e.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${r.toFixed(2)}) scale(${s.toFixed(3)})`);
+const up = (t, t0, dur = 0.5, e = ease.inOut) => e(clamp((t - t0) / dur));
+const win = (t, t0, t1, fin = 0.4, fout = 0.4) => Math.min(up(t, t0, fin), 1 - up(t, t1, fout));
+const lerp2 = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
+
+// 方案 anatomy：浅色单色 + 墨色"亮"件；绿 = 通过，红 = 警示，蓝 = 用户（第二个声音）
+const C = {
+  bg: '#FFFFFF', pri: '#26262A', ok: '#23805A', warn: '#D93D42', ink: '#171717', soft: '#3F3F46', mute: '#8A8A8F',
+  panel: '#FFFFFF', panel2: '#F6F6F3', line: '#B4B4B8', user: '#3E63DD', halo: '#8A8A80', flash: '#E2E2DF',
+  okBg: '#EEF6F1', warnBg: '#FDEEEE',
+};
+const DIM = 0.32;
+
+// ---------- 布局（1280×720，重要内容都在 y < 580） ----------
+const Z1 = { x: 185, y: 100, w: 300, h: 350 };
+const Z2 = { x: 795, y: 100, w: 300, h: 350 };
+const API = { x: 520, y: 150, w: 240, h: 260 };
+const M_COVER = [640, 390], M_WORK = [640, 285], M_END = [640, 330];
+const UL = 90, UR = 1190;
+const CARD = { x: 200, w: 200, top: 156, h: 38, gap: 4 };
+const METER = { x: 446, y: 196, w: 16, h: 236 };
+const GATE_X = 1068;
+const ORD = { x: 835, y: 462, w: 180, h: 48 };
+const BAND = { x: 185, y: 522, w: 910, h: 54 };
+const GROW = 30; // "聊天记录"层最多变厚多少
+
+const PILLS = [
+  { name: '上下文', w: 132, cover: [420, 390], work: [335, 60], end: [420, 330] },
+  { name: '控制', w: 104, cover: [640, 268], work: [880, 60], end: [640, 205] },
+  { name: '检验', w: 104, cover: [860, 390], work: [GATE_X, 60], end: [860, 330] },
+  { name: '运维', w: 104, cover: [640, 512], work: [250, 549], end: [640, 455] },
+];
+
+// ---------- 按台词定位：beat 内某个短语开始的时刻 ----------
+function weight(s) {
+  const cjk = (s.match(/[一-鿿]/g) || []).length;
+  const words = (s.match(/[A-Za-z]+/g) || []).length;
+  const digits = (s.match(/\d/g) || []).length;
+  const comma = (s.match(/[，、；,;]/g) || []).length;
+  const colon = (s.match(/[：:]/g) || []).length;
+  const stop = (s.match(/[。？！?!]/g) || []).length;
+  return cjk + words * 1.6 + digits * 0.9 + comma * 1.2 + colon * 1.6 + stop * 2.6;
+}
+
+const el = {};
+let a = {};
+
+function buildPill(p) {
+  const g = mk(svg, 'g');
+  const h = 48, w = p.w;
+  const r = { x: -w / 2, y: -h / 2, width: w, height: h, rx: h / 2 };
+  p.glow = mk(g, 'rect', { ...r, y: r.y + 8, fill: C.halo, filter: 'url(#halo)', opacity: 0 });
+  p.base = mk(g, 'rect', { ...r, fill: C.panel, stroke: C.line, 'stroke-width': 2, 'stroke-dasharray': '6 6' });
+  p.named = mk(g, 'rect', { ...r, fill: C.panel, stroke: C.pri, 'stroke-width': 2, opacity: 0 });
+  p.lit = mk(g, 'rect', { ...r, fill: C.pri, opacity: 0 });
+  p.q = mk(g, 'text', { x: 0, y: 12, 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 700, fill: C.mute }, '?');
+  p.light = mk(g, 'text', { x: 0, y: 11, 'text-anchor': 'middle', 'font-size': 30, 'font-weight': 600, fill: C.soft, opacity: 0 }, p.name);
+  p.dark = mk(g, 'text', { x: 0, y: 11, 'text-anchor': 'middle', 'font-size': 30, 'font-weight': 600, fill: C.bg, opacity: 0 }, p.name);
+  p.g = g;
+}
+
+function hArrow(parent, x1, x2, y) {
+  const g = mk(parent, 'g');
+  mk(g, 'line', { x1, y1: y, x2: x2 - 10, y2: y, stroke: C.pri, 'stroke-width': 2, 'stroke-linecap': 'round' });
+  mk(g, 'path', { d: `M${x2} ${y} l-13 -8 v16 z`, fill: C.pri });
+  return g;
+}
+
+function cross(parent, x, y, s = 13, color = C.warn) {
+  const g = mk(parent, 'g');
+  mk(g, 'circle', { cx: x, cy: y, r: s + 9, fill: C.bg, stroke: color, 'stroke-width': 2.5 });
+  mk(g, 'path', { d: `M${x - s / 1.6} ${y - s / 1.6} L${x + s / 1.6} ${y + s / 1.6} M${x + s / 1.6} ${y - s / 1.6} L${x - s / 1.6} ${y + s / 1.6}`, stroke: color, 'stroke-width': 3.5, 'stroke-linecap': 'round' });
+  return g;
+}
+
+function userIcon(parent, cx) {
+  const g = mk(parent, 'g');
+  mk(g, 'circle', { cx, cy: 248, r: 20, fill: C.panel, stroke: C.user, 'stroke-width': 2.5 });
+  mk(g, 'path', { d: `M${cx - 34} 318 Q${cx - 34} 278 ${cx} 278 Q${cx + 34} 278 ${cx + 34} 318 Z`, fill: C.panel, stroke: C.user, 'stroke-width': 2.5, 'stroke-linejoin': 'round' });
+  mk(g, 'text', { x: cx, y: 358, 'text-anchor': 'middle', 'font-size': 28, fill: C.soft }, '用户');
+  return g;
+}
+
+function bubble(parent, lines, { w, color = C.pri, fill = C.panel, textColor = C.ink, tail = null } = {}) {
+  const g = mk(parent, 'g');
+  const h = lines.length * 38 + 22;
+  const box = mk(g, 'rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 16, fill, stroke: color, 'stroke-width': 2.5 });
+  let tailEl = null;
+  if (tail) tailEl = mk(g, 'path', { d: tail(h), fill, stroke: color, 'stroke-width': 2.5, 'stroke-linejoin': 'round' });
+  // 盖住尾巴和气泡相接处的描边
+  if (tail) mk(g, 'rect', { x: -w / 2 + 3, y: h / 2 - 8, width: w - 6, height: 5, fill });
+  lines.forEach((s, i) => mk(g, 'text', { x: 0, y: -h / 2 + 11 + 38 * i + 29, 'text-anchor': 'middle', 'font-size': 28, fill: textColor }, s));
+  return { g, box, tail: tailEl, h };
+}
+
+function setup({ ctx }) {
+  // 锚点：只依赖 timeline，算一次
+  const B = id => ctx.beat(id);
+  const A = (id, sub, off = -0.15) => {
+    const b = B(id);
+    const i = b.text.indexOf(sub);
+    if (i < 0) throw new Error(`beat ${id} 里找不到 "${sub}"`);
+    const total = weight(b.text.replace(/[。？！，]+$/, ''));
+    return b.start + (weight(b.text.slice(0, i)) / total) * (b.end - b.start) + off;
+  };
+  a = {
+    hookAI: A('hook', '可做'), hookModel: A('hook', '模型只是'), hookFollow: A('hook', '我们跟着'),
+    ask: B('ask').start, askQ: A('ask', '我想问'),
+    ctx: B('context').start, ctxCode: A('context', '你的代码'), ctxSys: A('context', '系统指令', -0.5), ctxDoc: A('context', '退货政策'),
+    ctxHist: A('context', '之前的聊天记录'), ctxTool: A('context', '还有能用的'),
+    memq: B('memory-q').start, memqAgain: A('memory-q', '为什么还要'),
+    st: B('stateless').start, stZero: A('stateless', '模型是无状态'), stMem: A('stateless', '所谓记忆'), stLong: A('stateless', '所以聊得越久'), stCost: A('stateless', '也越贵'),
+    tc: B('tool-call').start, tcNeed: A('tool-call', '得先查一下'), tcCant: A('tool-call', '可它没法'), tcReply: A('tool-call', '它回给你'),
+    eq: B('exec-q').start,
+    ex: B('exec').start, exCode: A('exec', '所以由你的代码'), exRes: A('exec', '查到的结果'), exAsk: A('exec', '再问一次模型'), exAns: A('exec', '这次'),
+    ck: B('check').start, ck1: A('check', '格式对不对'), ck2: A('check', '有没有承诺'), ck3: A('check', '要不要转人工'), ckPass: B('check').end - 0.35,
+    rq: B('random-q').start,
+    rd: B('random').start, rdOnce: A('random', '所以跑一次'), rdTest: A('random', '要拿一批'),
+    op: B('ops').start, op1: A('ops', '花了多少钱'), op2: A('ops', '用了多少时间'), op3: A('ops', '哪里超时'), op4: A('ops', '有没有被恶意'), op5: A('ops', '都要记录'),
+    rcq: B('recap-q').start, rcqCode: A('recap-q', '前后全是'),
+    rc: B('recap').start, rcModel: A('recap', '模型只管'), rc1: A('recap', '上下文'), rc2: A('recap', '控制'), rc3: A('recap', '检验'), rc4: A('recap', '运维'), rcEnd: A('recap', '这四层'),
+  };
+
+  // ---- 封面标题 ----
+  el.cover = mk(svg, 'g', { 'text-anchor': 'middle' });
+  mk(el.cover, 'text', { x: 640, y: 142, 'font-size': 64, 'font-weight': 600, fill: C.ink, 'letter-spacing': -1 }, '一次请求的旅程');
+  mk(el.cover, 'text', { x: 640, y: 204, 'font-size': 34, fill: C.mute, 'letter-spacing': 4 }, '模型外面的四层');
+
+  // ---- 链路图（收尾时整体变暗） ----
+  el.diagram = mk(svg, 'g');
+  const D = el.diagram;
+
+  // 区域：你的代码（左：组装请求；右：执行工具 / 检查）
+  el.z1 = mk(D, 'g');
+  el.z1rect = mk(el.z1, 'rect', { x: Z1.x, y: Z1.y, width: Z1.w, height: Z1.h, rx: 22, fill: 'rgba(23,23,23,0.018)', stroke: C.line, 'stroke-width': 2, 'stroke-dasharray': '8 7' });
+  el.z1title = mk(el.z1, 'text', { x: Z1.x + 18, y: Z1.y + 34, 'font-size': 28, fill: C.mute }, '你的代码');
+  el.z2 = mk(D, 'g');
+  el.z2rect = mk(el.z2, 'rect', { x: Z2.x, y: Z2.y, width: Z2.w, height: Z2.h, rx: 22, fill: 'rgba(23,23,23,0.018)', stroke: C.line, 'stroke-width': 2, 'stroke-dasharray': '8 7' });
+  el.z2title = mk(el.z2, 'text', { x: Z2.x + 18, y: Z2.y + 34, 'font-size': 28, fill: C.mute }, '你的代码');
+
+  // Anthropic API 虚线框
+  el.api = mk(D, 'g');
+  mk(el.api, 'rect', { x: API.x, y: API.y, width: API.w, height: API.h, rx: 20, fill: 'none', stroke: C.mute, 'stroke-width': 2, 'stroke-dasharray': '4 7' });
+  mk(el.api, 'text', { x: 640, y: API.y + 40, 'text-anchor': 'middle', 'font-size': 28, fill: C.mute }, 'Anthropic API');
+
+  // 检查闸门（右侧代码区的出口）
+  el.gate = mk(D, 'g');
+  el.gateGlow = mk(el.gate, 'rect', { x: GATE_X - 10, y: 150, width: 20, height: 280, rx: 10, fill: C.ok, filter: 'url(#blur)', opacity: 0 });
+  el.gateBar = mk(el.gate, 'rect', { x: GATE_X - 6, y: 150, width: 12, height: 280, rx: 6, fill: C.panel2, stroke: C.pri, 'stroke-width': 2 });
+  el.gateOk = mk(el.gate, 'rect', { x: GATE_X - 6, y: 150, width: 12, height: 280, rx: 6, fill: C.ok, opacity: 0 });
+
+  // 订单系统（下方）
+  el.orders = mk(D, 'g');
+  el.ordGlow = mk(el.orders, 'rect', { x: ORD.x, y: ORD.y, width: ORD.w, height: ORD.h, rx: 12, fill: C.ok, filter: 'url(#blur)', opacity: 0 });
+  mk(el.orders, 'rect', { x: ORD.x, y: ORD.y, width: ORD.w, height: ORD.h, rx: 12, fill: C.panel, stroke: C.mute, 'stroke-width': 2 });
+  const cx = ORD.x + 26;
+  mk(el.orders, 'path', { d: `M${cx - 13} ${ORD.y + 13} v22 a13 5 0 0 0 26 0 v-22`, fill: C.panel2, stroke: C.soft, 'stroke-width': 2 });
+  mk(el.orders, 'ellipse', { cx, cy: ORD.y + 13, rx: 13, ry: 5, fill: C.panel2, stroke: C.soft, 'stroke-width': 2 });
+  mk(el.orders, 'text', { x: ORD.x + 52, y: ORD.y + 34, 'font-size': 28, fill: C.soft }, '订单系统');
+
+  // 运维带子
+  el.band = mk(D, 'g');
+  el.bandRect = mk(el.band, 'rect', { x: BAND.x, y: BAND.y, width: BAND.w, height: BAND.h, rx: 27, fill: 'rgba(23,23,23,0.018)', stroke: C.line, 'stroke-width': 2, 'stroke-dasharray': '8 7' });
+  el.chips = ['成本', '延迟', '故障', '安全', '日志'].map((s, i) => {
+    const x = 410 + i * 135;
+    const g = mk(el.band, 'g');
+    const lit = mk(g, 'rect', { x: x - 46, y: BAND.y + 8, width: 92, height: 38, rx: 19, fill: C.pri, opacity: 0 });
+    const t1 = mk(g, 'text', { x, y: BAND.y + 37, 'text-anchor': 'middle', 'font-size': 28, fill: C.mute }, s);
+    const t2 = mk(g, 'text', { x, y: BAND.y + 37, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, fill: C.bg, opacity: 0 }, s);
+    return { g, lit, t1, t2 };
+  });
+  el.probes = [[335, Z1.y + Z1.h], [640, API.y + API.h], [GATE_X - 8, Z2.y + Z2.h]].map(([x, y]) =>
+    ({ line: mk(D, 'line', { x1: x, y1: y + 4, x2: x, y2: y + 4, stroke: C.pri, 'stroke-width': 2.5, 'stroke-dasharray': '1 8', 'stroke-linecap': 'round' }), y }));
+
+  // 链路箭头
+  el.arrows = [hArrow(D, 134, 178, 285), hArrow(D, 490, 516, 285), hArrow(D, 764, 790, 285), hArrow(D, 1102, 1150, 285)];
+
+  // 用户（左：提问；右：收到回答）
+  el.userL = userIcon(D, UL);
+  el.userR = userIcon(D, UR);
+
+  // 送进模型的那份请求（不带字的小卡，从卡片后面滑出去）
+  el.packet = mk(D, 'g', { opacity: 0 });
+  mk(el.packet, 'rect', { x: -36, y: -46, width: 72, height: 92, rx: 10, fill: C.panel, stroke: C.pri, 'stroke-width': 2 });
+  el.packetBars = [C.line, C.line, C.line, C.line, C.user, C.ok].map((c, i) =>
+    mk(el.packet, 'rect', { x: -24, y: -37 + i * 13, width: 48, height: 8, rx: 4, fill: c, opacity: 0.85 }));
+
+  // 请求卡片（主角）
+  el.card = mk(D, 'g');
+  el.cardFrame = mk(el.card, 'rect', { x: CARD.x - 8, y: CARD.top - 8, width: CARD.w + 16, height: 100, rx: 14, fill: C.panel, stroke: C.pri, 'stroke-width': 1.5 });
+  el.stack = mk(el.card, 'g', { id: 'stack' });
+  const LAYERS = [
+    { name: '系统指令' }, { name: '退货政策' }, { name: '聊天记录', hist: true }, { name: '工具清单' },
+    { name: '用户消息', color: C.user }, { name: '查询结果', color: C.ok },
+  ];
+  el.layers = LAYERS.map(L => {
+    const g = mk(el.stack, 'g', { opacity: 0 });
+    const rect = mk(g, 'rect', { x: CARD.x, y: 0, width: CARD.w, height: CARD.h, rx: 8, fill: C.panel2, stroke: L.color || C.line, 'stroke-width': 1.5 });
+    const flash = mk(g, 'rect', { x: CARD.x, y: 0, width: CARD.w, height: CARD.h, rx: 8, fill: C.flash, stroke: C.ink, 'stroke-width': 2, opacity: 0 });
+    const text = mk(g, 'text', { x: CARD.x + CARD.w / 2, y: 0, 'text-anchor': 'middle', 'font-size': 28, fill: L.color || C.soft }, L.name);
+    const lines = L.hist ? [0, 1].map(() => mk(g, 'rect', { x: CARD.x + 22, y: 0, width: CARD.w - 44, height: 5, rx: 2.5, fill: C.mute, opacity: 0 })) : [];
+    return { g, rect, flash, text, lines };
+  });
+  // 成本计量条（卡片旁）
+  el.meter = mk(el.card, 'g', { opacity: 0 });
+  mk(el.meter, 'text', { x: METER.x + METER.w / 2, y: METER.y - 12, 'text-anchor': 'middle', 'font-size': 28, fill: C.soft }, '成本');
+  mk(el.meter, 'rect', { x: METER.x, y: METER.y, width: METER.w, height: METER.h, rx: 8, fill: C.panel, stroke: C.line, 'stroke-width': 1.5 });
+  el.meterFill = mk(el.meter, 'rect', { x: METER.x + 2, y: METER.y, width: METER.w - 4, height: 0, rx: 6, fill: C.warn });
+
+  // "这句话不会直接送给模型" / "模型没法自己去查"
+  el.noDirect = mk(D, 'g', { opacity: 0 });
+  mk(el.noDirect, 'path', { d: 'M296 176 Q430 170 560 250', fill: 'none', stroke: C.warn, 'stroke-width': 3, 'stroke-dasharray': '8 8' });
+  cross(el.noDirect, 436, 186);
+  el.noTouch = mk(D, 'g', { opacity: 0 });
+  mk(el.noTouch, 'path', { d: `M700 342 Q760 470 ${ORD.x - 6} ${ORD.y + 24}`, fill: 'none', stroke: C.warn, 'stroke-width': 3, 'stroke-dasharray': '8 8' });
+  cross(el.noTouch, 772, 444);
+
+  // 工具调用小卡
+  el.tool = mk(D, 'g', { opacity: 0 });
+  mk(el.tool, 'rect', { x: -115, y: -46, width: 230, height: 92, rx: 14, fill: C.panel, stroke: C.pri, 'stroke-width': 2 });
+  mk(el.tool, 'text', { x: 0, y: -6, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, fill: C.ink }, '请调用：查订单');
+  mk(el.tool, 'text', { x: 0, y: 32, 'text-anchor': 'middle', 'font-size': 28, fill: C.soft }, '订单号 A1023');
+  el.toolArrow = mk(D, 'g', { opacity: 0 });
+  el.toolLine = mk(el.toolArrow, 'line', { x1: 930, y1: 258, x2: 930, y2: 452, stroke: C.ok, 'stroke-width': 3, 'stroke-dasharray': '194', 'stroke-dashoffset': 194 });
+  el.toolHead = mk(el.toolArrow, 'path', { d: `M930 ${ORD.y - 1} l-8 -13 h16 z`, fill: C.ok, opacity: 0 });
+
+  // 查询结果小签
+  el.result = mk(D, 'g', { opacity: 0 });
+  mk(el.result, 'rect', { x: -72, y: -20, width: 144, height: 40, rx: 10, fill: C.okBg, stroke: C.ok, 'stroke-width': 2 });
+  mk(el.result, 'text', { x: 0, y: 10, 'text-anchor': 'middle', 'font-size': 28, fill: C.ok }, '查询结果');
+
+  // 回答气泡
+  el.answer = bubble(D, ['可以退，', '还剩三天'], {
+    w: 150, tail: h => `M-14 ${h / 2 - 3} L0 ${h / 2 + 18} L14 ${h / 2 - 3}`,
+  });
+  el.answer.g.setAttribute('opacity', 0);
+
+  // 用户的问题气泡
+  el.ask = bubble(D, ['我上周买的耳机，', '现在还能退吗？'], {
+    w: 256, color: C.user, tail: h => `M-92 ${h / 2 - 3} L-72 ${h / 2 + 18} L-58 ${h / 2 - 3}`,
+  });
+  el.ask.g.setAttribute('opacity', 0);
+
+  // 检查清单
+  el.checks = ['格式正确', '没有乱承诺', '不用转人工'].map((s, i) => {
+    const y = 302 + i * 46;
+    const g = mk(D, 'g', { opacity: 0 });
+    mk(g, 'circle', { cx: 840, cy: y, r: 15, fill: 'none', stroke: C.ok, 'stroke-width': 3 });
+    mk(g, 'path', { d: `M832 ${y} l6 6 l11 -12`, fill: 'none', stroke: C.ok, 'stroke-width': 3.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+    mk(g, 'text', { x: 866, y: y + 10, 'font-size': 28, fill: C.soft }, s);
+    return g;
+  });
+
+  // 同一个问题问三次
+  el.variants = [
+    { text: '可以退，剩三天' }, { text: '三天内都能退' }, { text: '随时都能退', warn: true },
+  ].map(v => {
+    const g = mk(D, 'g', { opacity: 0 });
+    const box = mk(g, 'rect', { x: -115, y: -25, width: 230, height: 50, rx: 14, fill: C.panel, stroke: C.pri, 'stroke-width': 2 });
+    let warnBox = null, warnIcon = null;
+    if (v.warn) {
+      warnBox = mk(g, 'rect', { x: -115, y: -25, width: 230, height: 50, rx: 14, fill: C.warnBg, stroke: C.warn, 'stroke-width': 2, opacity: 0 });
+      warnIcon = mk(g, 'g', { opacity: 0 });
+      mk(warnIcon, 'circle', { cx: -88, cy: 0, r: 16, fill: C.warn });
+      mk(warnIcon, 'text', { x: -88, y: 10, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, fill: C.bg }, '!');
+    }
+    const text = mk(g, 'text', { x: v.warn ? 14 : 0, y: 10, 'text-anchor': 'middle', 'font-size': 28, fill: C.ink }, v.text);
+    return { g, box, warnBox, warnIcon, text, warn: v.warn };
+  });
+  el.tests = mk(D, 'g', { opacity: 0 });
+  // 一叠卡片的样子：后面两张错开一点
+  [12, 6].forEach(d => mk(el.tests, 'rect', { x: -115 + d, y: -25 + d, width: 230, height: 50, rx: 14, fill: C.okBg, stroke: C.ok, 'stroke-width': 1.5, opacity: 0.85 }));
+  mk(el.tests, 'rect', { x: -115, y: -25, width: 230, height: 50, rx: 14, fill: '#F7FBF9', stroke: C.ok, 'stroke-width': 2 });
+  mk(el.tests, 'text', { x: 0, y: 10, 'text-anchor': 'middle', 'font-size': 28, fill: C.ok }, '一批测试问题');
+
+  // "无状态"标签
+  el.stateTag = mk(D, 'text', { x: 640, y: 388, 'text-anchor': 'middle', 'font-size': 28, fill: C.warn, opacity: 0 }, '无状态');
+
+  // ---- 模型（始终在画面中间） ----
+  el.ring = mk(svg, 'ellipse', { cx: M_END[0], cy: M_END[1], rx: 220, ry: 125, fill: 'none', stroke: C.pri, 'stroke-width': 2, 'stroke-dasharray': '4 8', opacity: 0 });
+  // 模型 = 一块等轴测的"芯片"：底座 + 机身 + 顶上一排引脚，正面印着"模型"
+  el.model = mk(svg, 'g');
+  el.modelGlow = mk(el.model, 'ellipse', { cx: 0, cy: 46, rx: 96, ry: 20, fill: C.halo, filter: 'url(#halo)' });
+  {
+    const cam = camera({ az: 22, el: 28, scale: 1 });
+    const [cx, cy] = cam.P(65, 36, 26); cam.ox = -cx; cam.oy = -cy;
+    solid(el.model, { tone: 'mid' }).set(-6, -6, 0, 142, 84, 8, cam);
+    el.modelBox = solid(el.model, { tone: 'hi' }).set(0, 0, 8, 130, 72, 44, cam);
+    for (let i = 0; i < 6; i++) solid(el.model, { tone: 'mid' }).set(12 + i * 19.5, 26, 52, 9, 20, 6, cam);
+    const a = cam.P(0, 0, 8), b = cam.P(130, 0, 8), c = cam.P(130, 0, 52), d = cam.P(0, 0, 52);
+    const mx = (a[0] + b[0] + c[0] + d[0]) / 4, my = (a[1] + b[1] + c[1] + d[1]) / 4;
+    const ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
+    mk(el.model, 'text', { x: 0, y: 10, 'text-anchor': 'middle', 'font-size': 29, 'font-weight': 600, fill: C.ink, transform: `translate(${mx.toFixed(1)} ${(my - 1).toFixed(1)}) skewY(${ang.toFixed(2)})` }, '模型');
+  }
+
+  // ---- 四层标签 ----
+  PILLS.forEach(buildPill);
+  el.endline = mk(svg, 'text', { x: 640, y: 552, 'text-anchor': 'middle', 'font-size': 34, fill: C.mute, 'letter-spacing': 4, opacity: 0 }, '模型外面的四层');
+}
+
+// ---------- 时刻 t 的画面 ----------
+function seek(t) {
+  const m = up(t, a.hookAI, 1.2);                  // 封面 → 链路图
+  const end = up(t, a.rc, 0.9);                     // 收尾：链路图变暗，四层围住模型
+  const all = win(t, a.rcq, a.rc);                  // 镜头拉远：整条链路都亮
+  const emph = (...ws) => Math.max(all, ...ws.map(([t0, t1]) => win(t, t0, t1)));
+  const lvl = e => DIM + (1 - DIM) * e;
+
+  // 封面标题
+  op(el.cover, 1 - up(t, a.hookAI - 0.2, 0.6));
+  op(el.diagram, 1 - end);
+
+  // 区域
+  const zoneIn = m;
+  op(el.z1, zoneIn * lvl(emph([a.ctx, a.tc], [a.exRes + 0.6, a.exAsk + 0.4])));
+  op(el.z1title, up(t, a.ctxCode, 0.5) * (0.6 + 0.4 * emph([a.ctxCode, a.tc], [a.rcqCode, a.rc])));
+  op(el.z2, zoneIn * lvl(emph([a.eq, a.op])));
+  op(el.z2title, up(t, a.eq, 0.5) * (0.6 + 0.4 * emph([a.eq, a.rq], [a.rcqCode, a.rc])));
+  op(el.api, zoneIn * 0.85);
+  op(el.gate, zoneIn * lvl(emph([a.ck, a.rq], [a.rdTest, a.op])));
+  const pass = win(t, a.ckPass + 0.3, a.ckPass + 0.9, 0.25, 0.6);
+  op(el.gateOk, pass);
+  op(el.gateGlow, 0.8 * Math.max(pass, 0.5 * win(t, a.ck, a.rq)));
+
+  // 订单系统
+  op(el.orders, up(t, a.tcNeed, 0.5) * lvl(emph([a.tcNeed, a.tcReply], [a.exCode, a.exAsk])));
+  op(el.ordGlow, 0.6 * win(t, a.exCode + 0.5, a.exRes + 0.8));
+
+  // 运维带子
+  op(el.band, zoneIn * lvl(emph([a.op, a.rcq])));
+  const opsAt = [a.op1, a.op2, a.op3, a.op4, a.op5];
+  el.chips.forEach((c, i) => {
+    const on = up(t, opsAt[i], 0.35) * (1 - up(t, a.rcq, 0.5));
+    op(c.lit, on); op(c.t2, on); op(c.t1, 1 - on);
+    op(c.g, up(t, a.op - 0.3, 0.5));
+  });
+  el.probes.forEach((p, i) => {
+    const k = up(t, a.op + 0.1 * i, 0.8);
+    set(p.line, { y2: lerp(p.y + 4, BAND.y - 2, k) });
+    op(p.line, (k > 0 ? 1 : 0) * lvl(emph([a.op, a.rcq])));
+  });
+
+  // 链路箭头：有东西流过时亮
+  const flows = [
+    [[a.ctxCode - 0.2, a.ctxCode + 1.0]],
+    [[a.tc, a.tc + 1.2], [a.exAsk, a.exAsk + 1.2]],
+    [[a.tcReply, a.tcReply + 1.2], [a.exAns, a.exAns + 1.2], [a.rd, a.rd + 1.2]],
+    [[a.ckPass, a.ckPass + 1.2]],
+  ];
+  el.arrows.forEach((g, i) => {
+    const sweep = win(t, a.rcq + 0.35 + 0.45 * i, a.rcq + 1.25 + 0.45 * i, 0.3, 0.6);
+    const lit = Math.max(sweep, ...flows[i].map(([t0, t1]) => win(t, t0, t1, 0.25, 0.5)));
+    op(g, m * (0.28 + 0.72 * Math.max(lit, 0.6 * all)));
+  });
+
+  // 用户
+  const users = up(t, a.hookFollow, 0.6);
+  op(el.userL, users * lvl(emph([a.ask, a.ctxCode + 0.6])));
+  op(el.userR, users * lvl(emph([a.ckPass, a.rd])));
+
+  // 问题气泡：ask 出现，context 里飞进卡片，变成"用户消息"那一层
+  const qIn = up(t, a.ask + 0.1, 0.5, ease.out);
+  const qFly = up(t, a.ctxCode, 0.9);
+  const L = el.layers;
+  const g = GROW * (up(t, a.stLong, 0.4) * 0.34 + up(t, a.stLong + 0.7, 0.4) * 0.33 + up(t, a.stLong + 1.4, 0.4) * 0.33);
+  const ys = [CARD.top];
+  for (let i = 1; i < L.length; i++) ys[i] = ys[i - 1] + (i === 3 ? CARD.h + g : CARD.h) + CARD.gap;
+  const userSlot = [CARD.x + CARD.w / 2, ys[4] + CARD.h / 2];
+  const qPos = lerp2([162, 160], userSlot, qFly);
+  place(el.ask.g, qPos[0], qPos[1], lerp(1, 0.75, qFly));
+  op(el.ask.g, qIn * (1 - up(t, a.ctxCode + 0.55, 0.35)));
+  op(el.ask.tail, 1 - qFly * 3);
+  op(el.noDirect, win(t, a.ctx + 0.3, a.ctxCode, 0.4, 0.3));
+
+  // 请求卡片：逐层叠起
+  const layerIn = [a.ctxSys, a.ctxDoc, a.ctxHist, a.ctxTool, a.ctxCode + 0.6, a.exRes + 1.25].map(t0 => up(t, t0, 0.45, ease.out));
+  L.forEach((l, i) => {
+    const h = i === 2 ? CARD.h + g : CARD.h;
+    set(l.rect, { y: ys[i], height: h });
+    set(l.flash, { y: ys[i], height: h });
+    set(l.text, { y: ys[i] + 28 });
+    const k = layerIn[i];
+    l.g.setAttribute('opacity', k.toFixed(3));
+    l.g.setAttribute('transform', `translate(${((1 - k) * -24).toFixed(1)} 0)`);
+    l.lines.forEach((ln, j) => { set(ln, { y: ys[i] + 44 + j * 11 }); op(ln, clamp((g - 6 - j * 11) / 8) * 0.8); });
+  });
+  // 记忆那一层：b 发问时闪一下；"每次重新放进请求"时再亮
+  const histFlash = Math.max(
+    0.55 * Math.max(0, Math.sin(Math.PI * clamp((t - a.memq - 0.3) / 0.9))) ,
+    0.55 * Math.max(0, Math.sin(Math.PI * clamp((t - a.memqAgain) / 0.9))),
+    0.45 * win(t, a.stMem, a.stLong + 2.0),
+  );
+  op(L[2].flash, histFlash);
+  op(L[5].flash, 0.5 * win(t, a.exRes + 1.2, a.exRes + 1.9, 0.2, 0.5));
+  const cardBottom = ys[4] + CARD.h + layerIn[5] * (CARD.h + CARD.gap);
+  set(el.cardFrame, { height: cardBottom - CARD.top + 16 });
+  op(el.cardFrame, up(t, a.ctxCode + 0.3, 0.5));
+  op(el.card, m * lvl(emph([a.ctx, a.tc + 1.0], [a.exRes + 0.6, a.exAsk + 1.0])));
+
+  // 成本计量条
+  const meterK = (g / GROW) * 0.62 + 0.18 + 0.12 * up(t, a.stCost, 0.6);
+  op(el.meter, up(t, a.stLong - 0.1, 0.4));
+  set(el.meterFill, { y: METER.y + METER.h * (1 - meterK), height: METER.h * meterK });
+
+  // 模型
+  const mPos = lerp2(lerp2(M_COVER, M_WORK, m), M_END, end);
+  place(el.model, mPos[0], mPos[1], 1);
+  const modelOn = Math.max(
+    1 - m,
+    win(t, a.hookModel, a.hookFollow),
+    win(t, a.stZero - 0.2, a.stMem),
+    win(t, a.tc + 0.6, a.tcReply + 0.9),
+    win(t, a.exAsk + 0.6, a.exAns + 0.9),
+    win(t, a.rq + 0.4, a.rd + 1.2),
+    all, up(t, a.rcModel, 0.5),
+  );
+  op(el.modelGlow, 0.12 + 0.26 * modelOn);
+  el.modelBox.lit(modelOn > 0.5);
+  op(el.model, 0.6 + 0.4 * Math.max(modelOn, end));
+  op(el.stateTag, win(t, a.stZero, a.tc));
+
+  // 请求送进模型（两次：第一次请求、带着查询结果的第二次请求）
+  const cardC = [CARD.x + CARD.w / 2, (CARD.top + cardBottom) / 2];
+  const sends = [a.tc, a.exAsk].map((t0, i) => ({ t0, i, k: up(t, t0, 1.6), on: t >= t0 && t < t0 + 1.65 }));
+  const s = sends.find(x => x.on);
+  if (s) {
+    const p = lerp2(cardC, M_WORK, s.k);
+    place(el.packet, p[0], p[1], lerp(1, 0.6, s.k));
+    op(el.packet, 1 - up(t, s.t0 + 1.25, 0.35));
+    op(el.packetBars[5], s.i === 1 ? 0.85 : 0);
+  } else op(el.packet, 0);
+
+  // 模型没法自己去查
+  op(el.noTouch, win(t, a.tcCant, a.tcReply, 0.4, 0.3));
+
+  // 工具调用小卡：从模型里出来 → 交给你的代码 → 去订单系统
+  const k1 = up(t, a.tcReply, 0.8), k2 = up(t, a.eq + 0.1, 0.8);
+  const toolPos = lerp2(lerp2(M_WORK, [845, 285], k1), [930, 211], k2);
+  place(el.tool, toolPos[0], toolPos[1], lerp(0.3, 1, k1));
+  op(el.tool, up(t, a.tcReply, 0.3) * (1 - up(t, a.exRes + 0.3, 0.5)));
+  const ta = up(t, a.exCode + 0.1, 0.6);
+  set(el.toolLine, { 'stroke-dashoffset': (194 * (1 - ta)).toFixed(1) });
+  op(el.toolHead, ta > 0.95 ? 1 : 0);
+  op(el.toolArrow, 1 - up(t, a.exRes + 0.3, 0.5));
+
+  // 查询结果：订单系统 → 放进下一次请求
+  const rk = up(t, a.exRes, 1.3);
+  const P0 = [925, ORD.y + 24], P1 = [600, 560], P2 = [CARD.x + CARD.w / 2, ys[5] + CARD.h / 2];
+  const bz = (i) => (1 - rk) ** 2 * P0[i] + 2 * (1 - rk) * rk * P1[i] + rk ** 2 * P2[i];
+  place(el.result, bz(0), bz(1), lerp(1, 0.95, rk));
+  op(el.result, win(t, a.exRes, a.exRes + 1.25, 0.3, 0.2));
+
+  // 回答：模型写出 → 右侧代码检查 → 穿过闸门给用户
+  const ak1 = up(t, a.exAns + 0.1, 0.8), ak2 = up(t, a.ckPass, 0.9);
+  const ansPos = lerp2(lerp2(M_WORK, [905, 205], ak1), [UR, 160], ak2);
+  const jig = win(t, a.rq + 0.2, a.rd, 0.2, 0.3) * Math.sin((t - a.rq) * Math.PI * 2 * 2.2);
+  place(el.answer.g, ansPos[0] + 5 * jig, ansPos[1], lerp(0.3, 1, ak1), 4 * jig);
+  op(el.answer.g, up(t, a.exAns + 0.1, 0.3) * lvl(emph([a.exAns, a.rd + 0.4])));
+  op(el.answer.tail, ak2);
+  el.answer.box.setAttribute('stroke', ak2 > 0.35 ? C.ok : C.pri);
+
+  // 检查清单
+  [a.ck1, a.ck2, a.ck3].forEach((t0, i) => op(el.checks[i], up(t, t0, 0.4) * (1 - up(t, a.rq, 0.4))));
+
+  // 同一个问题问三次：三个略有不同的回答
+  el.variants.forEach((v, i) => {
+    const k = up(t, a.rd + 0.1 + 0.3 * i, 0.7);
+    const p = lerp2(M_WORK, [930, 177 + 62 * i], k);
+    place(v.g, p[0], p[1], lerp(0.3, 1, k));
+    op(v.g, up(t, a.rd + 0.1 + 0.3 * i, 0.25) * (1 - up(t, a.op, 0.5)));
+    if (v.warn) { const w = up(t, a.rdOnce, 0.4); op(v.warnBox, w); op(v.warnIcon, w); v.text.setAttribute('fill', w > 0.5 ? C.warn : C.ink); }
+  });
+  place(el.tests, 924, 368);
+  op(el.tests, up(t, a.rdTest, 0.5) * (1 - up(t, a.op, 0.5)));
+
+  // 四层标签
+  const named = [a.ctx, a.ex, a.ck, a.op];
+  const litW = [
+    [[a.ctx, a.tc]],
+    [[a.ex, a.ck]],
+    [[a.ck, a.rq], [a.rdTest, a.op]],
+    [[a.op, a.rcq]],
+  ];
+  const fly = [a.rc1, a.rc2, a.rc3, a.rc4];
+  PILLS.forEach((p, i) => {
+    const pos = lerp2(lerp2(p.cover, p.work, m), p.end, up(t, fly[i] - 0.1, 0.7));
+    place(p.g, pos[0], pos[1], 1);
+    const n = up(t, named[i], 0.4);
+    const lit = Math.max(...litW[i].map(([t0, t1]) => win(t, t0, t1)), up(t, fly[i], 0.4));
+    op(p.base, 1 - n); op(p.q, 1 - n);
+    op(p.named, n); op(p.light, n * (1 - lit));
+    op(p.lit, n * lit); op(p.dark, n * lit);
+    op(p.glow, 0.35 * n * lit);
+    op(p.g, Math.max(1 - m, 0.55 + 0.45 * Math.max(lit, n * all, n * (1 - m))));
+  });
+  op(el.ring, up(t, a.rcEnd, 0.8) * 0.8);
+  op(el.endline, up(t, a.rcEnd + 0.3, 0.8));
+}
+
+mountScene({ setup, seek });
+</script>
+</body>
+</html>

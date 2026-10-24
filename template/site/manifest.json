@@ -1,0 +1,8 @@
+{
+  "current": null,
+  "topics": {},
+  "lab": [
+    { "title": "视觉主题", "path": "/lab/themes/" },
+    { "title": "课件样例", "path": "/lab/demo/" }
+  ]
+}

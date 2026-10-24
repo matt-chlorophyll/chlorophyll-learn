@@ -1,0 +1,687 @@
+/* themes/ink/lesson.css — 主题「墨」的课程页样式（运行时生成的结构见 /assets/themes/README.md）
+ *
+ * 视觉约定：一张宣纸。正文用文楷写在纸上；墨分五色是唯一的明暗阶梯；
+ * 颜料只做点缀：朱砂（印章、当前位置的朱点、答错）、花青（🔭 后面会讲）、石绿（🧗 Stretch、答对）、藤黄（荧光笔）。
+ * 题头：竖排书法标题 + 落款 + 一方「日课」印；左边一滴墨晕开（写意 = 不确定的模型），标题落在乌丝栏里（界画 = 你的工程）。
+ * 侧边今日路线：竖排标签 + 一道界栏细线；读过的段在线上落一笔浓墨，正在读的落一笔朱砂（.lh-toc-mark）。
+ * 笔触和纹理都是 ink/*.svg（feTurbulence + feDisplacementMap），多数当 mask 用，颜色由 background-color 决定。
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap");
+@import url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css");
+@import url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css");
+
+/* 书法标题里的西文和标点借用文楷粗体：马善政的西文是花体，标点也没有竖排字形。只在 --brush 里排在最前 */
+@font-face { font-family: "Ink Latin"; font-display: swap; src: url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/files/lxgwwenkai-bold-subset-119.woff2") format("woff2"); unicode-range: U+20-22, U+27-2A, U+2C-3B, U+3F, U+41-4D, U+4F-5D, U+61-7B, U+7D, U+B7, U+2014, U+3001-3002, U+FF0C, U+FF1A; }
+@font-face { font-family: "Ink Latin"; font-display: swap; src: url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/files/lxgwwenkai-bold-subset-117.woff2") format("woff2"); unicode-range: U+4E, U+201C-201D, U+FF1F; }
+@font-face { font-family: "Ink Latin"; font-display: swap; src: url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/files/lxgwwenkai-bold-subset-118.woff2") format("woff2"); unicode-range: U+3E, U+5F, U+7C, U+FF01, U+FF08-FF09; }
+@font-face { font-family: "Ink Latin"; font-display: swap; src: url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/files/lxgwwenkai-bold-subset-116.woff2") format("woff2"); unicode-range: U+2B, U+40, U+300A-300B; }
+@font-face { font-family: "Ink Latin"; font-display: swap; src: url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/files/lxgwwenkai-bold-subset-110.woff2") format("woff2"); unicode-range: U+300C-300D; }
+@font-face { font-family: "Ink Latin"; font-display: swap; src: url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/files/lxgwwenkai-bold-subset-114.woff2") format("woff2"); unicode-range: U+7E, U+2026; }
+@font-face { font-family: "Ink Latin"; font-display: swap; src: url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/files/lxgwwenkai-bold-subset-115.woff2") format("woff2"); unicode-range: U+25, U+FF1B; }
+@font-face { font-family: "Ink Latin"; font-display: swap; src: url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/files/lxgwwenkai-bold-subset-112.woff2") format("woff2"); unicode-range: U+23, U+3D; }
+@font-face { font-family: "Ink Latin"; font-display: swap; src: url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/files/lxgwwenkai-bold-subset-113.woff2") format("woff2"); unicode-range: U+26, U+3C; }
+
+:root {
+  /* 纸 */
+  --paper: #EEEAE0;       /* 宣：页面底色 */
+  --paper-2: #E4DFD2;     /* 熟宣：代码块、解析、输入区 */
+  --silk: #D9DDD8;        /* 月白绫：装裱边（动画、弹窗） */
+  /* 墨分五色 */
+  --ink-jiao: #15130F;    /* 焦：标题、最重的字 */
+  --ink-nong: #2A2622;    /* 浓：正文、按钮 */
+  --ink-zhong: #57514A;   /* 重：次要文字（对纸 6.5:1） */
+  --ink-dan: #8C857A;     /* 淡：装饰笔触、大号序号（不用于小字） */
+  --ink-qing: #C9C2B4;    /* 清：细线、未学的路线 */
+  /* 颜料：只做点缀 */
+  --zhu: #A3301D;         /* 朱砂：印章、当前位置、答错、超时 */
+  --huaqing: #2E5770;     /* 花青：🔭 后面会讲、术语、链接、焦点框 */
+  --shilv: #386A54;       /* 石绿：🧗 Stretch、答对 */
+  --tenghuang: #E4C766;   /* 藤黄：荧光笔淡染（只做底色） */
+  --zheshi: #9A6838;      /* 赭石：明确报错（只做图形，不做小字） */
+
+  /* 平台通用名：组件、播放器和以后的 agent 用这些 */
+  --ink: var(--ink-nong);
+  --pencil: var(--ink-zhong);
+  --rule: var(--ink-qing);
+  --marker: var(--tenghuang);
+  --pen: var(--huaqing);
+  --climb: var(--shilv);
+  --red: var(--zhu);
+  --screen: var(--paper-2);
+
+  --kai: "LXGW WenKai", "Noto Serif SC", "KaiTi", "STKaiti", serif;
+  --brush: "Ink Latin", "Ma Shan Zheng", "LXGW WenKai", "KaiTi", serif;
+  --serif: var(--kai);
+  --sans: var(--kai);     /* 全站一套正文字体：界面文字也用文楷 */
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, "LXGW WenKai", monospace;
+
+  --main: 36rem;          /* 正文栏：约 36 个汉字一行 */
+  --gap: 3rem;
+  --side: 13rem;          /* 页边栏 */
+  --bar-h: 46px;
+  --toc-w: 11rem;         /* 侧边今日路线 */
+  --toc-gap: 2rem;
+  --ease-ink: cubic-bezier(.2, .7, .2, 1);
+  font-size: 19px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-padding-top: calc(var(--bar-h) + 20px); }
+body {
+  margin: 0; color: var(--ink-nong);
+  background: var(--paper) url("ink/paper.svg") repeat; background-size: 420px 420px;
+  font: 400 1rem/1.9 var(--kai);
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+a { color: var(--huaqing); text-underline-offset: .22em; text-decoration-thickness: 1px; }
+:focus-visible { outline: 2px solid var(--huaqing); outline-offset: 3px; border-radius: 2px; }
+::selection { background: color-mix(in srgb, var(--tenghuang) 60%, transparent); }
+
+/* 笔触工具类：mask = 一笔墨，颜色 = background-color */
+.lh-stroke, .lesson h2::before, .lesson aside::before, .lh-route .seg, .lh-mini span {
+  -webkit-mask: url("ink/stroke.svg") center / 100% 100% no-repeat;
+  mask: url("ink/stroke.svg") center / 100% 100% no-repeat;
+}
+
+/* ---------- 顶部条（lesson.js 生成） ---------- */
+.lh-top {
+  position: sticky; top: 0; z-index: 20; height: var(--bar-h);
+  display: flex; align-items: center; gap: 20px; padding: 0 22px;
+  background: color-mix(in srgb, var(--paper) 93%, transparent); backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--ink-qing);
+  font: 400 14px/1 var(--kai); color: var(--ink-zhong);
+}
+.lh-top a { color: var(--ink-nong); text-decoration: none; white-space: nowrap; font-weight: 700; }
+.lh-top a:hover { text-decoration: underline; }
+.lh-top .lh-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 26em; }
+.lh-top .lh-track { display: none; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-nong); }
+.lh-top .lh-track .no { margin-right: .6em; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lh-top .lh-mini { flex: 1; display: flex; gap: 6px; height: 8px; max-width: 560px; margin: 0 auto; }
+.lh-mini span { background: var(--ink-qing); transition: background .4s; }
+.lh-mini span.stretch:not(.seen):not(.now) { background: color-mix(in srgb, var(--shilv) 45%, var(--paper)); }
+.lh-mini span.seen { background: var(--ink-zhong); }
+.lh-mini span.now { background: var(--zhu); }
+.lh-top .lh-clock { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lh-top .lh-clock.over { color: var(--zhu); }
+
+/* ---------- 页面骨架 ---------- */
+main.lesson {
+  --layout: calc(var(--toc-w) + var(--toc-gap) + var(--main) + var(--gap) + var(--side) + 48px);
+  max-width: var(--layout);
+  margin: 0 auto; padding: 40px 24px 180px calc(24px + var(--toc-w) + var(--toc-gap));
+}
+
+/* ---------- 侧边今日路线：宽屏固定在左侧，一直可见 ---------- */
+.lh-toc {
+  position: fixed; z-index: 15; top: calc(var(--bar-h) + 38px);
+  left: max(14px, calc((100% - var(--layout, 1264px)) / 2 + 24px));
+  width: var(--toc-w); max-height: calc(100vh - var(--bar-h) - 76px); overflow-y: auto; scrollbar-width: none;
+  display: grid; grid-template-columns: 1.3em minmax(0, 1fr); column-gap: 10px; align-items: start;
+  font-family: var(--kai);
+}
+.lh-toc::-webkit-scrollbar { display: none; }
+/* 竖排的标签，像卷首的题签 */
+.lesson .lh-toc-h {
+  grid-column: 1; grid-row: 1; margin: 0; padding-top: 6px;
+  writing-mode: vertical-rl; display: flex; align-items: center; gap: 10px;
+  font: 700 14px/1 var(--kai); letter-spacing: .32em; color: var(--ink-nong);
+}
+.lh-toc-count {
+  writing-mode: horizontal-tb; letter-spacing: 0; font: 400 12px/1 var(--kai); color: var(--ink-zhong);
+  font-variant-numeric: tabular-nums;
+}
+.lh-toc-body { grid-column: 2; grid-row: 1; position: relative; padding-left: 16px; }
+/* 界栏：一道清墨细线 */
+.lh-toc-body::before { content: ""; position: absolute; left: 3px; top: 8px; bottom: 8px; width: 1px; background: var(--ink-qing); }
+.lesson .lh-toc ol { list-style: none; margin: 0; padding: 0; }
+.lesson .lh-toc li { position: relative; margin: 0; }
+.lh-toc a {
+  display: grid; grid-template-columns: 1.45em minmax(0, 1fr); column-gap: 4px; padding: 6px 0 7px;
+  color: var(--ink-zhong); text-decoration: none;
+}
+.lh-toc .no { grid-row: 1 / span 2; font: 400 17px/1.3 var(--brush); color: #6F6960; transition: color .3s; }   /* 介于重墨和淡墨之间，小字仍过 AA */
+.lh-toc .t {
+  font: 400 14px/1.5 var(--kai); color: var(--ink-zhong);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; transition: color .3s;
+}
+.lh-toc .m { font: 400 12px/1.4 var(--kai); color: var(--ink-zhong); font-variant-numeric: tabular-nums; opacity: .85; }
+.lh-toc a:hover .t { color: var(--ink-jiao); text-decoration: underline; text-underline-offset: .2em; }
+.lh-toc li.stretch .no { color: var(--shilv); }
+/* 读过：线上落一笔浓墨，字变深 */
+.lh-toc li.seen::before {
+  content: ""; position: absolute; left: -15px; top: 7px; bottom: 7px; width: 5px; background: var(--ink-nong);
+  -webkit-mask: url("ink/vstroke.svg") center / 100% 100% no-repeat; mask: url("ink/vstroke.svg") center / 100% 100% no-repeat;
+}
+.lh-toc li.seen .t { color: var(--ink-nong); }
+.lh-toc li.seen .no { color: var(--ink-nong); }
+.lh-toc li.stretch.seen::before { background: var(--shilv); }
+/* 正在读：朱砂一笔（.lh-toc-mark，位置由运行时写在 --mark-y / --mark-h），标题加粗 */
+.lh-toc li.now .t { color: var(--ink-jiao); font-weight: 700; }
+.lh-toc li.now .no { color: var(--zhu); }
+.lh-toc-mark {
+  position: absolute; left: 0; top: calc(var(--mark-y, 0px) + 5px); height: calc(var(--mark-h, 0px) - 10px); width: 7px;
+  background: var(--zhu); pointer-events: none;
+  -webkit-mask: url("ink/vstroke.svg") center / 100% 100% no-repeat; mask: url("ink/vstroke.svg") center / 100% 100% no-repeat;
+  transition: top .5s var(--ease-ink), height .5s var(--ease-ink);
+}
+
+/* ---------- 题头：左边一滴墨 + 目标，右边竖排标题 + 落款 + 印 ---------- */
+.lesson-head {
+  position: relative;
+  display: grid; column-gap: 26px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-rows: 1fr auto auto;
+  grid-template-areas: "art when title" "goal when title" "route route route";
+  margin-bottom: 20px;
+}
+.lesson-head h1 {
+  grid-area: title; margin: 0;
+  writing-mode: vertical-rl; height: 10.6em; padding: .8em 0;
+  font: 400 2.5rem/1.5 var(--brush); letter-spacing: .04em; color: var(--ink-jiao);
+  text-wrap: balance;     /* 各列长短接近，不留一列只有两个字 */
+  /* 乌丝栏：每一列标题落在两条细线之间 */
+  background: repeating-linear-gradient(to left, var(--ink-qing) 0 1px, transparent 1px 1lh);
+  border-left: 1px solid var(--ink-qing);
+}
+.lesson-when {
+  grid-area: when; align-self: start; margin: 2.6em 0 0;
+  writing-mode: vertical-rl; letter-spacing: .16em;
+  font: 400 15px/1.5 var(--kai); color: var(--ink-zhong);
+}
+.lh-seal {
+  grid-area: when; align-self: end; justify-self: center; margin-bottom: 10px;
+  display: grid; place-items: center; width: 50px; height: 50px;
+  writing-mode: vertical-rl; background: var(--zhu); color: #F6F1E7;
+  font: 400 21px/1 var(--brush); letter-spacing: .02em;
+  -webkit-mask: url("ink/seal.svg") center / 100% 100% no-repeat; mask: url("ink/seal.svg") center / 100% 100% no-repeat;
+  user-select: none;
+}
+.lh-ink {
+  grid-area: art; align-self: stretch; min-height: 210px; margin: 0 0 18px -56px;
+  background: url("ink/bleed.svg") left center / contain no-repeat;
+  animation: lh-bloom 1.6s var(--ease-ink) .1s both;
+}
+.lh-still .lh-ink, html.lh-still .lh-reward .lh-emblem .lh-seal, .lh-still lh-quiz .opts button.right .k::after { animation: none; }   /* QA 截图时直接画最终状态 */
+@keyframes lh-bloom {
+  from { opacity: 0; transform: scale(.86); filter: blur(10px); }
+  60% { opacity: 1; }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.lesson-goal {
+  grid-area: goal; align-self: end; margin: 0; max-width: 27em;
+  font-size: 1.12rem; line-height: 1.85; color: var(--ink-nong);
+}
+
+/* 今日路线：每段一笔，长度 ∝ 分钟数；已学 = 重墨，当前 = 朱砂，未学 = 清墨 */
+.lh-route { grid-area: route; margin: 40px 0 0; }
+.lh-route ol { display: none !important; }   /* 侧边今日路线已经一直可见，页头只留总时长 */
+.lh-route ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px; }
+.lh-route li { min-width: 0; }
+.lh-route a { display: block; color: inherit; text-decoration: none; }
+.lh-route .seg { display: block; height: 16px; background: var(--ink-qing); transition: background .4s; }
+.lh-route li.stretch .seg { background: color-mix(in srgb, var(--shilv) 45%, var(--paper)); }
+.lh-route li.seen .seg { background: var(--ink-zhong); }
+.lh-route li.now .seg { background: var(--zhu); }
+.lh-route .t {
+  display: block; margin-top: 8px; padding-right: 4px;
+  font: 400 13.5px/1.45 var(--kai); color: var(--ink-nong);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lh-route .m { display: block; font: 400 12.5px/1.4 var(--kai); color: var(--ink-zhong); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
+.lh-route a:hover .t { text-decoration: underline; }
+.lh-route-total { margin: 14px 0 0; font: 400 14px/1.5 var(--kai); color: var(--ink-zhong); }
+
+/* ---------- 段落 ---------- */
+.lesson > section {
+  position: relative; padding-right: calc(var(--gap) + var(--side));
+  margin-top: 96px;
+}
+.lesson > section::after { content: ""; display: table; clear: both; }
+.lesson > section > p, .lesson > section > ul, .lesson > section > ol { max-width: var(--main); }
+.lesson h2 {
+  position: relative; display: flex; align-items: baseline; gap: 16px; max-width: var(--main);
+  margin: 0 0 26px; padding-top: 30px;
+  font: 700 1.42rem/1.4 var(--kai); color: var(--ink-jiao);
+}
+/* 段首一笔枯笔，代替分隔线 */
+.lesson h2::before {
+  content: ""; position: absolute; left: -8px; right: -4px; top: 0; height: 8px;
+  background: var(--ink-nong);
+}
+.lesson h2 .n { flex: none; min-width: 1em; font: 400 2.1rem/1 var(--brush); color: var(--ink-dan); }
+.lesson h2 .rule { display: none; }
+.lesson h2 .ttl { min-width: 0; }
+.lesson > section.is-done h2 .n { color: var(--ink-zhong); }   /* 读过的段，序号墨色变深 */
+.lesson > section.is-now h2 .n { color: var(--ink-nong); }
+.lesson h2 .min { margin-left: auto; flex: none; font: 400 14px/1 var(--kai); color: var(--ink-zhong); white-space: nowrap; }
+.lesson h3 { margin: 2em 0 .6em; font: 700 1.1rem/1.5 var(--kai); color: var(--ink-jiao); }
+.lesson p, .lesson li { margin: 0 0 1em; }
+.lesson ul, .lesson ol { padding-left: 1.4em; margin: 0 0 1em; }
+.lesson ul > li::marker { color: var(--ink-dan); }
+.lesson strong { font-weight: 700; color: var(--ink-jiao); }
+.lesson dfn { font-style: normal; font-weight: 700; color: var(--huaqing); }
+
+/* 荧光笔 = 藤黄淡染：每段最多一处 */
+.lesson mark {
+  color: inherit; padding: .05em .18em; box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  background: url("ink/mark.svg") center / 100% 100% no-repeat;
+}
+
+/* 一句话总结：左边一竖笔 */
+.lesson .takeaway {
+  position: relative; max-width: var(--main); margin: 1.8em 0; padding: .15em 0 .15em 1.25em;
+  font: 700 1.1rem/1.8 var(--kai); color: var(--ink-jiao);
+}
+.lesson .takeaway::before {
+  content: ""; position: absolute; left: 0; top: .15em; bottom: .15em; width: 10px; background: var(--ink-nong);
+  -webkit-mask: url("ink/vstroke.svg") center / 100% 100% no-repeat; mask: url("ink/vstroke.svg") center / 100% 100% no-repeat;
+}
+
+/* 代码：熟宣底，上下两道细线，字照样清楚 */
+.lesson code { font: .84em/1.5 var(--mono); background: var(--paper-2); padding: .1em .35em; border-radius: 2px; color: var(--ink-jiao); }
+.lesson pre {
+  position: relative; margin: 1.3em 0 1.5em; padding: 16px 18px; overflow-x: auto; max-width: var(--main);
+  font-size: 14.5px; line-height: 1.7;
+  background: var(--paper-2); border-top: 1px solid var(--ink-dan); border-bottom: 1px solid var(--ink-dan);
+}
+.lesson pre code { background: none; padding: 0; font-size: 14.5px; line-height: 1.7; }
+.lh-copy {
+  position: absolute; top: 6px; right: 6px; padding: 2px 10px; border: 1px solid var(--ink-dan); border-radius: 2px;
+  background: var(--paper); color: var(--ink-nong); font: 400 13px/1.6 var(--kai); cursor: pointer; opacity: 0; transition: opacity .15s;
+}
+.lesson pre:hover .lh-copy, .lh-copy:focus-visible { opacity: 1; }
+
+/* 表格：上下两道粗墨线，中间清墨细线，列与列之间是乌丝栏 */
+.lesson table {
+  border-collapse: collapse; margin: 1.4em 0 1.8em; max-width: var(--main);
+  font: 400 15.5px/1.7 var(--kai);
+  border-top: 2px solid var(--ink-nong); border-bottom: 2px solid var(--ink-nong);
+}
+.lesson th, .lesson td { padding: 8px 14px; border-bottom: 1px solid var(--ink-qing); text-align: left; vertical-align: top; }
+.lesson th + th, .lesson td + td { border-left: 1px solid var(--ink-qing); }
+.lesson th:first-child, .lesson td:first-child { padding-left: 4px; }
+.lesson th { font-weight: 700; color: var(--ink-jiao); border-bottom: 1px solid var(--ink-nong); }
+.lesson tbody tr:last-child td { border-bottom: 0; }
+
+/* ---------- 页边注（批注） ---------- */
+/* 写在它所注释的段落"之前"，会出现在该段右侧 */
+.lesson aside {
+  position: relative; float: right; clear: right; width: var(--side);
+  margin: .3em calc(-1 * (var(--gap) + var(--side))) 1.6em 0; padding-top: 14px;
+  font: 400 14.5px/1.8 var(--kai); color: var(--ink-zhong);
+}
+.lesson aside::before { content: ""; position: absolute; left: -2px; top: 0; width: 2.6em; height: 5px; background: var(--ink-dan); }
+.lesson aside > :last-child { margin-bottom: 0; }
+.lesson aside p { margin: 0 0 .6em; }
+.lesson aside .tag { display: block; margin-bottom: 3px; font-weight: 700; letter-spacing: .04em; }
+.lesson aside .emo { display: inline-block; margin-right: .3em; filter: grayscale(1) contrast(1.2); opacity: .8; }
+.lesson aside.later { color: var(--huaqing); }
+.lesson aside.later::before { background: var(--huaqing); }
+.lesson aside.stretch-tag .tag { color: var(--shilv); }
+.lesson aside.stretch-tag::before { background: var(--shilv); }
+
+/* 🧗 Stretch 段：左侧一竖石绿笔（画在段落外侧，不改动段内任何盒子） */
+.lesson > section[data-stretch]::before {
+  content: ""; position: absolute; left: -26px; top: calc(30px + 1.42rem * 1.4 + 26px); bottom: 0; width: 8px;
+  background: var(--shilv);
+  -webkit-mask: url("ink/vstroke.svg") center / 100% 100% no-repeat; mask: url("ink/vstroke.svg") center / 100% 100% no-repeat;
+}
+
+/* ---------- 插槽：配音动画（装裱成一幅画）/ 交互可视化（一页册页） ---------- */
+.lh-slot { margin: 2.4em 0 2.6em; }
+.lh-slot.wide, .lesson .wide { clear: right; margin-right: calc(-1 * (var(--gap) + var(--side))); }
+.lh-slot iframe { display: block; width: 100%; border: 0; }
+.lh-slot .screen {
+  margin: 12px; overflow: hidden; background: var(--paper); aspect-ratio: 16 / 9;
+  /* 装裱：画心细墨线 → 月白绫 → 外沿淡墨线 */
+  box-shadow: 0 0 0 1px var(--ink-dan), 0 0 0 11px var(--silk), 0 0 0 12px color-mix(in srgb, var(--ink-dan) 70%, transparent);
+}
+.lh-slot .screen iframe { height: 100%; }
+.lh-slot.lh-viz iframe { background: var(--paper); border-top: 1px solid var(--ink-dan); border-bottom: 1px solid var(--ink-dan); min-height: 120px; }
+.lh-slot figcaption { margin-top: 12px; font: 400 14.5px/1.7 var(--kai); color: var(--ink-zhong); max-width: var(--main); }
+.lh-slot.lh-media figcaption { margin-left: 12px; margin-top: 22px; }
+.lh-slot figcaption .kind {
+  display: inline-block; margin-right: .7em; padding: 0 .45em; border: 1px solid var(--ink-dan); border-radius: 2px;
+  font-size: 13px; line-height: 1.6; color: var(--ink-jiao); font-weight: 700; letter-spacing: .08em; vertical-align: 1px;
+}
+.lh-slot figcaption .ttl { color: var(--ink-nong); }
+.lh-slot figcaption .dur { margin-left: .8em; font-variant-numeric: tabular-nums; }
+.lh-slot figcaption .hint { display: block; margin-top: 4px; }
+.lh-slot.lh-viz figcaption .ttl { font-weight: 700; }
+.lh-missing {
+  margin: 2em 0; padding: 22px; border: 2px dashed var(--zhu);
+  color: var(--zhu); background: color-mix(in srgb, var(--zhu) 8%, var(--paper)); font: 700 15px/1.6 var(--mono);
+}
+
+/* ---------- 小测：圈对、划错（朱批） ---------- */
+lh-quiz { display: block; margin: 1.8em 0 2.4em; max-width: var(--main); }
+lh-quiz .lh-qlabel {
+  display: flex; align-items: center; gap: 10px; margin: 0 0 8px;
+  font: 700 13.5px/1.4 var(--kai); letter-spacing: .1em; color: var(--ink-zhong);
+}
+lh-quiz .lh-qlabel::before {
+  content: ""; width: 1.8em; height: 5px; background: var(--ink-dan);
+  -webkit-mask: url("ink/stroke.svg") center / 100% 100% no-repeat; mask: url("ink/stroke.svg") center / 100% 100% no-repeat;
+}
+lh-quiz.is-right .lh-qlabel::before { background: var(--shilv); }
+lh-quiz.is-wrong .lh-qlabel::before { background: var(--zhu); }
+lh-quiz .reveal-row { margin-top: 12px; }
+lh-quiz > .q { margin: 0 0 .9em; font-weight: 700; color: var(--ink-jiao); }
+lh-quiz > .q p { margin: 0 0 .5em; }
+lh-quiz > .q pre { font-weight: 400; }
+lh-quiz .opts { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink-qing); }
+lh-quiz .opts li { margin: 0; border-bottom: 1px solid var(--ink-qing); }
+lh-quiz .opts button {
+  display: flex; gap: 14px; align-items: baseline; width: 100%; padding: 11px 10px 11px 8px; text-align: left;
+  background: transparent; border: 0; border-radius: 0; color: var(--ink-nong);
+  font: 400 16.5px/1.7 var(--kai); cursor: pointer; transition: background .2s;
+}
+lh-quiz .opts button:hover:not(:disabled) { background: color-mix(in srgb, var(--ink-nong) 6%, transparent); }
+lh-quiz .opts .k { position: relative; flex: none; width: 1.7em; text-align: center; font-weight: 700; color: var(--ink-zhong); }
+lh-quiz .opts button:disabled { cursor: default; }
+lh-quiz .opts button.right { color: var(--ink-jiao); }
+lh-quiz .opts button.right .k { color: var(--shilv); }
+/* 答对：在字母外面画一个圈（石绿），像老师批改 */
+@property --sweep { syntax: "<angle>"; inherits: false; initial-value: 360deg; }
+lh-quiz .opts button.right .k::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 2.2em; height: 2.2em; translate: -50% -50%;
+  background: var(--shilv);
+  -webkit-mask: url("ink/circle.svg") center / contain no-repeat, conic-gradient(from 20deg, #000 var(--sweep), transparent 0);
+  -webkit-mask-composite: source-in;
+  mask: url("ink/circle.svg") center / contain no-repeat, conic-gradient(from 20deg, #000 var(--sweep), transparent 0);
+  mask-composite: intersect;
+  animation: lh-draw .7s cubic-bezier(.5, .1, .3, 1) both;
+}
+@keyframes lh-draw { from { --sweep: 0deg; } to { --sweep: 360deg; } }
+/* 答错：朱笔划掉 */
+lh-quiz .opts button.wrong .k { color: var(--zhu); }
+lh-quiz .opts button.wrong span:last-child { text-decoration: line-through; text-decoration-color: var(--zhu); text-decoration-thickness: 2px; }
+lh-quiz .opts button.dim { opacity: .6; }
+lh-quiz .verdict { margin: 12px 0 0; font: 700 16px/1.6 var(--kai); }
+lh-quiz .verdict.ok { color: var(--shilv); }
+lh-quiz .verdict.no { color: var(--zhu); }
+lh-quiz .why { margin-top: 10px; padding: 14px 18px; background: var(--paper-2); font: 400 15.5px/1.85 var(--kai); }
+lh-quiz .why > :last-child { margin-bottom: 0; }
+lh-quiz .why[hidden] { display: none; }
+lh-quiz .why pre { background: var(--paper); }
+
+/* 按钮：主按钮是一抹实墨（毛边），次按钮是细墨线框 */
+lh-quiz .reveal, .lh-btn {
+  position: relative; isolation: isolate;
+  padding: 9px 22px; border: 0; background: none; color: #F6F1E7;
+  font: 700 15px/1.4 var(--kai); letter-spacing: .06em; cursor: pointer;
+}
+lh-quiz .reveal::before, .lh-btn::before {
+  content: ""; position: absolute; inset: -1px -5px; z-index: -1; background: var(--ink-nong); transition: background .2s;
+  -webkit-mask: url("ink/dab.svg") center / 100% 100% no-repeat; mask: url("ink/dab.svg") center / 100% 100% no-repeat;
+}
+lh-quiz .reveal:hover::before, .lh-btn:hover::before { background: var(--ink-jiao); }
+.lh-btn:disabled { cursor: default; opacity: .6; }
+lh-quiz .self { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; font: 400 14.5px/1.4 var(--kai); color: var(--ink-zhong); }
+lh-quiz .self button, .lh-btn.ghost {
+  position: relative; isolation: isolate;
+  padding: 7px 16px; background: transparent; color: var(--ink-nong); border: 1px solid var(--ink-dan); border-radius: 2px;
+  font: 700 14.5px/1.4 var(--kai); cursor: pointer;
+}
+.lh-btn.ghost::before { display: none; }
+lh-quiz .self button:hover, .lh-btn.ghost:hover { border-color: var(--ink-nong); }
+lh-quiz .self button.picked { color: #F6F1E7; border-color: transparent; }
+lh-quiz .self button.picked::before, .lh-scale label:has(input:checked)::before, .lh-chips label:has(input:checked)::before {
+  content: ""; position: absolute; inset: -2px -6px; z-index: -1; background: var(--ink-nong);
+  -webkit-mask: url("ink/dab.svg") center / 100% 100% no-repeat; mask: url("ink/dab.svg") center / 100% 100% no-repeat;
+}
+lh-quiz textarea { width: 100%; }
+
+/* ---------- 课末打卡 ---------- */
+lh-checkin { display: block; margin-top: 120px; max-width: var(--main); }
+.lh-stub { font-family: var(--kai); }
+.lh-stub h2 { margin-bottom: 6px; }
+.lh-stub > p.sub { margin: 0 0 26px; font-size: 15.5px; color: var(--ink-zhong); }
+.lh-field { margin: 0 0 24px; border: 0; padding: 0; }
+.lh-field > label, .lh-field > legend { display: block; margin-bottom: 9px; padding: 0; font: 700 15.5px/1.5 var(--kai); color: var(--ink-jiao); }
+.lh-field .hint { font-weight: 400; color: var(--ink-zhong); margin-left: 8px; font-size: 13.5px; }
+.lh-field input[type=number] { width: 6em; }
+.lh-scale, .lh-chips { display: flex; gap: 8px 10px; flex-wrap: wrap; }
+.lh-scale label, .lh-chips label {
+  position: relative; isolation: isolate;
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px; border: 1px solid var(--ink-qing); border-radius: 2px;
+  background: transparent; color: var(--ink-nong); font: 400 14.5px/1.4 var(--kai); cursor: pointer; transition: border-color .15s;
+}
+.lh-scale label:hover, .lh-chips label:hover { border-color: var(--ink-zhong); }
+.lh-scale input, .lh-chips input { position: absolute; opacity: 0; pointer-events: none; }
+.lh-scale .key { font-weight: 700; font-variant-numeric: tabular-nums; }
+.lh-scale label:has(input:checked), .lh-chips label:has(input:checked) { color: #F6F1E7; border-color: transparent; }
+.lh-scale label:has(input:focus-visible), .lh-chips label:has(input:focus-visible) { outline: 2px solid var(--huaqing); outline-offset: 3px; }
+.lesson input[type=number], .lesson textarea, .lh-pop textarea, .lh-ask textarea {
+  padding: 8px 11px; border: 1px solid var(--ink-qing); border-radius: 2px;
+  background: color-mix(in srgb, #fff 32%, transparent); color: var(--ink-nong);
+  font: 400 15.5px/1.65 var(--kai);
+}
+.lesson input[type=number]:hover, .lesson textarea:hover { border-color: var(--ink-dan); }
+.lesson textarea::placeholder, .lh-pop textarea::placeholder { color: var(--ink-zhong); opacity: .8; }
+.lesson textarea { width: 100%; min-height: 4.5em; resize: vertical; }
+/* 结算：一方「日课」印（theme.js 放进 .lh-emblem）+ 书法「日课已毕」，下面三栏数字用乌丝栏隔开 */
+.lh-done { font: 400 16px/1.8 var(--kai); color: var(--ink-nong); }
+.lh-reward { display: flex; align-items: center; gap: 22px; margin: 4px 0 26px; }
+.lh-emblem { flex: none; width: 64px; height: 64px; display: grid; place-items: center; }
+.lh-emblem .lh-seal { grid-area: auto; align-self: center; justify-self: center; width: 64px; height: 64px; font-size: 26px; margin: 0; transform: rotate(-3deg); }
+.lh-reward.celebrate .lh-emblem .lh-seal { animation: lh-stamp .55s cubic-bezier(.3, 1.5, .5, 1) both; }
+@keyframes lh-stamp { from { opacity: 0; transform: scale(1.6) rotate(-9deg); } 70% { opacity: 1; } to { opacity: 1; transform: rotate(-3deg); } }
+.lesson .lh-done h2.rt { display: block; margin: 0; padding: 0; font: 400 2.1rem/1.2 var(--brush); color: var(--ink-jiao); letter-spacing: .06em; }
+.lesson .lh-done h2.rt::before { display: none; }
+.lesson .lh-done p.rs { margin: 4px 0 0; font-size: 14.5px; color: var(--ink-zhong); letter-spacing: .08em; }
+.lh-stats { display: flex; margin: 0 0 20px; border-top: 1px solid var(--ink-nong); border-bottom: 1px solid var(--ink-nong); }
+.lh-stats > div { flex: 1; padding: 10px 16px 12px; }
+.lh-stats > div + div { border-left: 1px solid var(--ink-qing); }
+.lh-stats dt { font-size: 13.5px; color: var(--ink-zhong); letter-spacing: .1em; }
+.lh-stats dd { margin: 2px 0 0; font: 700 1.5rem/1.3 var(--kai); color: var(--ink-jiao); font-variant-numeric: tabular-nums; }
+.lh-stats dd small { margin-left: 4px; font-size: 13.5px; font-weight: 400; color: var(--ink-zhong); }
+.lesson .lh-done-msg { margin: 0 0 14px; }
+.lesson .lh-done-edit { margin: 0; }
+.lh-err { color: var(--zhu); font: 700 14.5px/1.6 var(--kai); margin-top: 10px; }
+
+/* ---------- 捕获按钮：右下角竖排的签条（问老师 / 这里没懂 / 犯困了 / 暂停）和「这里没懂」的弹窗 ---------- */
+.lh-capture {
+  position: fixed; right: 18px; bottom: 18px; z-index: 30;
+  display: flex; flex-direction: column; background: var(--paper);
+  border: 1px solid var(--ink-nong); border-radius: 2px;
+  box-shadow: 0 0 0 3px var(--paper), 0 0 0 4px var(--ink-qing), 0 10px 24px -12px rgba(21, 19, 15, .4);
+}
+.lh-capture button {
+  writing-mode: vertical-rl; padding: 12px 9px; border: 0; background: transparent; color: var(--ink-nong); cursor: pointer;
+  font: 700 15px/1 var(--kai); letter-spacing: .2em;
+}
+.lh-capture button + button { border-top: 1px solid var(--ink-qing); }
+.lh-capture button:hover { background: color-mix(in srgb, var(--tenghuang) 45%, transparent); }
+.lh-capture.floating {
+  position: absolute; right: auto; bottom: auto; flex-direction: row;
+  background: var(--ink-nong); border-color: var(--ink-nong); box-shadow: 0 8px 20px -10px rgba(21, 19, 15, .5);
+}
+.lh-capture.floating button { writing-mode: horizontal-tb; padding: 8px 13px; letter-spacing: .04em; font-size: 14px; color: #F6F1E7; }
+.lh-capture.floating button + button { border-top: 0; border-left: 1px solid rgba(246, 241, 231, .22); }
+.lh-capture.floating button:hover { background: rgba(246, 241, 231, .14); }
+
+.lh-pop {
+  position: fixed; right: 76px; bottom: 18px; z-index: 31; width: min(380px, calc(100vw - 100px));
+  padding: 18px; background: var(--paper); border: 1px solid var(--ink-nong); border-radius: 2px;
+  box-shadow: 0 0 0 5px var(--paper), 0 0 0 6px var(--ink-qing), 0 18px 40px -16px rgba(21, 19, 15, .45);
+  font: 400 14.5px/1.65 var(--kai);
+}
+.lh-pop h4 { margin: 0 0 4px; font: 700 16px/1.4 var(--kai); color: var(--ink-jiao); }
+.lh-pop .why { margin: 0 0 10px; color: var(--ink-zhong); font-size: 13.5px; }
+.lh-pop blockquote {
+  margin: 0 0 10px; padding: 6px 10px; background: var(--paper-2); max-height: 6.4em; overflow: auto;
+  border-left: 3px solid var(--tenghuang);
+}
+.lh-pop textarea { width: 100%; min-height: 4.2em; resize: vertical; }
+.lh-pop .row { display: flex; gap: 12px; justify-content: flex-end; margin-top: 12px; }
+
+/* ---------- 问老师：签条左边展开的一张笺（lh-ask.js） ---------- */
+.lh-capture button[data-kind=ask] { background: var(--ink-nong); color: #F6F1E7; }
+.lh-capture button[data-kind=ask]:hover { background: var(--ink-jiao); }
+.lh-capture.floating button[data-kind=ask] { background: var(--paper); color: var(--ink-nong); }
+.lh-capture.floating button[data-kind=ask]:hover { background: var(--paper-2); }
+/* 角标：后台答好了、还没看的回答条数，像一方朱砂小印盖在签条左上角 */
+.lh-capture button[data-kind=ask] { position: relative; }
+.lh-badge {
+  position: absolute; top: -8px; left: -10px; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 2px;
+  writing-mode: horizontal-tb; background: var(--zhu); color: #F6F1E7; font: 700 12px/19px var(--kai); letter-spacing: 0; text-align: center;
+  box-shadow: 0 0 0 2px var(--paper);
+}
+.lh-ask {
+  position: fixed; right: 76px; top: calc(var(--bar-h) + 16px); bottom: 18px; z-index: 32; width: min(380px, calc(100vw - 100px));
+  display: flex; flex-direction: column; background: var(--paper); border: 1px solid var(--ink-nong); border-radius: 2px;
+  box-shadow: 0 0 0 5px var(--paper), 0 0 0 6px var(--ink-qing), 0 18px 40px -16px rgba(21, 19, 15, .45);
+  color: var(--ink-nong); font: 400 15px/1.75 var(--kai);
+}
+.lh-ask-h h4 { margin: 0; font: 700 17px/1.4 var(--kai); color: var(--ink-jiao); letter-spacing: .1em; }
+.lh-ask[hidden], .lh-ask-quote[hidden] { display: none; }
+.lh-ask-h { display: flex; align-items: baseline; gap: 12px; padding: 14px 10px 10px 18px; border-bottom: 1px solid var(--ink-qing); }
+.lh-ask-ctx { flex: 1; min-width: 0; margin: 0; color: var(--pencil); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lh-ask-x { align-self: center; padding: 0 8px; border: 0; background: none; color: var(--pencil); font: 400 22px/1 var(--sans); cursor: pointer; }
+.lh-ask-x:hover { color: var(--ink); }
+.lh-ask-log { flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 18px; }
+.lh-ask-empty { margin: 0; color: var(--pencil); font-size: 13.5px; }
+.lh-ask-turn { display: flex; flex-direction: column; gap: 8px; }
+.lh-ask-q { align-self: flex-end; max-width: 88%; padding: 8px 12px; background: var(--paper-2); border-radius: 2px; }
+.lh-ask-q p { margin: 0; white-space: pre-wrap; }
+.lh-ask-q blockquote { margin: 0 0 6px; padding: 0 0 0 8px; border-left: 3px solid var(--tenghuang); color: var(--pencil); font-size: 12.5px; line-height: 1.6; max-height: 4.8em; overflow: hidden; }
+.lh-ask-a p, .lh-ask-a ul, .lh-ask-a ol, .lh-ask-a pre { margin: 0 0 .6em; }
+.lh-ask-a > :last-child { margin-bottom: 0; }
+.lh-ask-a ul, .lh-ask-a ol { padding-left: 1.3em; }
+.lh-ask-a code { padding: 0 .3em; background: var(--paper-2); border-radius: 3px; font: .9em/1.5 var(--mono); }
+.lh-ask-a pre { padding: 8px 10px; background: var(--paper-2); border-radius: 3px; overflow-x: auto; font: 12.5px/1.55 var(--mono); }
+.lh-ask-a pre code { padding: 0; background: none; font-size: inherit; }
+.lh-ask-a.is-pending:empty::before { content: "老师在想……"; color: var(--pencil); animation: lh-ask-wait 1.1s ease-in-out infinite alternate; }
+.lh-ask-a .err { margin: 0; color: var(--red); font-size: 13.5px; }
+.lh-ask-a .lh-ask-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 0; color: var(--pencil); font-size: 12.5px; }
+.lh-ask-a .lh-ask-retry { margin: 8px 0 0; }
+.lh-ask-a .lh-ask-hint .lh-btn, .lh-ask-a .lh-ask-retry .lh-btn { padding: 4px 12px; font-size: 12.5px; }
+/* 归类：回答末尾一行小字，清墨细线隔开；想深挖用花青（🔭 的颜色），周末问用石绿（🧗 的颜色） */
+.lh-ask-a .lh-ask-cat { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--ink-qing); color: var(--ink-zhong); font-size: 13px; line-height: 1.6; }
+.lh-ask-a .lh-ask-cat b { font-weight: 700; color: var(--ink-jiao); }
+.lh-ask-a .lh-ask-cat[data-cat=dig] b { color: var(--pen); }
+.lh-ask-a .lh-ask-cat[data-cat=weekend] b { color: var(--climb); }
+.lh-ask-f { padding: 10px 18px 14px; border-top: 1px solid var(--ink-qing); }
+.lh-ask-quote { display: flex; gap: 6px; align-items: flex-start; margin: 0 0 8px; padding: 4px 4px 4px 8px; border-left: 3px solid var(--tenghuang); background: var(--paper-2); color: var(--pencil); font-size: 12.5px; line-height: 1.6; }
+.lh-ask-quote span { flex: 1; max-height: 3.2em; overflow: hidden; }
+.lh-ask-quote button { padding: 0 4px; border: 0; background: none; color: var(--pencil); font: 400 16px/1.2 var(--sans); cursor: pointer; }
+.lh-ask textarea { width: 100%; min-height: 3.4em; max-height: 10em; resize: vertical; }
+.lh-ask-f .row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.lh-ask-f .hint { flex: 1 0 100%; margin-top: -4px; color: var(--pencil); font-size: 12px; } /* 三个按钮放不下提示，提示单独一行 */
+@keyframes lh-ask-wait { from { opacity: .4; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .lh-ask-a.is-pending:empty::before { animation: none; } }
+.lh-ask textarea::placeholder { color: var(--ink-zhong); opacity: .8; }
+.lh-ask-f .lh-btn { padding: 7px 18px; }
+.lh-ask-f .lh-btn.stop::before { background: var(--zhu); }
+@media (max-width: 760px) { .lh-ask { left: 12px; right: 70px; width: auto; top: calc(var(--bar-h) + 12px); } .lh-ask-f .hint { display: none; } .lh-ask-f .row { gap: 6px; } .lh-ask-f .lh-btn { padding: 7px 9px; letter-spacing: 0; } }
+
+.lh-toast {
+  position: fixed; left: 50%; bottom: 28px; z-index: 40; transform: translate(-50%, 12px); opacity: 0;
+  max-width: min(520px, calc(100vw - 40px)); padding: 10px 20px; border-radius: 2px;
+  background: var(--ink-nong); color: #F6F1E7; font: 400 14.5px/1.6 var(--kai);
+  transition: opacity .25s, transform .25s; pointer-events: none;
+}
+.lh-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* 服务器连不上 / 用 file:// 打开时的提示条 */
+.lh-banner {
+  position: sticky; top: var(--bar-h); z-index: 19; padding: 10px 22px;
+  background: color-mix(in srgb, var(--tenghuang) 38%, var(--paper)); border-bottom: 1px solid var(--tenghuang);
+  font: 400 14.5px/1.6 var(--kai); color: var(--ink-jiao);
+}
+
+/* ---------- 犯困了 + 暂停：签条最下面两张，上面一道淡墨线和提问、记录隔开 ---------- */
+.lh-capture button[data-kind=sleepy], .lh-capture button[data-kind=pause] { color: var(--ink-zhong); }
+.lh-capture button[data-kind=sleepy] { border-top-color: var(--ink-dan); }
+
+/* 犯困了：签条左边一张装裱的笺（和弹窗同一位置），三件事用书法汉字序号、清墨细线隔开；盖在问老师面板和弹窗上面 */
+.lh-sleepy {
+  position: fixed; right: 76px; bottom: 18px; z-index: 33; width: min(400px, calc(100vw - 100px));
+  padding: 18px 20px 16px; background: var(--paper); border: 1px solid var(--ink-nong); border-radius: 2px;
+  box-shadow: 0 0 0 5px var(--paper), 0 0 0 6px var(--ink-qing), 0 18px 40px -16px rgba(21, 19, 15, .45);
+  color: var(--ink-nong); font: 400 15px/1.7 var(--kai);
+  animation: lh-sleepy-in .25s var(--ease-ink) both;
+}
+.lh-sleepy h4 { margin: 0 0 2px; font: 700 17px/1.4 var(--kai); color: var(--ink-jiao); letter-spacing: .1em; }
+.lh-sleepy .why { margin: 0 0 10px; color: var(--ink-zhong); font-size: 13.5px; }
+.lh-sleepy ol { margin: 0; padding: 0; list-style: none; counter-reset: tip; border-top: 1px solid var(--ink-qing); }
+.lh-sleepy li { position: relative; padding: 8px 4px 8px 2.2em; border-bottom: 1px solid var(--ink-qing); counter-increment: tip; }
+.lh-sleepy li::before { content: counter(tip, cjk-decimal); position: absolute; left: 4px; top: 7px; font: 400 19px/1.4 var(--brush); color: var(--ink-zhong); }
+.lh-sleepy li b { font-weight: 700; color: var(--ink-jiao); }
+.lh-sleepy .row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; margin-top: 14px; }
+@keyframes lh-sleepy-in { from { opacity: 0; } }
+
+/* ---------- 暂停：虚化层像隔着一层薄宣纸，中间一张装裱的笺，只留「继续学习」 ---------- */
+html.lh-paused { overflow: hidden; scrollbar-gutter: stable; }
+.lh-pause {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px;
+  background: color-mix(in srgb, var(--paper) 62%, transparent); backdrop-filter: blur(8px) saturate(.85);
+  animation: lh-pause-in .3s var(--ease-ink) both;
+}
+.lh-pause-card {
+  width: min(340px, 100%); padding: 30px 28px 26px; text-align: center;
+  background: var(--paper); border: 1px solid var(--ink-nong); border-radius: 2px;
+  box-shadow: 0 0 0 5px var(--paper), 0 0 0 6px var(--ink-qing), 0 18px 40px -16px rgba(21, 19, 15, .45);
+}
+.lh-pause h2 { margin: 0; padding-left: .3em; font: 700 26px/1.4 var(--kai); letter-spacing: .3em; color: var(--ink-jiao); }
+.lh-pause-sub { margin: 8px 0 22px; color: var(--ink-zhong); font: 400 14.5px/1.65 var(--kai); }
+@keyframes lh-pause-in { from { opacity: 0; } }
+
+/* ---------- 中等宽度：页边栏和侧边路线都收窄一点 ---------- */
+@media (min-width: 1200px) and (max-width: 1299px) {
+  :root { --side: 11rem; --gap: 2.2rem; --toc-w: 9.5rem; --toc-gap: 1.8rem; }
+}
+
+/* ---------- 窄于 1200px：侧边路线收成左边缘一张竖排签条（和右下角的捕获签条对称），悬停或聚焦时展开 ---------- */
+@media (max-width: 1199px) {
+  main.lesson { --layout: calc(var(--main) + var(--gap) + var(--side) + 80px); padding-left: 56px; }
+  .lh-top .lh-title { display: none; }
+  .lh-top .lh-track { display: block; flex: 0 1 18em; }
+  .lh-toc {
+    left: 0; top: calc(var(--bar-h) + 26px); width: auto; max-height: calc(100vh - var(--bar-h) - 52px);
+    grid-template-columns: auto; padding: 12px 8px 12px 9px;
+    background: var(--paper); border: 1px solid var(--ink-nong); border-left: 0; border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 0 3px var(--paper), 0 0 0 4px var(--ink-qing), 0 10px 24px -12px rgba(21, 19, 15, .4);
+    transition: box-shadow .2s;
+  }
+  .lesson .lh-toc-h { padding-top: 0; }
+  .lh-toc-body { width: 0; height: 0; overflow: hidden; padding: 0; }
+  .lh-toc:hover, .lh-toc:focus-within { grid-template-columns: 1.3em 13rem; column-gap: 12px; padding: 16px 16px 14px 12px; }
+  .lh-toc:hover .lh-toc-body, .lh-toc:focus-within .lh-toc-body { width: auto; height: auto; overflow: visible; padding-left: 16px; }
+}
+
+/* ---------- 窄屏：页边注收进正文 ---------- */
+@media (max-width: 1100px) {
+  .lesson > section { padding-right: 0; }
+  .lesson aside {
+    float: none; width: auto; max-width: var(--main); margin: 1.4em 0; padding: 2px 0 2px 18px;
+  }
+  .lesson aside::before {
+    left: 0; top: 2px; bottom: 2px; width: 5px; height: auto;
+    -webkit-mask-image: url("ink/vstroke.svg"); mask-image: url("ink/vstroke.svg");
+  }
+  .lh-slot.wide, .lesson .wide { margin-right: 0; }
+}
+@media (max-width: 900px) {
+  .lesson-head h1 { font-size: 2.2rem; }
+  .lh-ink { margin-left: -16px; }
+}
+@media (max-width: 640px) {
+  :root { font-size: 17px; }
+  main.lesson { padding-top: 24px; padding-left: 48px; }
+  .lesson-head { grid-template-columns: 1fr; grid-template-areas: "art" "when" "title" "goal" "route"; }
+  .lesson-head h1 { writing-mode: horizontal-tb; height: auto; padding: 0; background: none; border: 0; font-size: 2rem; margin-bottom: 16px; }
+  .lesson-when { writing-mode: horizontal-tb; margin: 0 0 8px; }
+  .lh-seal { display: none; }
+  .lh-ink { min-height: 140px; margin: 0; }
+  .lh-route .t { display: none; }
+  .lesson > section[data-stretch]::before { left: -14px; width: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+.lh-still .lh-toc-mark { transition: none; }

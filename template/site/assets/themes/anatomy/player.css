@@ -1,0 +1,113 @@
+/* themes/anatomy/player.css — 配音动画播放器和舞台（主题 anatomy：浅色舞台，和课程页同一套颜色、字体）
+ * 由 /assets/player.js 按主题加载；场景页通常被课程页用 16:9 iframe 嵌入。结构见 ../README.md。
+ */
+@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@1,400;1,500&family=Inter:wght@400;500;600;700&display=swap");
+@import url("iso.css");
+
+:root {
+  /* token 契约（README）：场景作者只用这些表达颜色和字体 */
+  --paper: #FAFAFA; --paper-2: #F1F1EF; --card: #FFFFFF;
+  --ink: #171717; --pencil: #66666B; --rule: #E7E7E5; --rule-2: #D4D4D6;
+  --marker: #171717; --pen: #3E63DD; --climb: #23805A; --red: #D93D42; --screen: #FFFFFF;
+  --sans: "Inter", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --serif: "Noto Serif SC", "Songti SC", serif;
+  --accent: "EB Garamond", "Noto Serif SC", serif;
+  --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --lift: inset 0 1px 0 0 #fff, 0 0 0 1px #0000000f, 0 1px 1px -.5px #0000000a, 0 3px 3px -1.5px #0000000a, 0 6px 6px -3px #0000000a, 0 12px 12px -6px #0000000a;
+  /* 播放器和旧场景用的别名 */
+  --lh-font: "Inter", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --lh-serif: "Noto Serif SC", "Songti SC", serif;
+  --lh-accent-font: "EB Garamond", "Noto Serif SC", serif;
+  --lh-mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --lh-bg: #FFFFFF;        /* 舞台底色 */
+  --lh-ink: #171717;       /* 正文、"亮"的零件 */
+  --lh-soft: #3F3F46;      /* 次要文字 */
+  --lh-muted: #8A8A8F;     /* 弱化（只用于 ≥28 单位的大字和线） */
+  --lh-line: #B4B4B8;      /* 结构线 */
+  --lh-ok: #23805A;
+  --lh-warn: #D93D42;
+  --lh-blue: #3E63DD;      /* 第二个声音（speaker b）、用户 */
+  --lh-accent: #171717;
+}
+
+html, body { margin: 0; height: 100%; background: var(--lh-bg); overflow: hidden; }
+body { font-family: var(--lh-font); color: var(--lh-ink); -webkit-font-smoothing: antialiased; }
+
+.lh-player { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; outline: none; }
+.lh-player:focus-visible { box-shadow: inset 0 0 0 2px var(--lh-ink); }
+.lh-frame {
+  position: relative; overflow: hidden; background: var(--lh-bg);
+  width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9;
+  --u: 1px; /* 逻辑单位：舞台宽 1280 个单位，由播放器按实际宽度更新 */
+}
+
+/* 场景作者的舞台：逻辑尺寸 1280×720。SVG 用 viewBox="0 0 1280 720"，HTML 元素用 calc(var(--u) * N) */
+#stage { position: absolute; inset: 0; }
+#stage > svg { width: 100%; height: 100%; display: block; }
+
+/* 字幕：白底细边的条，墨色字；第二个声音用蓝色 */
+.lh-cc {
+  position: absolute; left: 0; right: 0; bottom: 5%; text-align: center;
+  pointer-events: none; transition: bottom .2s;
+}
+.lh-cc span {
+  display: inline-block; max-width: 86%; padding: .28em .8em; border-radius: .5em;
+  background: rgba(255, 255, 255, .94); color: var(--lh-ink); line-height: 1.45; font-size: calc(var(--u) * 28);
+  box-shadow: 0 0 0 1px #0000000f, 0 4px 14px -6px #0000002e;
+}
+.lh-cc span.b { color: var(--lh-blue); }
+.lh-cc span:empty, .lh-player.cc-off .lh-cc { display: none; }
+.lh-player:not(.idle) .lh-cc, .lh-player:not(.playing) .lh-cc { bottom: calc(5% + 46px); }
+
+/* 开始/重播按钮：只在开头（封面）和结尾出现，放在底部居中，不挡画面中心 */
+.lh-big {
+  position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%);
+  display: none; align-items: center; gap: 10px; height: 50px; padding: 0 26px 0 22px;
+  border: 0; border-radius: 25px; cursor: pointer;
+  background: var(--lh-ink); color: #fff; font: 500 17px var(--lh-font);
+  box-shadow: 0 10px 28px -10px rgba(0, 0, 0, .45); transition: transform .15s;
+}
+.lh-big:hover { transform: translateX(-50%) scale(1.03); }
+.lh-big .ico { font-size: 14px; line-height: 1; }
+.lh-big .t { margin-left: 4px; padding-left: 12px; border-left: 1px solid #ffffff4d; font: italic 400 19px/1 var(--lh-accent-font); font-variant-numeric: tabular-nums; }
+.lh-big[data-state="end"] { background: var(--lh-bg); color: var(--lh-ink); box-shadow: var(--lift), 0 10px 28px -14px rgba(0, 0, 0, .35); }
+.lh-big:focus-visible { outline: 2px solid var(--lh-ink); outline-offset: 3px; }
+.lh-player.at-start .lh-big, .lh-player.at-end .lh-big { display: flex; }
+.lh-player.playing .lh-big { display: none; }
+.lh-player.at-start .lh-cc, .lh-player.at-end .lh-cc { display: none; }
+
+/* 控制条：浅色渐变 + 墨色细进度条 */
+.lh-controls {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 46px; padding: 0 10px;
+  display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(rgba(255, 255, 255, 0), rgba(250, 250, 250, .96) 55%); transition: opacity .25s;
+  font: 13px var(--lh-font); color: var(--lh-ink);
+}
+.lh-player.playing.idle .lh-controls { opacity: 0; }
+.lh-player.playing.idle { cursor: none; }
+.lh-controls button {
+  background: none; border: 0; color: var(--lh-ink); cursor: pointer; font: inherit;
+  min-width: 34px; height: 30px; border-radius: 15px; padding: 0 8px;
+}
+.lh-controls button:hover { background: rgba(0, 0, 0, .06); }
+.lh-controls button:focus-visible { outline: 2px solid var(--lh-ink); outline-offset: 1px; }
+.lh-controls .lh-ccbtn.on { font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+/* 导出过 mp4 才出现的下载入口：一枚细边胶囊，斜体衬线字 */
+.lh-controls .lh-dl {
+  display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border: 1px solid rgba(0, 0, 0, .18); border-radius: 12px;
+  color: var(--lh-ink); text-decoration: none; font: italic 400 15px/1 var(--lh-accent-font);
+}
+.lh-controls .lh-dl::before { content: "↓"; margin-right: 4px; font: 400 12px/1 var(--lh-font); }
+.lh-controls .lh-dl:hover { border-color: var(--lh-ink); background: rgba(0, 0, 0, .04); }
+.lh-controls .lh-dl:focus-visible { outline: 2px solid var(--lh-ink); outline-offset: 1px; }
+.lh-time { font-variant-numeric: tabular-nums; color: #55555b; min-width: 84px; }
+.lh-bar { position: relative; flex: 1; height: 20px; cursor: pointer; touch-action: none; }
+.lh-bar::before { content: ""; position: absolute; left: 0; right: 0; top: 9px; height: 2px; border-radius: 1px; background: rgba(0, 0, 0, .12); }
+.lh-fill { position: absolute; left: 0; top: 9px; height: 2px; border-radius: 1px; background: var(--lh-ink); width: 0; }
+.lh-tick { position: absolute; top: 6px; width: 1px; height: 8px; background: rgba(0, 0, 0, .3); }
+
+/* 出错时的提示层（reviewer 会截图看到） */
+.lh-error {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(120, 0, 0, .85); color: #fff; font: 16px var(--lh-mono); padding: 24px; text-align: center; white-space: pre-wrap;
+}

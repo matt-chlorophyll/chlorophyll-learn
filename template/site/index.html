@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="mod-dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chlorophyll-Learn</title>
+<link rel="icon" href="/favicon.svg">
+<script>
+  // 笔墨和昼夜：学习者选过就用选过的，没选过是“现代 + 夜”。放在最前面，免得先闪一下别的颜色
+  try { const t = localStorage.getItem('lh:hub:theme'); if (/^(cn|mod)-(light|dark)$/.test(t || '')) document.documentElement.dataset.theme = t; } catch { /* 隐私模式等：用默认 */ }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- 字体不挡着页面渲染：断网时直接用系统字体 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+<!-- 拨云（Boyun）设计系统：hub 的样式基础，在 site/assets/boyun/ 里统一改；hub 自己的样式写在下面 -->
+<link rel="stylesheet" href="/assets/boyun/boyun.css">
+<style>
+  /* hub 自己的样式。颜色、字体、间距、动效都用拨云的 token，这里只管布局（课程页的样式由视觉主题决定，见 /assets/themes/） */
+  code { font-family: var(--font-mono); font-size: .88em; }
+  a.by-btn { text-decoration: none; }
+
+  /* 页头：左边是主题和本周，右边是几个数字；数字再往右给等级留位置 */
+  .hub-side { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-5) var(--space-6); }
+  .hub-level:empty { display: none; }
+
+  /* 地图按世界坐标 1:1 显示：概念多了就左右拖，字不缩小。地图只有放进来的节点那么大 */
+  #map { max-width: var(--map-w); margin: 0 auto; }
+  #map .by-map__inner { width: var(--map-w); min-width: 0; }
+  #map .dot.ex { fill: var(--ink-1); }
+  #map .known .lab { paint-order: stroke; stroke: var(--paper); stroke-width: 4px; stroke-linejoin: round; }
+  #map .roads, #map .known { pointer-events: none; }
+  #map .hit rect { fill: transparent; }
+  #map .hit:focus-visible rect { stroke: var(--focus); stroke-width: 1.5; }
+  .hub-map .map-foot { padding-bottom: var(--space-7); }
+
+  /* 本周的课：实心点是打卡了，空心是还没有（和地图上的点一样） */
+  .hub-week { padding-bottom: var(--space-7); }
+  .hub-week .sect-k { margin-top: 0; }
+  .days { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-strong); }
+  .days li { border-bottom: 1px solid var(--line); }
+  .days a, .days .row {
+    display: grid; grid-template-columns: 8px 6.5em minmax(0, 1fr) auto; gap: 2px var(--space-4); align-items: baseline;
+    padding: var(--space-3) var(--space-1); color: inherit; text-decoration: none;
+  }
+  .days a:hover .t { text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+  .days .mk { width: 8px; height: 8px; align-self: center; border: 1.3px solid var(--ink-3); border-radius: var(--radius-round); }
+  .days li.done .mk { background: var(--ink-1); border-color: var(--ink-1); }
+  .days li.weekend .mk { visibility: hidden; }
+  .days .d { color: var(--ink-3); font-size: 13.5px; }
+  .days .now { margin-left: .5em; color: var(--ink-1); }
+  .days .meta { color: var(--ink-3); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .days .st { margin-right: .8em; color: var(--ink-2); }
+  details.past { margin-top: var(--space-6); color: var(--ink-3); font-size: 14px; }
+  details.past summary { width: max-content; cursor: pointer; }
+  details.past ul { margin: var(--space-2) 0 0; padding-left: 1.2em; }
+  details.past a { color: var(--ink-2); }
+  .foot a { margin-right: var(--space-4); color: var(--ink-3); }
+  @media (max-width: 560px) {
+    .days a, .days .row { grid-template-columns: 8px minmax(0, 1fr); }
+    .days .t, .days .meta { grid-column: 2; }
+    .days .meta { white-space: normal; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="bar-line">
+<header class="wrap app-bar">
+  <div class="brand">Chlorophyll-Learn</div>
+  <div class="app-ctrl">
+    <div class="by-seg" role="group" aria-label="笔墨" id="segReg"><button type="button" data-v="cn">中式</button><button type="button" data-v="mod">现代</button></div>
+    <div class="by-seg" role="group" aria-label="昼夜" id="segDay"><button type="button" data-v="light">昼</button><button type="button" data-v="dark">夜</button></div>
+  </div>
+</header>
+</div>
+<main id="app"><div class="wrap view-head"><p class="sub">读取课程清单…</p></div></main>
+<footer class="wrap"><div class="foot" id="lab" hidden></div></footer>
+<script src="/assets/boyun/boyun.js"></script>
+<script type="module">
+const app = document.getElementById('app');
+const root = document.documentElement;
+const WEEKDAY = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const ls = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- 笔墨 / 昼夜 ----------
+// 拨云的 Boyun.theme 在没选过时跟随系统深浅色；hub 要默认“夜”，所以这几行自己接。选择存在 lh:hub:theme
+const pick = () => (root.dataset.theme || 'mod-dark').split('-');
+const SEGS = [['segReg', 0], ['segDay', 1]];
+function syncSeg() {
+  const c = pick();
+  for (const [id, i] of SEGS) for (const b of document.querySelectorAll(`#${id} button`)) b.setAttribute('aria-pressed', String(b.dataset.v === c[i]));
+}
+for (const [id, i] of SEGS) document.getElementById(id).addEventListener('click', e => {
+  const b = e.target.closest('button[data-v]');
+  if (!b) return;
+  const c = pick();
+  c[i] = b.dataset.v;
+  root.dataset.theme = c.join('-');
+  try { localStorage.setItem('lh:hub:theme', root.dataset.theme); } catch { /* 记不住就只管这一次 */ }
+  syncSeg();
+});
+syncSeg();
+
+// ---------- 读课程清单和地图数据 ----------
+// 地图数据读不到也不影响课程表
+const mapReq = fetch('/map.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).catch(() => null);
+let m;
+try {
+  const r = await fetch('/manifest.json', { cache: 'no-store' });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  m = await r.json();
+} catch (e) {
+  app.innerHTML = `<div class="wrap view-head"><p class="sub">读不到课程清单 manifest.json（${esc(e.message)}）。请确认是通过 start.cmd 打开的。</p></div>`;
+  throw e;
+}
+
+const lab = document.getElementById('lab');
+if ((m.lab || []).length) {
+  lab.innerHTML = '平台自测：' + m.lab.map(x => `<a href="${esc(x.path)}">${esc(x.title)}</a>`).join('');
+  lab.hidden = false;
+}
+
+const topic = m.current && m.topics?.[m.current.topic];
+const week = topic?.weeks?.find(w => w.week === m.current.week);
+if (!week) {
+  app.innerHTML = `<div class="wrap view-head"><div><h1 class="page-title">还没有开始学习主题</h1>
+    <p class="sub">在 Claude Code 里输入 <code>/new-topic 主题名</code>，老师会先问你几个问题，然后准备第一周的内容。</p></div></div>`;
+} else {
+  const done = l => !!ls(`lh:${l.path}:done`);
+  const dayName = l => l.label || (l.date ? WEEKDAY[new Date(`${l.date}T12:00:00`).getDay()] : `第 ${l.day} 天`);
+  // 和课程页页头的说法一致：「第 1 周，周一」「导览课（Day 0）」
+  const when = (w, l) => (w.week === 0 ? `导览课（${l.label || `Day ${l.day}`}）` : `第 ${w.week} 周，${dayName(l)}`);
+  const next = week.lessons.find(l => !done(l)); // 下一节要上的课：本周第一节还没打卡的
+  const nDone = week.lessons.filter(done).length;
+
+  const rows = week.lessons.map(l => {
+    const isDone = done(l), started = !!ls(`lh:${l.path}:time`), isToday = l.date === today;
+    const cls = [isDone && 'done', started && !isDone && 'started', isToday && 'today'].filter(Boolean).join(' ');
+    const st = isDone ? '已打卡' : started ? '学到一半' : '';
+    return `<li class="${cls}"><a href="${esc(l.path)}">
+      <span class="mk" aria-hidden="true"></span>
+      <span class="d">${esc(dayName(l))}${isToday ? '<span class="now">今天</span>' : ''}</span>
+      <span class="t">${esc(l.title)}</span>
+      <span class="meta">${st ? `<span class="st">${st}</span>` : ''}约 ${esc(l.est)} 分钟</span></a></li>`;
+  }).join('');
+  const weekend = week.week > 0
+    ? `<li class="weekend"><div class="row"><span class="mk" aria-hidden="true"></span><span class="d">周末</span>
+        <span class="t">复习和动手练习：在 Claude Code 里跟老师说「开始周末练习」</span><span class="meta">不限时</span></div></li>` : '';
+  const past = topic.weeks.filter(w => w.week < week.week);
+  const pastHtml = past.length ? `<details class="past"><summary>之前的周</summary><ul>${past.map(w =>
+    w.lessons.map(l => `<li><a href="${esc(l.path)}">${w.week === 0 ? '导览' : `第 ${w.week} 周`}：${esc(l.title)}</a></li>`).join('')).join('')}</ul></details>` : '';
+  const heading = week.week === 0 ? `${esc(topic.title)}：导览` : `${esc(topic.title)}，第 ${week.week} 周`;
+
+  app.innerHTML = `
+    <div class="wrap view-head">
+      <div><h1 class="page-title">${heading}</h1>${week.title ? `<p class="sub">${esc(week.title)}</p>` : ''}</div>
+      <div class="hub-side">
+        <div class="by-stats" id="stats"><span class="by-stat"><b>${nDone} / ${week.lessons.length}</b>本周已打卡</span></div>
+        <div class="hub-level" id="level"></div>
+      </div>
+    </div>
+    <section class="hub-map" id="mapSec" aria-label="知识地图" hidden>
+      <div class="map-wrap"><div id="map"></div><aside class="by-panel is-float map-panel" id="panel" aria-live="polite" hidden></aside></div>
+      <div class="wrap map-foot"><p>实心的点是你打卡过的概念。雾里看得见名字的，是本周还没学的。点一个，看它在哪节课。</p></div>
+    </section>
+    <section class="wrap hub-week">
+      <p class="sect-k">本周的课</p>
+      <ol class="days">${rows}${weekend}</ol>
+      ${pastHtml}
+    </section>`;
+
+  const md = (await mapReq)?.topics?.[m.current.topic];
+  if (md?.regions?.length) showMap(md);
+
+  // ---------- 迷雾地图 ----------
+  // 只放两种节点：已学（那节课打卡了）和本周还没学的。之前的周没打卡的课、还没开放的周都不放：
+  // 页面源码里也不能有它们（map.json 本来就只有已开放的周）
+  function showMap(md) {
+    const opened = topic.weeks.filter(w => w.week <= week.week).sort((a, b) => a.week - b.week);
+    const lessons = opened.flatMap(w => w.lessons.map(l => ({
+      l, w, map: md.weeks?.find(x => x.week === w.week)?.days?.find(d => d.day === l.day)?.map || [],
+    })));
+    const all = layout(md.regions, lessons);
+    const nodes = all.filter(n => n.learned || n.w === week);
+    if (!nodes.length) return;
+
+    // 地图大小只由放进来的节点决定：按它们的范围裁出来，雾的外面什么都没有。左边留出区域名的位置
+    const regionW = r => r.label.length * 17.6 + 12; // 现代笔墨横排：13px 字加 .35em 字距
+    const ox = Math.min(...nodes.map(n => n.x)) - Math.max(...md.regions.map(regionW)) - 14;
+    const oy = Math.min(...nodes.map(n => n.y)) - 30;
+    for (const n of nodes) { n.x -= ox; n.y -= oy; }
+    const W = Math.ceil(Math.max(...nodes.map(n => n.x + 11 + n.lw)) + 28);
+    const H = Math.ceil(Math.max(...nodes.map(n => n.y)) + 30);
+
+    const by = new Map(nodes.map(n => [n.id, n]));
+    const edges = [];
+    for (const n of nodes) for (const id of n.links || []) if (by.has(id) && id !== n.id) edges.push([by.get(id), n]);
+    // 区域名放在这一块第一个节点的左边；那个节点学过了，区域名就和它一起露出来
+    const regions = md.regions.map(r => {
+      const first = nodes.filter(n => n.region === r.id).sort((a, b) => a.x - b.x || a.y - b.y)[0];
+      return first && { label: r.label, x: first.x - regionW(r), y: first.y + 5, lit: first.learned };
+    }).filter(Boolean);
+    // 朱色焦点：下一节课的第一个概念（planner 把这节课最核心的概念排在第一个）；本周都打卡了就没有
+    const nextFirst = next && lessons.find(x => x.l === next)?.map[0]?.id;
+    const focus = (next && (by.get(nextFirst) || nodes.find(n => n.l === next))) || null;
+
+    // 第一次看到某个已学的概念时，它那一片雾散开（记在 lh:hub:<主题>:seen）
+    const SEEN = `lh:hub:${m.current.topic}:seen`;
+    let seen = [];
+    try { seen = JSON.parse(ls(SEEN) || '[]'); } catch { /* 坏数据就当没看过 */ }
+    for (const n of nodes) n.fresh = n.learned && !seen.includes(n.id);
+    try { localStorage.setItem(SEEN, JSON.stringify(nodes.filter(n => n.learned).map(n => n.id))); } catch { /* 记不住就每次都散一遍 */ }
+
+    const nLit = nodes.filter(n => n.learned).length;
+    document.getElementById('stats').insertAdjacentHTML('afterbegin', `<span class="by-stat"><b>${nLit}</b>已点亮的概念</span>`);
+    document.getElementById('mapSec').hidden = false;
+
+    const box = document.getElementById('map'), panel = document.getElementById('panel');
+    const map = fogMap(box, { W, H, nodes, edges, regions, focus, onSelect: openPanel });
+    // 一打开就能看到焦点：焦点在右边看不见的地方才滚过去；全都学完了就停在最新的地方
+    const sc = map.scroll;
+    if (focus) { if (focus.x > sc.clientWidth * 0.7) sc.scrollLeft = focus.x - sc.clientWidth * 0.4; } else sc.scrollLeft = sc.scrollWidth;
+
+    function openPanel(n) {
+      const isNext = n.l === next, where = when(n.w, n.l);
+      panel.innerHTML = `<button class="by-panel__close" type="button" data-close>收起</button>
+        <p class="by-panel__k">${esc(n.regionLabel)}</p>
+        <h3 class="by-panel__title">${esc(n.label)}</h3>
+        <p class="by-panel__sub">${n.learned ? `${esc(where)}学的` : `${esc(where)}的课`}</p>
+        <p class="p-text">${esc(n.l.title)}</p>
+        ${n.learned ? '' : `<p class="p-note">${isNext ? '下一节课就讲它。' : '这周还没学到。'}打卡之后，这一片雾会散开。</p>`}
+        <div class="p-actions"><a class="by-btn by-btn--line" href="${esc(n.l.path)}">${n.learned ? '回到这节课' : '去上这节课'}</a></div>`;
+      // 节点在看得见的那一段的右半边，面板就放左边，免得盖住它
+      panel.classList.toggle('left', n.x - sc.scrollLeft + box.offsetLeft > box.parentElement.clientWidth / 2);
+      panel.hidden = false;
+      panel.querySelector('[data-close]').addEventListener('click', closePanel);
+      if (matchMedia('(max-width: 820px)').matches) panel.scrollIntoView({ block: 'nearest', behavior: reduced() ? 'auto' : 'smooth' });
+    }
+    function closePanel() { panel.hidden = true; map.deselect(); }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) closePanel(); });
+  }
+}
+
+// ---------- 地图布局 ----------
+// 区域从上到下排成横带（顺序和每条带的车道数在 map.json 里，开课后不改），课按 manifest 的顺序从左到右排成列。
+// 同一节课、同一区域的概念先竖着排满车道，再往右开一小列；单数车道往右错开一点，免得排成方阵。
+// 每节课的位置只取决于它前面的课，所以加了新一周，旧节点不动。课和课之间留一道缝，学过的那一片雾散开时不会漫到下一节课
+function layout(regions, lessons) {
+  const LANE = 34, SUB = 176, GAP = 44, BAND = 22;
+  const band = {};
+  let y = 0;
+  for (const r of regions) { band[r.id] = { y, lanes: r.lanes || 2, label: r.label }; y += band[r.id].lanes * LANE + BAND; }
+  const out = [];
+  let x = 0;
+  for (const { l, w, map } of lessons) {
+    let cols = 0;
+    for (const r of regions) {
+      const ns = map.filter(n => n.region === r.id), b = band[r.id];
+      ns.forEach((n, i) => {
+        const lane = i % b.lanes;
+        out.push({
+          ...n, l, w, regionLabel: b.label, learned: !!ls(`lh:${l.path}:done`), lw: textWidth(n.label),
+          x: x + Math.floor(i / b.lanes) * SUB + (lane % 2) * 18, y: b.y + lane * LANE + LANE / 2,
+        });
+      });
+      cols = Math.max(cols, Math.ceil(ns.length / b.lanes));
+    }
+    if (cols) x += cols * SUB + GAP;
+  }
+  return out;
+}
+// 名字有多宽（世界坐标，15px 字）：汉字约 15.5，英文和数字约 8.6
+function textWidth(s) { return Math.ceil([...s].reduce((sum, c) => sum + (c.charCodeAt(0) < 0x2000 ? 8.6 : 15.5), 0)) + 4; }
+
+// ---------- 迷雾地图的绘制 ----------
+// 结构和样式沿用拨云的 Boyun.map（boyun.css 的 .by-map），雾用 Boyun.fog。没直接调 Boyun.map，因为这里要的它给不了，
+// 而拨云文件要保持原样，方便以后整份同步：
+//   1. 本周还没学的概念都要隔着薄雾看得见名字；Boyun.map 只让和已学相连的点露出名字
+//   2. 名字中英文混排、比较长，点又挤：雾要沿着整个名字散开，点击范围也要贴着名字，不然会点到旁边的
+//   3. 按世界坐标 1:1 显示，宽了就左右拖
+// （下面都是函数声明：上面的主流程先调用它们，声明会被提前）
+function svg(tag, attrs, parent) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent?.append(e);
+  return e;
+}
+function token(n) { return getComputedStyle(root).getPropertyValue(n).trim(); }
+// 两个点之间的路。接到后面某节课的：从旧概念名字的末尾出发，稍微弯一点（弯法和 Boyun.map 一样），免得从自己的名字中间穿过去；
+// 同一节课里上下两个点之间的：往左鼓出去，离得越远鼓得越多，免得穿过中间别的点
+function curve(a, b) {
+  const f = n => n.toFixed(1);
+  if (Math.abs(b.x - a.x) <= 60) {
+    return `M${f(a.x)} ${a.y} Q${f(Math.min(a.x, b.x) - 0.4 * Math.abs(b.y - a.y))} ${f((a.y + b.y) / 2)} ${f(b.x)} ${b.y}`;
+  }
+  const p = { x: a.x + 13 + a.lw, y: a.y }, q = { x: b.x - 7, y: b.y };
+  const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2, dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy) || 1;
+  const k = 0.07 * L * (Math.round(a.x + b.y) % 3 ? 1 : -1);
+  return `M${f(p.x)} ${p.y} Q${f(mx - dy / L * k)} ${f(my + dx / L * k)} ${f(q.x)} ${q.y}`;
+}
+
+function fogMap(box, { W, H, nodes, edges, regions, focus, onSelect }) {
+  box.classList.add('by-map');
+  box.style.setProperty('--map-w', `${W}px`);
+  const scroll = document.createElement('div');
+  scroll.className = 'by-map__scroll';
+  const inner = document.createElement('div');
+  inner.className = 'by-map__inner';
+  inner.style.aspectRatio = `${W} / ${H}`;
+  const terr = svg('svg', { viewBox: `0 0 ${W} ${H}`, 'aria-hidden': 'true' });
+  const cv = document.createElement('canvas');
+  cv.className = 'by-map__fog';
+  cv.setAttribute('aria-hidden', 'true');
+  const over = svg('svg', { viewBox: `0 0 ${W} ${H}`, role: 'group', 'aria-label': '知识地图：实心的点是学过的概念，雾里的是本周还没学的' });
+  inner.append(terr, cv, over);
+  scroll.append(inner);
+  box.replaceChildren(scroll);
+
+  // 地形（雾下面）：区域名、还没走过的路、点、名字。中式笔墨下区域名竖排，所以换笔墨时重画
+  const trod = ([a, b]) => a.learned && b.learned;
+  function terrain() {
+    terr.replaceChildren();
+    const vertical = token('--by-texture') === 'ink';
+    for (const r of regions) {
+      const t = svg('text', { x: r.x, y: r.y, class: 'region' }, terr);
+      if (vertical) [...r.label].forEach((ch, i) => { svg('tspan', { x: r.x, dy: i ? '1.25em' : '0' }, t).textContent = ch; });
+      else t.textContent = r.label;
+    }
+    const g = svg('g', {}, terr);
+    for (const e of edges) if (!trod(e)) svg('path', { d: curve(...e), class: 'edge' }, g);
+    for (const n of nodes) if (!n.learned) place(n, terr);
+  }
+  function place(n, layer) {
+    svg('circle', { cx: n.x, cy: n.y, r: 5, class: n.learned ? 'dot ex' : 'dot fr' }, layer);
+    svg('text', { x: n.x + 11, y: n.y + 5, class: n.learned ? 'lab ex' : 'lab' }, layer).textContent = n.label;
+  }
+  terrain();
+  new MutationObserver(terrain).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // 雾：Boyun.fog 的圆中间一圈是平的，沿着名字铺一串圆，整个名字一样清楚。
+  // 已学的散得开一些（SEE）；本周的只在名字上薄一层（MIST），能见度 GL；下一节课那一处更清楚一点（GF）
+  const SEE = 56, MIST = 26, GL = 0.6, GF = 0.8;
+  const anim = !reduced();
+  const start = [], goal = [];
+  // 从 (x0, y0) 到 (x1, y1) 每隔 step 放一个圆
+  const chain = (x0, y0, x1, y1, from, to, step) => {
+    const k = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / step));
+    for (let i = 0; i <= k; i++) { start.push({ x: x0 + (x1 - x0) * i / k, y: y0 + (y1 - y0) * i / k, ...from }); goal.push(to); }
+  };
+  const lit = { w: 1, r: SEE }, mist = { w: GL, r: MIST };
+  // 区域名横排和竖排都要盖到：进过这块区域就散开，还没进过就和本周的名字一样隔着薄雾
+  for (const r of regions) {
+    const s = r.lit ? lit : mist, len = r.label.length;
+    chain(r.x - 2, r.y - 4, r.x + len * 17.6 - 6, r.y - 4, s, s, 14);
+    chain(r.x + 6, r.y - 4, r.x + 6, r.y - 4 + (len - 1) * 16, s, s, 14);
+  }
+  for (const n of nodes) {
+    const x0 = n.x - 4, x1 = n.x + 11 + n.lw;
+    if (n.learned) chain(x0, n.y, x1, n.y, anim && n.fresh ? mist : lit, lit, 24);
+    else if (n === focus) chain(x0, n.y, x1, n.y, anim ? { w: 0, r: MIST } : { w: GF, r: MIST }, { w: GF, r: MIST }, 14);
+    else chain(x0, n.y, x1, n.y, mist, mist, 14);
+  }
+  const fog = Boyun.fog(cv, { width: W, height: H, sources: start });
+
+  // 浮层（雾上面）：走过的路、学过的点和名字、朱色焦点、选中的圈、点击范围。
+  // 两头都学过的路画在雾上面：两头都认得，路也就认得；中间隔着没去过的空地也看得见。刚打卡的那几条等雾散开时再出现。
+  // 学过的名字压在路上面，描一圈纸色的边，路从名字底下过去
+  const roads = svg('g', { class: 'roads' }, over);
+  const road = e => svg('path', { d: curve(...e), class: 'edge trod' }, roads);
+  const fresh = e => anim && (e[0].fresh || e[1].fresh);
+  edges.filter(e => trod(e) && !fresh(e)).forEach(road);
+  const known = svg('g', { class: 'known' }, over);
+  for (const n of nodes) if (n.learned) place(n, known);
+  if (focus) svg('circle', { cx: focus.x, cy: focus.y, r: 10, class: 'focus' }, over);
+  const ring = svg('circle', { cx: 0, cy: 0, r: 14, class: 'sel', visibility: 'hidden' }, over);
+  for (const n of nodes) {
+    const g = svg('g', { class: 'hit', tabindex: '0', role: 'button', 'aria-label': `${n.label}，${n.learned ? '学过了' : '本周还没学'}` }, over);
+    svg('rect', { x: n.x - 12, y: n.y - 15, width: n.lw + 26, height: 30 }, g);
+    const go = () => { ring.setAttribute('cx', n.x); ring.setAttribute('cy', n.y); ring.removeAttribute('visibility'); onSelect(n); };
+    g.addEventListener('click', go);
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+  }
+
+  // 进场：新打卡的那几处雾散开，下一节课那一处点亮一次，之后一切静止。减少动态效果时直接是最后的样子
+  if (anim) setTimeout(() => {
+    goal.forEach((t, i) => { if (t.w !== start[i].w || t.r !== start[i].r) fog.set(i, t.w, t.r); });
+    edges.filter(e => trod(e) && fresh(e)).forEach(road);
+    if (!focus) return;
+    const c = svg('circle', { cx: focus.x, cy: focus.y, r: 10, class: 'pulse' }, over);
+    c.animate([{ transform: 'scale(1)', opacity: 0.9 }, { transform: 'scale(3)', opacity: 0 }],
+      { duration: parseFloat(token('--dur-settle')) || 1800, easing: token('--ease-mist') || 'ease-out', fill: 'forwards' })
+      .finished.then(() => c.remove(), () => {});
+  }, 600);
+
+  return { scroll, deselect: () => ring.setAttribute('visibility', 'hidden') };
+}
+</script>
+</body>
+</html>

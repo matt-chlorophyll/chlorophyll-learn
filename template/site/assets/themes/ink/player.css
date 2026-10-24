@@ -1,0 +1,130 @@
+/* themes/ink/player.css — 主题「墨」的配音动画播放器和舞台（结构见 /assets/themes/README.md）
+ *
+ * 舞台不是深色屏幕，而是一幅装裱好的画：宣纸底，墨线和墨色晕染作画。
+ * 场景作者用下面的变量取色：--paper / --ink-* / --zhu / --huaqing / --shilv / --tenghuang / --zheshi。
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap");
+@import url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css");
+@import url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css");
+
+:root {
+  --paper: #EEEAE0;
+  --paper-2: #E4DFD2;
+  --ink-jiao: #15130F;
+  --ink-nong: #2A2622;
+  --ink-zhong: #57514A;
+  --ink-dan: #8C857A;
+  --ink-qing: #C9C2B4;
+  --zhu: #A3301D;
+  --huaqing: #2E5770;
+  --shilv: #386A54;
+  --tenghuang: #E4C766;
+  --zheshi: #9A6838;
+  --on-ink: #F6F1E7;
+
+  /* 平台通用 token（README 的 token 契约；场景作者只用这些和上面的墨色） */
+  --ink: var(--ink-nong);
+  --pencil: var(--ink-zhong);
+  --rule: var(--ink-qing);
+  --marker: var(--tenghuang);
+  --pen: var(--huaqing);
+  --climb: var(--shilv);
+  --red: var(--zhu);
+  --screen: var(--paper);
+  --sans: "LXGW WenKai", "Noto Serif SC", "KaiTi", "STKaiti", serif;
+  --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+
+  --lh-font: "LXGW WenKai", "Noto Serif SC", "KaiTi", "STKaiti", serif;
+  --lh-brush: "Ma Shan Zheng", "LXGW WenKai", "KaiTi", serif;
+  --lh-mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --lh-bg: var(--paper);
+  --lh-accent: var(--ink-nong);
+}
+
+html, body { margin: 0; height: 100%; background: var(--lh-bg); overflow: hidden; }
+body { font-family: var(--lh-font); color: var(--ink-nong); }
+
+.lh-player { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; outline: none; }
+.lh-player:focus-visible { outline: 2px solid var(--huaqing); outline-offset: -4px; }
+.lh-frame {
+  position: relative; overflow: hidden;
+  background: var(--lh-bg) url("ink/paper.svg") repeat; background-size: 420px 420px;
+  width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9;
+  --u: 1px; /* 逻辑单位：舞台宽 1280 个单位，由播放器按实际宽度更新 */
+}
+
+/* 场景作者的舞台：逻辑尺寸 1280×720。SVG 用 viewBox="0 0 1280 720"，HTML 元素用 calc(var(--u) * N) */
+#stage { position: absolute; inset: 0; }
+#stage > svg { width: 100%; height: 100%; display: block; }
+
+/* 字幕：纸色底条 + 浓墨字；第二个声音用花青 */
+.lh-cc {
+  position: absolute; left: 0; right: 0; bottom: 5%; text-align: center;
+  pointer-events: none; transition: bottom .2s;
+}
+.lh-cc span {
+  display: inline-block; max-width: 86%; padding: .22em .8em; border-radius: calc(var(--u) * 3);
+  background: rgba(246, 242, 233, .92); color: var(--ink-jiao); line-height: 1.5; font-size: calc(var(--u) * 28);
+  box-shadow: 0 0 0 1px rgba(42, 38, 34, .18);
+}
+.lh-cc span.b { color: var(--huaqing); }
+.lh-cc span:empty, .lh-player.cc-off .lh-cc { display: none; }
+.lh-player:not(.idle) .lh-cc, .lh-player:not(.playing) .lh-cc { bottom: calc(5% + 46px); }
+
+/* 开始/重播按钮：一抹浓墨，只在开头（封面）和结尾出现，放在底部居中 */
+.lh-big {
+  position: absolute; left: 50%; bottom: 12%; transform: translateX(-50%); isolation: isolate;
+  display: none; align-items: center; gap: 10px; height: 54px; padding: 0 34px 0 30px;
+  border: 0; cursor: pointer; background: none; color: var(--on-ink);
+  font: 700 19px var(--lh-font); letter-spacing: .06em; transition: transform .2s;
+}
+.lh-big::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; background: var(--ink-nong);
+  -webkit-mask: url("ink/dab.svg") center / 100% 100% no-repeat; mask: url("ink/dab.svg") center / 100% 100% no-repeat;
+}
+.lh-big .ico { font-size: .82em; margin-right: 2px; }
+.lh-big .t { margin-left: 6px; padding-left: 12px; border-left: 1px solid rgba(246, 241, 231, .4); font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.lh-big:hover { transform: translateX(-50%) scale(1.04); }
+.lh-big:focus-visible { outline: 2px solid var(--huaqing); outline-offset: 4px; }
+.lh-player.at-start .lh-big, .lh-player.at-end .lh-big { display: flex; }
+.lh-player.playing .lh-big { display: none; }
+.lh-player.at-start .lh-cc, .lh-player.at-end .lh-cc { display: none; }
+
+/* 控制条：纸色渐隐底，墨色按钮 */
+.lh-controls {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 46px; padding: 0 10px;
+  display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(rgba(238, 234, 224, 0), rgba(238, 234, 224, .94) 55%); transition: opacity .25s;
+  font: 14px var(--lh-font); color: var(--ink-nong);
+}
+.lh-player.playing.idle .lh-controls { opacity: 0; }
+.lh-player.playing.idle { cursor: none; }
+.lh-controls button {
+  background: none; border: 0; color: var(--ink-nong); cursor: pointer; font: inherit; font-weight: 700;
+  min-width: 34px; height: 30px; border-radius: 2px; padding: 0 6px;
+}
+.lh-controls button:hover { background: rgba(42, 38, 34, .1); }
+.lh-controls button:focus-visible { outline: 2px solid var(--huaqing); outline-offset: 1px; }
+.lh-controls .lh-ccbtn { color: var(--ink-zhong); font-weight: 400; }
+/* 导出过 mp4 才出现的下载入口：一枚小题签 */
+.lh-controls .lh-dl {
+  display: inline-flex; align-items: center; height: 24px; padding: 0 7px; border: 1px solid var(--ink-dan); border-radius: 2px;
+  color: var(--ink-nong); font: 700 12.5px/1 var(--lh-font); letter-spacing: .04em; text-decoration: none;
+}
+.lh-controls .lh-dl:hover { border-color: var(--ink-nong); background: rgba(42, 38, 34, .08); }
+.lh-controls .lh-dl:focus-visible { outline: 2px solid var(--huaqing); outline-offset: 1px; }
+.lh-controls .lh-ccbtn.on { color: var(--ink-jiao); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+.lh-time { font-variant-numeric: tabular-nums; min-width: 84px; color: var(--ink-zhong); }
+.lh-bar { position: relative; flex: 1; height: 20px; cursor: pointer; touch-action: none; }
+.lh-bar::before { content: ""; position: absolute; left: 0; right: 0; top: 9px; height: 2px; background: var(--ink-qing); }
+.lh-fill { position: absolute; left: 0; top: 8px; height: 4px; border-radius: 2px; background: var(--ink-nong); width: 0; }
+.lh-tick { position: absolute; top: 6px; width: 1.5px; height: 8px; background: var(--ink-dan); }
+
+/* 出错时的提示层（reviewer 会截图看到） */
+.lh-error {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(163, 48, 29, .9); color: #fff; font: 16px var(--lh-mono); padding: 24px; text-align: center; white-space: pre-wrap;
+}
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }

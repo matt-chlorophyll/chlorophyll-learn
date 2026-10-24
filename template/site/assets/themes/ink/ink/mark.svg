@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 40" preserveAspectRatio="none">
+  <!-- 荧光笔 = 藤黄淡染：一笔浅黄，边缘有水渍。直接作 background-image（不是 mask），文字压在上面 -->
+  <filter id="wash" x="-2%" y="-15%" width="104%" height="130%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.03 0.12" numOctaves="3" seed="8" result="edge"/>
+    <feDisplacementMap in="SourceGraphic" in2="edge" scale="7" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <path filter="url(#wash)" fill="#E4C766" fill-opacity="0.72" d="M8 9 C3 12 2 20 4 26 C6 32 12 35 22 34 C110 33 200 36 290 34 C340 33 380 33 394 28 C399 22 398 14 390 11 C330 6 270 6 200 6 C130 5 60 6 8 9 Z"/>
+</svg>

@@ -1,0 +1,18 @@
+{
+  "provider": "minimax",
+  "speed": 1.1,
+  "leadIn": 0.3,
+  "pauseAfterBeat": 0.35,
+  "targetDb": -16,
+  "minimax": {
+    "model": "speech-2.8-hd",
+    "voices": ["Chinese (Mandarin)_Warm_Bestie", "Chinese (Mandarin)_Laid_BackGirl", "Chinese (Mandarin)_Sincere_Adult"],
+    "language_boost": "Chinese"
+  },
+  "elevenlabs": {
+    "model": "eleven_multilingual_v2",
+    "voice": "",
+    "stability": 0.5,
+    "similarity_boost": 0.75
+  }
+}
