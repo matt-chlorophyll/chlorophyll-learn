@@ -42,7 +42,8 @@
 
 - **setup**：`node scripts/setup.mjs <临时目录>` 装一次，再跑一次测更新。`--check` 只检查环境。
 - **课程页**：
-  - 在测试工作区里起服务器：`PORT=43xx node tools/serve.mjs`，不要占 4321。
+  - 先把测试工作区 `.env` 里的 `PORT` 改成 43xx，不要占 4321。
+  - 起服务器：`node tools/serve.mjs --detach`。它是独立的后台进程，不随命令结束，测完用 `node tools/serve.mjs --stop` 停掉。跑 QA 时没开它也行，`qa.mjs` 会自己这样启动。
   - 跑 QA：`node tools/qa.mjs <页面路径>`。一次只开一个无头浏览器。
 - **插件**：
   - 先跑 `claude plugin validate .`。
@@ -54,4 +55,5 @@
   再数 `"subtype":"permission_denied"`，每一条就是交互时的一次确认。
   - 没被信任过的工作区会忽略项目白名单，所以要用 `--settings` 再传一次；`--setting-sources project` 是为了不带上自己的用户设置（比如 auto 模式）。
   - 生成一节 Day 0 约 25 分钟，按 API 价格约 $12，走自己的订阅额度。
+  - 跑完测试工作区的服务器还开着，用 `node tools/serve.mjs --stop` 停掉。
 - **改了课程页或组件**：用示例课 `/lab/example/` 和 `/lab/themes/` 跑 QA。
