@@ -63,7 +63,7 @@ N = 0 时改为：「任务 B：规划 Week 0，只有一节 Day 0 导览课（�
 2. 更新 `learner/state.md`：当前周、「本周概念」（合并 build.json 各天的 `concepts`）、下一步。
 3. 在 `platform/build-log.md` 追加一行：日期、主题/周、课数、用时、修复轮次、被砍掉的部分、备注（例如有没有弹权限确认、哪个 agent 最慢）。
 4. 工作区是 git 仓库时：`git add -A`，然后 `git commit -m "build: <topic> wNN（N 节课）"`；有远端再 `git push`（见 CLAUDE.md「git」）。不是 git 仓库就跳过。
-5. **导出 mp4**（后台，不阻塞；轻量档、没装 ffmpeg 时跳过）：用 Bash 的 `run_in_background`（`timeout` 设成最大的 7200000：默认约 10 分钟就会被停）对每节课跑 `node tools/render-video.mjs site/lessons/<topic>/wNN/dN`，每个动画目录下生成 `video.mp4`（不进 git，可重新生成；约为动画时长的 1.7 倍）。
+5. **导出 mp4**（后台，不阻塞；轻量档跳过。没装 ffmpeg 时 render-video.mjs 会自己说明并跳过，不用先检查）：用 Bash 的 `run_in_background`（`timeout` 设成最大的 7200000：默认约 10 分钟就会被停）对每节课跑 `node tools/render-video.mjs site/lessons/<topic>/wNN/dN`，每个动画目录下生成 `video.mp4`（不进 git，可重新生成；约为动画时长的 1.7 倍）。
 6. 告诉学习者：本周课程已就绪（列出每天的标题和预计分钟），从 hub 或 `/today` 开始。
 
 ## 注意

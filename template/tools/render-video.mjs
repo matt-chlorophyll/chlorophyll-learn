@@ -10,7 +10,7 @@
 // 用一个独立的 headless Chrome / Edge（tools/lib/chrome.mjs），通过 DevTools 协议控制。
 // 需要本机装了 Chrome 或 Edge，以及 ffmpeg；服务器没开会在后台启动（之后一直运行，停止用 node tools/serve.mjs --stop）。无配音（silent）的动画导出成没有声音、带字幕的 mp4。
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, statSync, readdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -47,6 +47,8 @@ const mediaDirs = existsSync(path.join(dir, 'scene.html'))
     ? readdirSync(path.join(dir, 'media')).map(d => path.join(dir, 'media', d)).filter(d => existsSync(path.join(d, 'scene.html')))
     : [];
 if (!mediaDirs.length) { console.error(`${path.relative(ROOT, dir)} 下没有配音动画（media/<id>/scene.html）`); process.exit(1); }
+// 没装 ffmpeg：说明一下就退出（/build-week 直接运行这条命令，不用先自己检查）
+if (spawnSync('ffmpeg', ['-version'], { stdio: 'ignore', windowsHide: true }).error) { console.log('没装 ffmpeg，跳过导出 mp4。装好 ffmpeg 后再运行这条命令就行。'); process.exit(0); }
 
 // ---------- 导出一个动画 ----------
 
