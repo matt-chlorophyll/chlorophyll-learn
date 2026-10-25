@@ -101,7 +101,7 @@ setup 会在工作区里建好 `.env`。要配音的话，自己打开它填上 
 
 ## 日常使用
 
-**上课**：Windows 双击工作区里的 `start.cmd`，macOS、Linux 运行 `./start.sh`，浏览器会打开 <http://localhost:4321/>。也可以直接在 Claude Code 里运行 `/today`，它会启动服务器并打开今天的课。
+**上课**：Windows 双击工作区里的 `start.cmd`，macOS、Linux 运行 `./start.sh`，浏览器会打开 <http://localhost:4321/>。也可以直接在 Claude Code 里运行 `/today`，它会启动服务器并打开今天的课。服务器启动后一直在后台运行；想停掉，Windows 关掉 `start.cmd` 打开的那个窗口，或者在工作区里运行 `node tools/serve.mjs --stop`。
 
 **命令**
 

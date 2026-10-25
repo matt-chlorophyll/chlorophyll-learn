@@ -56,7 +56,7 @@
 
 ## 平台速查
 
-- 本地服务器 `node tools/serve.mjs`，只对外提供 `site/`。学习者双击 `start.cmd`（Windows）或运行 `./start.sh`（macOS、Linux）启动并打开 http://localhost:4321/。端口是 `.env` 里的 PORT，默认 4321：命令和说明里写的 4321 都换成它（用 `grep ^PORT= .env` 查，不要读整个 `.env`，里面有 key）。
+- 本地服务器 `node tools/serve.mjs`，只对外提供 `site/`。学习者双击 `start.cmd`（Windows）或运行 `./start.sh`（macOS、Linux）启动并打开 http://localhost:4321/。你要用服务器时运行 `node tools/serve.mjs --detach`：已经在运行就直接返回，没有就在后台启动（独立进程，不受 Claude Code 后台任务的时长限制），输出地址；不要用 `run_in_background` 启动它，也不用 curl 检查。`qa.mjs` 发现服务器没开也会这样启动它。服务器一直运行，学习者想停时运行 `node tools/serve.mjs --stop`，或者关掉 start.cmd 打开的窗口。端口是 `.env` 里的 PORT，默认 4321：命令和说明里写的 4321 都换成它（用 `grep ^PORT= .env` 查，不要读整个 `.env`，里面有 key）。
 - 打开网页：Windows 用 `cmd //c start "" "<url>"`（PowerShell 里 `Start-Process <url>`），macOS 用 `open <url>`，Linux 用 `xdg-open <url>`。
 - hub 的课程清单 `site/manifest.json`：只放已开放的周。
 - hub 的迷雾地图 `site/map.json`：每节课的概念节点（短标签、区域、连线），和 manifest 一样只放已开放的周，由 `/build-week` 第 4 步合进去。hub 用拨云（Boyun）设计系统（`site/assets/boyun/`）。

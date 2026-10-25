@@ -29,7 +29,7 @@ if ! up; then
     fi
     sleep 0.5
   done
-  echo "服务器已在后台启动（日志：.tmp/server.log）。停止：kill $pid"
+  echo "服务器已在后台启动（日志：.tmp/server.log）。停止：node tools/serve.mjs --stop"
 fi
 URL="http://localhost:$PORT/$1"
 if command -v open >/dev/null 2>&1; then open "$URL"

@@ -27,7 +27,7 @@ node tools/events.mjs --since <state.md 里的「事件已处理到」>
 
 ## 3. 打开课程
 
-确认服务器在运行（`curl -s http://127.0.0.1:4321/api/health`），没有就启动：Windows 运行 `cmd //c start.cmd`（会在单独的窗口启动服务器），macOS / Linux 运行 `./start.sh`。然后打开课程 `http://localhost:4321/lessons/<topic>/wNN/dN/`（打开网页的命令见 CLAUDE.md「平台速查」）。
+运行 `node tools/serve.mjs --detach`：已经在运行会直接说，没有就在后台启动，输出地址。然后打开课程 `<地址>lessons/<topic>/wNN/dN/`（打开网页的命令见 CLAUDE.md「平台速查」）。
 
 告诉学习者：今天的标题、预计分钟、一句话说今天的重点。如果昨天有「这里没懂」或错得多的题，用 2–4 句直接在这里讲清楚（最小必要深度），不用等课件调整。
 
