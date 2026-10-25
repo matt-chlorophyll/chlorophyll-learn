@@ -52,11 +52,30 @@ Chlorophyll-Learn 安装后，会在你选的文件夹里生成一个学习工�
 
 ## 需要什么
 
-- [Claude Code](https://claude.com/claude-code)，已登录
+- [Claude Code](https://claude.com/claude-code) 的命令行版（终端里的 `claude`），已登录。要 Pro、Max、Team、Enterprise 订阅或 Console（API）账号，免费版没有 Claude Code
 - Node.js ≥ 22（`node -v` 查看）
 - Chrome 或 Edge：QA 截图和导出 mp4 都用它。用电脑上已有的就行，不用另装浏览器；找不到时可以在 `.env` 里用 `CHROME_BIN` 指定路径
 - 可选：ffmpeg。有配音和导出 mp4 时需要
-- 可选：MiniMax 或 ElevenLabs 的 API key，用来配音。没有的话，配音动画显示字幕，播放时由浏览器朗读：免费，音质看浏览器（Edge 最好，Chrome 次之），导出的 mp4 没有声音
+- 可选：MiniMax 或 ElevenLabs 的 API key，用来配音。没有的话，配音动画显示字幕，播放时由浏览器朗读，见下面「配音」
+
+### 还没装的，先装好
+
+**Claude Code 命令行版**：`claude --version` 能显示版本号就不用装。只用过桌面版 Claude 的，终端里没有这个命令，要另外装：
+
+- macOS、Linux：在终端里运行 `curl -fsSL https://claude.ai/install.sh | bash`
+- Windows：在 PowerShell 里运行 `irm https://claude.ai/install.ps1 | iex`
+
+装好后在终端里运行一次 `claude`，按提示在浏览器里登录。桌面版的登录不会自动带过来。
+
+**Node.js**：`node -v` 显示 v22 或更新的就不用装。
+
+- Windows：到 <https://nodejs.org> 下载 LTS 安装包，或者在 PowerShell 里运行 `winget install OpenJS.NodeJS.LTS`
+- macOS：到 <https://nodejs.org> 下载 LTS 的 `.pkg` 安装包，双击安装，不需要 Homebrew
+- Linux：发行版自带的 Node 常常太旧，按 <https://nodejs.org/en/download> 上 Linux 的说明用 nvm 装
+
+装完要重新打开终端（Claude Code 也要重开），才找得到 `node`。也可以先装插件：运行 `/chlorophyll-learn:setup` 时发现没有 Node，Claude 会问你要不要带着你装。
+
+**ffmpeg**（可选）：Windows `winget install Gyan.FFmpeg`；macOS `brew install ffmpeg`（要先有 [Homebrew](https://brew.sh)；没有的话可以先不装）；Linux 用包管理器，例如 `sudo apt install ffmpeg`。
 
 ## 安装
 
@@ -97,7 +116,30 @@ Chlorophyll-Learn 安装后，会在你选的文件夹里生成一个学习工�
 
 想先看看一节课是什么样：启动课程网站（见下面「日常使用」）后打开 <http://localhost:4321/lab/example/>。那是一节完整的示例课（上面截图里的古诗词 Day 0），不计入学习记录，也不花额度。
 
-setup 会在工作区里建好 `.env`。不配 key 也有声音：浏览器朗读字幕，不想听可以点播放器右下角的「朗读」关掉。想要更好的配音，自己打开 `.env` 填上 MiniMax 或 ElevenLabs 的 key。`.env` 不会进 git，也不要把 key 贴进对话。
+setup 会在工作区里建好 `.env`。配音的 key 填在这里（见下面「配音」）。`.env` 不会进 git，也不要把 key 贴进对话。
+
+## 配音
+
+配音动画有两种：
+
+| | 字幕版（默认） | 配音版 |
+|---|---|---|
+| 要什么 | 什么都不用 | MiniMax 或 ElevenLabs 的 key，加上 ffmpeg |
+| 声音 | 浏览器朗读字幕，免费。音质看浏览器：Edge 的在线声音最自然，Chrome 次之，Safari 用系统声音 | AI 配音，接近真人；双人对话是两个不同的声音 |
+| 导出 mp4 | 没有声音 | 有声音 |
+| 费用 | 免费 | 一周的配音稿约 4,000 字，MiniMax 约 $0.4–0.7（2026-10 的价格，以官网为准） |
+
+不想听朗读，点播放器右下角的「朗读」关掉。
+
+**用 MiniMax 配音**（中文推荐）：
+
+1. 注册并创建 API key：国际站 <https://www.minimax.io>，国内站 <https://www.minimaxi.com>。两边的账号和 key 不通用。
+2. 打开工作区里的 `.env`，填 `MINIMAX_API_KEY=<你的 key>`。用国内站的，再把 `MINIMAX_API_HOST` 改成 `https://api.minimaxi.com`。
+3. 装好 ffmpeg（见上面「还没装的，先装好」）。
+
+之后生成的课就是配音版。已经生成的字幕版不会自动换：让老师对那几节课的动画重跑一遍 `node tools/tts.mjs <动画目录>`。
+
+ElevenLabs 也可以用：填 `ELEVENLABS_API_KEY`，再把 `platform/tts.json` 的 `provider` 改成 `elevenlabs`，填好 `voice`。
 
 ## 日常使用
 
@@ -120,7 +162,14 @@ setup 会在工作区里建好 `.env`。不配 key 也有声音：浏览器朗�
 
 Chlorophyll-Learn 比较重，生成课程要用不少额度。
 
-- **完整档**（`/build-week`）：一周约 3–4 小时，期间 Claude Code 窗口要一直开着。每天会调用 writer、viz、media、reviewer 等多个 subagent，加上修复轮；subagent 默认用 Opus。生成完会在后台导出 mp4（需要 ffmpeg）。
+实测的数字（2026-10，费用按 API 价格折算；用订阅时走订阅额度，不另外收费）：
+
+| 生成什么 | 用时 | 折合 API 费用 |
+|---|---|---|
+| Day 0 导览课（`/new-topic` 之后，没有配音 key） | 约 21–29 分钟 | 约 $8–12 |
+| 一整周（5 节课，完整档） | 约 2.5 小时 | 约 $100 |
+
+- **完整档**（`/build-week`）：一周约 2.5–4 小时，期间 Claude Code 窗口要一直开着。每天会调用 writer、viz、media、reviewer 等多个 subagent，加上修复轮；subagent 默认用 Opus。生成完会在后台导出 mp4（需要 ffmpeg）。
 - **轻量档**（`/build-week N lite`）：时间约一半。每天最多 1 个交互组件、1 个配音动画；writer、viz、media 用 Sonnet；审核抽查截图；每天最多修 1 轮；不导出 mp4。
 - **额度少的方案（例如 Pro）**：先用 `lite` 试一周，生成前后看 `/usage`，再决定用哪一档。还不够的话，可以把 `.claude/agents/` 里对应 agent 的 `model` 改成 `sonnet`（先改 writer）。
 - **「问老师」**：每次提问调用一次 `claude -p`，也用你的额度。默认 Sonnet、低思考强度，可以在 `.env` 里用 `ASK_MODEL`、`ASK_EFFORT` 修改。
@@ -164,6 +213,7 @@ Chlorophyll-Learn 比较重，生成课程要用不少额度。
 - 主要在一个主题（作者自己在学的 AI 工程）上用过，其他学科刚开始试。
 - 主要在 Windows 上用过；macOS 上从安装到 Day 0 跑通过一次，Linux 还没在真机上试过。
 - 比较重，费额度，见「额度和时间」。生成一周时 Claude Code 窗口要一直开着。
+- 要用 Claude Code 的命令行版：只用桌面版 Claude 的，先按「需要什么」装命令行版。
 
 欢迎反馈，用起来哪里不顺都可以说。
 
