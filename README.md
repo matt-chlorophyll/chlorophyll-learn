@@ -130,12 +130,15 @@ Chlorophyll-Learn 比较重，生成课程要用不少额度。
 
 - Chlorophyll-Learn 没有云端服务，不收集任何数据。学习记录（打卡、作答、用时、提问）只存在你电脑上的工作区里。
 - 老师读这些记录、回答问题时，内容会和平常使用 Claude Code 一样发给 Claude。配了 TTS key 时，配音稿会发给 MiniMax 或 ElevenLabs 合成语音。没配时由浏览器朗读：用 Edge、Chrome 的在线声音时，字幕文字会发给微软或 Google 合成；不想这样，在播放器里关掉「朗读」。
+- `/today` 每天最多访问一次 GitHub，读 Chlorophyll-Learn 最新的版本号，不发送任何学习数据。不想检查，在 `.env` 里写 `UPDATE_CHECK=0`。
 - API key 放在 `.env`，它在 `.gitignore` 里，不会进 git。
 - 权限：工作区默认用 acceptEdits 模式，Claude 在工作区里改文件不用逐个确认（`.claude`、`.git` 和工作区以外的照样会问）。运行命令时，只有白名单里的不用确认（`node tools/…`、git、打开本地网页等，见 `.claude/settings.json`），别的都会先问你。不想这样，删掉 `.claude/settings.json` 里的 `defaultMode` 就行。
 - 工作区如果用 git 并推到远端，远端仓库要设成**私有**：里面有你的学习档案和隐藏路线图。
 - 想保留“不剧透”的体验，就别自己打开 `curriculum/` 里的路线图和 spec。
 
 ## 更新
+
+有新版本时，`/today` 会提醒一次（每天最多查一次 GitHub 上的版本号）。也可以让 Claude Code 自动更新插件：在 Claude Code 里运行 `/plugin`，进入 Marketplaces，选 `chlorophyll`，打开自动更新。之后每次启动 Claude Code 都会自动更新插件，但工作区还要按下面第 2 步更新。
 
 1. 更新插件（在终端里运行，然后重启 Claude Code）：
 

@@ -17,7 +17,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const PLUGIN = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TEMPLATE = path.join(PLUGIN, 'template');
-const VERSION = JSON.parse(readFileSync(path.join(PLUGIN, '.claude-plugin', 'plugin.json'), 'utf8')).version;
+const { version: VERSION, repository: REPOSITORY } = JSON.parse(readFileSync(path.join(PLUGIN, '.claude-plugin', 'plugin.json'), 'utf8'));
 
 const args = process.argv.slice(2);
 const flag = f => args.includes(`--${f}`);
@@ -167,7 +167,7 @@ if (!flag('check')) {
 
   mkdirSync(path.dirname(stateFile), { recursive: true });
   const settings = summary.settingsAdded === null ? prev?.settings : templatePerms(); // 没补成：留着旧记录，下次更新再补
-  writeFileSync(stateFile, JSON.stringify({ version: VERSION, installedAt: prev?.installedAt ?? new Date().toISOString(), updatedAt: new Date().toISOString(), files, settings }, null, 2) + '\n');
+  writeFileSync(stateFile, JSON.stringify({ version: VERSION, repository: REPOSITORY, installedAt: prev?.installedAt ?? new Date().toISOString(), updatedAt: new Date().toISOString(), files, settings }, null, 2) + '\n');
 }
 
 summary.env = await checkEnv(target);
