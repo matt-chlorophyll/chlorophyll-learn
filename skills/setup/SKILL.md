@@ -46,7 +46,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/setup.mjs" "<工作区文件夹>"
 ## 4. 更新之后
 
 - 说明从哪个版本更新到哪个版本，更新了几个平台文件；学习记录、课程、manifest 和用户自己的设置（`platform/tts.json`、`platform/pronunciation.md`）没动。
-- `.claude/settings.json` 只补新版本加的权限设置：`settingsAdded` 不为空就列出补了哪几条；为 `null` 表示文件不是合法的 JSON、没有补，请用户检查这个文件。
+- `.claude/settings.json` 只补新版本加的权限设置：`settingsAdded` 不为空就列出补了哪几条；为 `null` 表示文件格式不对（不是合法的 JSON，或者 `permissions.allow` 不是数组）、没有补，请用户检查这个文件。
 - `keptLocal`：用户改过、这次新版本没改的平台文件，保留了用户的版本，提一句就行。
 - `backedUp` 不为空：这些文件用户改过、新版本也改了，已换成新版本，用户的版本备份在 `backupDir` 里。列出这些文件。其中有 `platform/style-guide.md` 或 `CLAUDE.md` 的，问用户要不要把自己加过的内容合并回新版本：要的话对比备份和新文件，只把用户自己加的段落（例如风格指南「经验」里的新条目）补进新文件，别的不动。
 - 提醒：如果 Claude Code 正开在工作区里，重新打开一次，新的命令和 subagent 才会生效。

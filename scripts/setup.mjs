@@ -59,6 +59,7 @@ function mergeSettings(seeded) {
   const abs = path.join(target, SETTINGS);
   let cur;
   try { cur = JSON.parse(readFileSync(abs, 'utf8')); } catch { return null; } // 不是合法的 JSON：不动它
+  if (cur?.constructor !== Object || (cur.permissions ?? {}).constructor !== Object || !Array.isArray(cur.permissions?.allow ?? [])) return null; // 结构不对：也不动
   const tpl = templatePerms(), perms = (cur.permissions ??= {}), allow = (perms.allow ??= []);
   const added = (tpl.allow ?? []).filter(r => !seeded?.allow?.includes(r) && !allow.includes(r));
   allow.push(...added);
@@ -165,7 +166,8 @@ if (!flag('check')) {
   if (process.platform !== 'win32') { try { chmodSync(path.join(target, 'start.sh'), 0o755); } catch { /* 没有就算了 */ } }
 
   mkdirSync(path.dirname(stateFile), { recursive: true });
-  writeFileSync(stateFile, JSON.stringify({ version: VERSION, installedAt: prev?.installedAt ?? new Date().toISOString(), updatedAt: new Date().toISOString(), files, settings: templatePerms() }, null, 2) + '\n');
+  const settings = summary.settingsAdded === null ? prev?.settings : templatePerms(); // 没补成：留着旧记录，下次更新再补
+  writeFileSync(stateFile, JSON.stringify({ version: VERSION, installedAt: prev?.installedAt ?? new Date().toISOString(), updatedAt: new Date().toISOString(), files, settings }, null, 2) + '\n');
 }
 
 summary.env = await checkEnv(target);
@@ -180,7 +182,7 @@ if (summary.mode === 'update') {
   if (summary.backedUp.length) console.log(`  你改过、新版本也改了的 ${summary.backedUp.length} 个文件换成了新版本，你的版本备份在 ${summary.backupDir}/：${summary.backedUp.join('、')}`);
   if (summary.keptModified.length) console.log(`  新版本不再需要、但你改过的文件（留着没删）：${summary.keptModified.join('、')}`);
   if (summary.settingsAdded?.length) console.log(`  ${SETTINGS} 补上了新版本的权限设置：${summary.settingsAdded.join('、')}`);
-  if (summary.settingsAdded === null) console.log(`  ${SETTINGS} 不是合法的 JSON，没有补上新版本的权限设置`);
+  if (summary.settingsAdded === null) console.log(`  ${SETTINGS} 格式不对（不是合法的 JSON，或者 permissions.allow 不是数组），没有补上新版本的权限设置`);
 }
 console.log('环境：');
 console.log(`  ${mark(e.node.ok)} Node.js ${e.node.version}${e.node.ok ? '' : '（需要 22 或更新）'}`);
