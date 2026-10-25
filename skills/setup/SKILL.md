@@ -19,7 +19,14 @@ disable-model-invocation: true
 
 ## 2. 运行安装脚本
 
-先检查 Node 版本：`node --version`。低于 22 就停下，告诉用户先装新版 Node.js（https://nodejs.org ，选 LTS），装好再运行本命令。
+先检查 Node 版本：`node --version`。没有 Node 或低于 22：告诉用户要先装 Node.js（LTS），用 AskUserQuestion 问一次要不要你带着装（选项：现在带我装（推荐）、我自己装）。
+
+- 用户自己装：给出 https://nodejs.org 和下面对应系统的方法，装好后重开 Claude Code 再运行本命令。停在这里。
+- 带着装：
+  - Windows：运行 `winget install OpenJS.NodeJS.LTS`（会弹管理员确认，让用户点「是」）。没有 winget 就按「用户自己装」。
+  - macOS：用 `curl -s https://nodejs.org/dist/index.json` 找最新的 LTS 版本号 `<v>`（列表按新到旧排，第一个 `lts` 不是 `false` 的），把 `https://nodejs.org/dist/<v>/node-<v>.pkg` 下载到 `~/Downloads`，然后 `open` 它。告诉用户在弹出的安装程序里一路点「继续」，最后输入电脑的登录密码。等用户说装好了再继续。
+  - Linux：把 https://nodejs.org/en/download 上 Linux 用 nvm 安装的那几行命令给用户，请用户在终端里自己运行（不用 sudo）。停在这里，装好后重开终端和 Claude Code 再运行本命令。
+- 装完后，正在运行的 Claude Code 可能还找不到 `node`（环境变量要重开才更新）。Windows 先试 `"C:\Program Files\nodejs\node.exe" --version`，macOS 试 `/usr/local/bin/node --version`：能运行，下面的安装脚本就用这个完整路径运行，并提醒用户之后重开 Claude Code；还是找不到，就请用户重开 Claude Code 再运行本命令。
 
 ```
 node "${CLAUDE_PLUGIN_ROOT}/scripts/setup.mjs" "<工作区文件夹>"
@@ -31,10 +38,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/setup.mjs" "<工作区文件夹>"
 ## 3. 第一次安装后
 
 1. 环境里有 ✗ 的，按下面给出一句话的解决办法（可选的项说明"不装也能用"）：
-   - Claude Code 找不到：「问老师」要用命令行里的 `claude`，确认 `claude --version` 能运行。
+   - Claude Code 找不到：「问老师」要用命令行里的 `claude`，只用过桌面版 Claude 的需要另装命令行版。macOS、Linux 运行 `curl -fsSL https://claude.ai/install.sh | bash`，Windows 在 PowerShell 里运行 `irm https://claude.ai/install.ps1 | iex`。装好后在终端里运行一次 `claude`，在浏览器里登录（桌面版的登录不会带过来）。
    - 浏览器：装 Chrome，或者在工作区 `.env` 里用 `CHROME_BIN` 指定 Chrome / Edge 的路径。
-   - ffmpeg（可选）：Windows `winget install Gyan.FFmpeg`，macOS `brew install ffmpeg`，Linux 用包管理器。没有它，配音动画是字幕版（播放时由浏览器朗读），也不能导出 mp4。
-   - 配音 key（可选）：在工作区的 `.env` 里填 `MINIMAX_API_KEY`（中文推荐，https://www.minimax.io ）或 `ELEVENLABS_API_KEY`。没有 key 也能上课：配音动画显示字幕，播放时由浏览器免费朗读（Edge 的在线声音最自然），音质不如 MiniMax。提醒用户不要把 key 贴到对话里，自己打开 `.env` 填。
+   - ffmpeg（可选）：Windows `winget install Gyan.FFmpeg`，macOS `brew install ffmpeg`（要先有 Homebrew；没有就先不装），Linux 用包管理器。没有它，配音动画是字幕版（播放时由浏览器朗读），也不能导出 mp4。
+   - 配音 key（可选）：在工作区的 `.env` 里填 `MINIMAX_API_KEY`（中文推荐；国际站 https://www.minimax.io ，国内站 https://www.minimaxi.com ，用国内站要把 `MINIMAX_API_HOST` 改成 `https://api.minimaxi.com`）或 `ELEVENLABS_API_KEY`。一周的配音稿约 4,000 字，MiniMax 约 $0.4–0.7。没有 key 也能上课：配音动画显示字幕，播放时由浏览器免费朗读（Edge 的在线声音最自然），音质不如 MiniMax。提醒用户不要把 key 贴到对话里，自己打开 `.env` 填。
 2. git（可选）：工作区还不是 git 仓库、电脑上有 git 时，问一句要不要初始化（推荐：能回看每周生成了什么，出问题可以回退）。要的话在工作区里运行 `git init`，再 `git add -A` 和 `git commit -m "init: Chlorophyll-Learn <版本>"`。提醒：以后推到远端，仓库一定要设成私有，里面有学习档案和隐藏路线图。
 3. 告诉用户下一步（照这个顺序，简短）：
    - 在工作区里重新打开 Claude Code：`cd "<工作区文件夹>"`，然后 `claude`。老师规则、命令和 subagent 都在工作区里，要在那里打开才会生效。
