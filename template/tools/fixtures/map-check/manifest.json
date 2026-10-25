@@ -1,0 +1,36 @@
+{
+  "_note": "所有样例共用的 manifest：第 0–2 周已开放。",
+  "current": { "topic": "cooking", "week": 2 },
+  "topics": {
+    "cooking": {
+      "title": "学做菜（假数据）",
+      "theme": "quest",
+      "weeks": [
+        {
+          "week": 0,
+          "title": "导览",
+          "lessons": [
+            { "day": 0, "date": "2026-01-04", "title": "厨房导览", "est": 30, "path": "/lessons/cooking/w00/d0/" }
+          ]
+        },
+        {
+          "week": 1,
+          "title": "刀和火",
+          "lessons": [
+            { "day": 1, "date": "2026-01-05", "title": "第 1 周第 1 课", "est": 50, "path": "/lessons/cooking/w01/d1/" },
+            { "day": 2, "date": "2026-01-06", "title": "第 1 周第 2 课", "est": 50, "path": "/lessons/cooking/w01/d2/" },
+            { "day": 3, "date": "2026-01-07", "title": "第 1 周第 3 课", "est": 50, "path": "/lessons/cooking/w01/d3/" }
+          ]
+        },
+        {
+          "week": 2,
+          "title": "一锅汤",
+          "lessons": [
+            { "day": 1, "date": "2026-01-12", "title": "第 2 周第 1 课", "est": 50, "path": "/lessons/cooking/w02/d1/" },
+            { "day": 2, "date": "2026-01-13", "title": "第 2 周第 2 课", "est": 50, "path": "/lessons/cooking/w02/d2/" }
+          ]
+        }
+      ]
+    }
+  }
+}

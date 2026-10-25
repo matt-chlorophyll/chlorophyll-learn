@@ -1,0 +1,75 @@
+{
+  "_note": "旧格式（还没有地点数据的课）：没有 places、moves，概念只有 id、label、region、links。只报一个警告，2D hub 照常能用。",
+  "_expect": { "errors": [], "warnings": ["no-places"] },
+  "topics": {
+    "cooking": {
+      "regions": [
+        { "id": "base", "label": "地基", "lanes": 4 },
+        { "id": "knife", "label": "刀工", "lanes": 2 },
+        { "id": "heat", "label": "火候", "lanes": 2 },
+        { "id": "taste", "label": "调味", "lanes": 2 }
+      ],
+      "weeks": [
+        {
+          "week": 0,
+          "days": [
+            {
+              "day": 0,
+              "map": [
+                { "id": "w0-kitchen-zones", "label": "厨房分区", "region": "base", "links": [] },
+                { "id": "w0-knife-grip", "label": "握刀的手势", "region": "knife", "links": ["w0-kitchen-zones"] },
+                { "id": "w0-brine-reuse", "label": "卤水续着用", "region": "taste", "links": [] },
+                { "id": "w0-brine-story", "label": "老卤的来历", "region": "taste", "links": ["w0-brine-reuse"] }
+              ]
+            }
+          ]
+        },
+        {
+          "week": 1,
+          "days": [
+            {
+              "day": 1,
+              "map": [
+                { "id": "w1-hot-pan", "label": "热锅冷油", "region": "heat", "links": [] },
+                { "id": "w1-browning", "label": "焦香从哪来", "region": "heat", "links": ["w1-hot-pan"] }
+              ]
+            },
+            {
+              "day": 2,
+              "map": [
+                { "id": "w1-flip-early", "label": "翻早了会粘", "region": "heat", "links": ["w1-browning"] },
+                { "id": "w1-taste-first", "label": "先尝一口", "region": "taste", "links": [] }
+              ]
+            },
+            {
+              "day": 3,
+              "map": [
+                { "id": "w1-salt-again", "label": "补盐再尝", "region": "taste", "links": ["w1-taste-first"] },
+                { "id": "w1-dice", "label": "切丁", "region": "knife", "links": ["w0-knife-grip"] }
+              ]
+            }
+          ]
+        },
+        {
+          "week": 2,
+          "days": [
+            {
+              "day": 1,
+              "map": [
+                { "id": "w2-blanch", "label": "焯骨头", "region": "taste", "links": [] },
+                { "id": "w2-simmer", "label": "小火慢炖", "region": "taste", "links": ["w1-hot-pan"] }
+              ]
+            },
+            {
+              "day": 2,
+              "map": [
+                { "id": "w2-skim", "label": "撇浮沫", "region": "taste", "links": ["w2-simmer"] },
+                { "id": "w2-season-stock", "label": "高汤调味", "region": "taste", "links": ["w2-blanch", "w1-salt-again"] }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

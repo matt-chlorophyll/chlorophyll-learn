@@ -1,0 +1,1274 @@
+/* 拨云 3D 地图的样式：地图 token（每个主题一块）、地图页的页面配色、地图首页的类。只在地图页（<html data-map>）加载、生效。
+   一、token：六个主题块 :root[data-map][data-theme="…"]。2026-10-25 块 B 用 dump-tokens.mjs 从定稿的原型（D\proto\3d master 80b6062）烘出来：
+       值是原型每个主题的计算值（晨“天刚亮”的第 2 档、三态的第 3 档、暮 B 都已经烘在里面，不再有 [data-dawn] / [data-st] / [data-sky] 这些开关）。
+       页面 token（纸、雾、墨、线、朱、字体、--by-*）只写和 boyun.css 的全局值不一样的那几个：地图页的晨更暗、中式换文楷和题字。
+       这个主题用不到的地图 token 不写（例如中式、现代没有 --an-*）：引擎读不到时用自己的默认值。以后改值就改这里，改完跑 scripts/check-tokens.mjs。
+   二、规则：原型的 map.css、map3d.css、landmarks.css、ani.css、sky.css 里除了 token 以外的规则，按原来的先后原样搬来（注释里的“第 n 轮”是原型的设计记录）。 */
+
+:root[data-map][data-theme="cn-light"] {
+  --accent: #A3301D;
+  --bridge: #6F6A62;
+  --bridge-gap: #D8D9D7;
+  --by-font: "LXGW WenKai", "KaiTi", "STKaiti", "Noto Serif SC", serif;
+  --by-fs: 16px;
+  --by-hw: 700;
+  --by-lh: 1.8;
+  --cast-k: 0.13;
+  --cloud-belly: #DDDBD7;
+  --cloud-deep: #D7D6D2;
+  --cloud-fog: #E0E1DF;
+  --cloud-freedom: 0.3;
+  --cloud-lit: #ECEBE7;
+  --cloud-mid: #E8E7E2;
+  --cloud-shadow-k: 0;
+  --field-diag: 1;
+  --focus: var(--ink-1);
+  --fog: #D5DADE;
+  --fog-a: #D8DFE2;
+  --fog-b: #D5DADE;
+  --fog-c: #D1D8DB;
+  --font-brush: "Ink Latin", "Ma Shan Zheng", "LXGW WenKai", "KaiTi", serif;
+  --font-cn: "LXGW WenKai", "KaiTi", "STKaiti", "Noto Serif SC", serif;
+  --ink-1: #2A2622;
+  --ink-2: #403B35;
+  --ink-3: #57514A;
+  --ink-4: #79746D;
+  --ink-5: #ADA89F;
+  --land-a: #D6D4CE;
+  --land-b: #D2D0CA;
+  --land-c: #CBC9C4;
+  --line: #C3C0B8;
+  --line-strong: var(--ink-4);
+  --lm-tn-sat: 0.42;
+  --map-num-size: 13;
+  --mist-floor: 0.86;
+  --mist-focus-k: 0.08;
+  --mist-glimpse-low: 0.84;
+  --mist-glimpse-top: 0.30;
+  --mist-land: 0.86;
+  --mist-land-fade: 52;
+  --mist-ring: 24;
+  --mist-ring-fade: 56;
+  --mist-stretch: 4;
+  --mist-veil-edge: 28;
+  --mist-waist: 0.78;
+  --mist-waist3d: 0.8;
+  --mtn-ink-base: #221E1B;
+  --mtn-ink-east: #221E1B;
+  --mtn-jiao: #393430;
+  --mtn-shoulder: #D2D0CA;
+  --mtn-slope-base: #4A433B;
+  --mtn-wash-base: #4A433B;
+  --mtn-week-ink: 0.4;
+  --on-ink: var(--paper);
+  --paper: #D2D0CA;
+  --ripple: #8A9391;
+  --road: #8B867F;
+  --road-open: #8B867F;
+  --sat-shade-tint: #FFFFFF;
+  --sat-sun-tint: #FFFFFF;
+  --shadow-float: 0 0 0 4px var(--paper), 0 0 0 5px var(--line), 0 18px 40px -24px rgba(42,38,34,.42);
+  --shadow-sheet: 0 -1px 0 var(--line), 0 -18px 40px -30px rgba(0,0,0,.45);
+  --shore: #6F7470;
+  --tanaka-dark: #D2D0CA;
+  --tanaka-lit: #D2D0CA;
+  --tier-1: #D2D0CA;
+  --tier-2: #D2D0CA;
+  --tier-3: #D2D0CA;
+  --tier-4: #D2D0CA;
+  --water: #C4CDCE;
+  --water-a: #C8D0D2;
+  --water-b: #C4CDCE;
+  --water-c: #C1C8CA;
+  --waterline: #D2D0CA;
+}
+:root[data-map][data-theme="cn-dark"] {
+  --accent: #ED886D;
+  --bridge: #1A1D21;
+  --bridge-gap: #4C5357;
+  --by-font: "LXGW WenKai", "KaiTi", "STKaiti", "Noto Serif SC", serif;
+  --by-fs: 16px;
+  --by-hw: 700;
+  --by-lh: 1.8;
+  --cast-k: 0.13;
+  --cloud-belly: #393B3F;
+  --cloud-deep: #313336;
+  --cloud-fog: #37383C;
+  --cloud-freedom: 0.3;
+  --cloud-lit: #7E7470;
+  --cloud-mid: #4C4E52;
+  --cloud-shadow-k: 0.5;
+  --cloud-west-tint: 1.06 1.0 0.94;
+  --field-diag: 0;
+  --focus: var(--ink-1);
+  --fog: #414245;
+  --fog-a: #404145;
+  --fog-b: #37383B;
+  --fog-c: #303134;
+  --font-brush: "Ink Latin", "Ma Shan Zheng", "LXGW WenKai", "KaiTi", serif;
+  --font-cn: "LXGW WenKai", "KaiTi", "STKaiti", "Noto Serif SC", serif;
+  --ink-1: #EBE6DB;
+  --ink-2: #CEC8BC;
+  --ink-3: #B3ADA1;
+  --ink-4: #867F74;
+  --ink-5: #544F47;
+  --land-a: #5C5A57;
+  --land-b: #565451;
+  --land-c: #4F4D4B;
+  --line: #363A40;
+  --line-strong: var(--ink-4);
+  --lm-ink-k: 1;
+  --lm-tn-sat: 0.62;
+  --map-num-size: 13;
+  --mist-floor: 0.92;
+  --mist-focus-k: 0.08;
+  --mist-glimpse-low: 1;
+  --mist-glimpse-top: 0.5;
+  --mist-land: 0.9;
+  --mist-land-fade: 52;
+  --mist-ring: 16;
+  --mist-ring-fade: 62;
+  --mist-stretch: 4;
+  --mist-veil-edge: 28;
+  --mist-waist: 0.5;
+  --mist-waist3d: 0.6;
+  --mtn-ink-base: #181A1C;
+  --mtn-ink-east: #0F1114;
+  --mtn-jiao: #121417;
+  --mtn-shoulder: #45403D;
+  --mtn-slope-base: #1B1E22;
+  --mtn-wash-base: #4A4B4E;
+  --mtn-week-ink: 0.42;
+  --on-ink: var(--paper);
+  --paper: #282C30;
+  --ripple: #5F6A73;
+  --road: #4E545A;
+  --road-open: #6A737C;
+  --sat-shade-tint: #FFFFFF;
+  --sat-sun-tint: #FFFFFF;
+  --shadow-float: 0 0 0 4px var(--paper), 0 0 0 5px var(--line), 0 22px 48px -28px rgba(0,0,0,.6);
+  --shadow-sheet: 0 -1px 0 var(--line), 0 -18px 40px -30px rgba(0,0,0,.45);
+  --shore: #1F2226;
+  --tanaka-dark: #282C30;
+  --tanaka-lit: #282C30;
+  --tier-1: #282C30;
+  --tier-2: #282C30;
+  --tier-3: #282C30;
+  --tier-4: #282C30;
+  --water: #3B4145;
+  --water-a: #4C5358;
+  --water-b: #40464B;
+  --water-c: #33393D;
+  --waterline: #282C30;
+}
+:root[data-map][data-theme="mod-light"] {
+  --accent: #A03602;
+  --bridge: #3E444B;
+  --bridge-gap: #D0D0D0;
+  --cast-k: 0.13;
+  --cloud-belly: #CBD1D8;
+  --cloud-deep: #AEB6BF;
+  --cloud-fog: #E7ECF3;
+  --cloud-freedom: 0.3;
+  --cloud-lit: #EFF2F5;
+  --cloud-mid: #E6EAEE;
+  --cloud-shadow-k: 0.15;
+  --field-diag: 1;
+  --fog: #E1E7EB;
+  --fog-a: #E1E7EB;
+  --fog-b: #E1E7EB;
+  --fog-c: #E1E7EB;
+  --font-brush: "Ink Latin", "Ma Shan Zheng", "LXGW WenKai", "KaiTi", serif;
+  --font-cn: "LXGW WenKai", "KaiTi", "STKaiti", "Noto Serif SC", serif;
+  --ink-2: #353A41;
+  --ink-3: #4D535C;
+  --ink-4: #6F757B;
+  --ink-5: #A9AFB6;
+  --land-a: #D0D0D0;
+  --land-b: #D0D0D0;
+  --land-c: #D0D0D0;
+  --line: #C0C2C0;
+  --line-strong: var(--ink-4);
+  --lm-awning: #858277;
+  --lm-canyon-a: #AEA793;
+  --lm-canyon-b: #8B8475;
+  --lm-canyon-floor: #6F7462;
+  --lm-canyon-top: #A39D88;
+  --lm-composite: #3D3D3B;
+  --lm-concrete: #9F9F97;
+  --lm-crate: #A69F89;
+  --lm-crop-dark: #4A5A2E;
+  --lm-crop-pale: #8C9455;
+  --lm-field: #A3A06A;
+  --lm-glass: #8A9497;
+  --lm-hull: #e4e8eb;
+  --lm-plank: #d4d8db;
+  --lm-post: #3C3F44;
+  --lm-roof: #6E6A63;
+  --lm-stele: #484845;
+  --lm-stele-head: #8A857A;
+  --lm-stone: #7b7b73;
+  --lm-street: #CDC9BE;
+  --lm-tn-sat: 0.42;
+  --lm-wall: #BDB7A8;
+  --lm-wx-11: 1 1 1 1;
+  --lm-wx-12: 1 1 1 1;
+  --lm-wx-13: 0.5 0.8 0.4 0.5;
+  --lm-wx-8: 1 1 1 1;
+  --map-num-size: 13;
+  --mist-floor: 0.88;
+  --mist-focus-k: 0.08;
+  --mist-glimpse-low: 0.84;
+  --mist-glimpse-top: 0.34;
+  --mist-land: 0.84;
+  --mist-land-fade: 52;
+  --mist-ring: 24;
+  --mist-ring-fade: 40;
+  --mist-stretch: 4;
+  --mist-veil-edge: 28;
+  --mist-waist: 0.9;
+  --mist-waist3d: 0.5;
+  --mtn-ink-base: #D0D0D0;
+  --mtn-ink-east: #D0D0D0;
+  --mtn-jiao: #D0D0D0;
+  --mtn-shoulder: #D0D0D0;
+  --mtn-slope-base: #D0D0D0;
+  --mtn-wash-base: #D0D0D0;
+  --mtn-week-ink: 0.4;
+  --on-ink: var(--paper);
+  --paper: #D0D0D0;
+  --ripple: #D0D0D0;
+  --road: #4A5058;
+  --road-open: #4A5058;
+  --sat-ambient: 0.5;
+  --sat-field: #858058;
+  --sat-forest: #56633A;
+  --sat-grass: #6E7445;
+  --sat-rock: #8E8373;
+  --sat-rock-hi: #A79E90;
+  --sat-sand: #AFA27F;
+  --sat-shade: 0.9;
+  --sat-shade-tint: #CBD9EC;
+  --sat-snow: #E9EBEA;
+  --sat-snowline: 146;
+  --sat-sun-tint: #FFE7C6;
+  --sat-water-deep: #1D4A5A;
+  --sat-water-shallow: #3F7478;
+  --sat-week-desat: 0.25;
+  --sat-week-veil: 0.16;
+  --shadow-float: 0 22px 48px -32px rgba(19,21,24,.42);
+  --shadow-sheet: 0 -1px 0 var(--line), 0 -18px 40px -30px rgba(0,0,0,.45);
+  --shore: #6A7984;
+  --tanaka-dark: #565B60;
+  --tanaka-lit: #E6E8EB;
+  --tier-1: #C7C7C7;
+  --tier-2: #BEBDBC;
+  --tier-3: #B5B4B1;
+  --tier-4: #ACAAA7;
+  --water: #C0C9CF;
+  --water-a: #C0C9CF;
+  --water-b: #C0C9CF;
+  --water-c: #C0C9CF;
+  --waterline: #8B9EA9;
+}
+:root[data-map][data-theme="mod-dark"] {
+  --accent: #F48A61;
+  --bridge: #B5BBC0;
+  --bridge-gap: #1D2126;
+  --cast-k: 0.13;
+  --cloud-belly: #2D3239;
+  --cloud-deep: #292E33;
+  --cloud-fog: #2B3137;
+  --cloud-freedom: 0.3;
+  --cloud-lit: #383C43;
+  --cloud-mid: #33393F;
+  --cloud-shadow-k: 0.15;
+  --field-diag: 0;
+  --focus: var(--ink-1);
+  --fog: #343A40;
+  --fog-a: #343A40;
+  --fog-b: #343A40;
+  --fog-c: #343A40;
+  --font-brush: "Ink Latin", "Ma Shan Zheng", "LXGW WenKai", "KaiTi", serif;
+  --font-cn: "LXGW WenKai", "KaiTi", "STKaiti", "Noto Serif SC", serif;
+  --ink-1: #E7EAED;
+  --ink-2: #C8CDD1;
+  --ink-3: #A9AFB4;
+  --ink-4: #7B8187;
+  --ink-5: #484E54;
+  --land-a: #1D2126;
+  --land-b: #1D2126;
+  --land-c: #1D2126;
+  --line: #2F3339;
+  --line-strong: var(--ink-4);
+  --lm-awning: #46474A;
+  --lm-canyon-a: #514E45;
+  --lm-canyon-b: #3E3C36;
+  --lm-canyon-floor: #33372F;
+  --lm-canyon-top: #4B4941;
+  --lm-composite: #3F3F3D;
+  --lm-concrete: #64645D;
+  --lm-crate: #4F4C44;
+  --lm-crop-dark: #1F2718;
+  --lm-crop-pale: #3E4428;
+  --lm-field: #3F4231;
+  --lm-glass: #525A5B;
+  --lm-hull: #9b9fa2;
+  --lm-plank: #dcdcd8;
+  --lm-post: #1C1E21;
+  --lm-roof: #393B3F;
+  --lm-stele: #41413e;
+  --lm-stele-head: #4C4A45;
+  --lm-stone: #4b4b45;
+  --lm-street: #56585A;
+  --lm-tn-sat: 0.42;
+  --lm-wall: #5B5B58;
+  --lm-wx-11: 1 1 1 1;
+  --lm-wx-12: 1 1 1 1;
+  --lm-wx-13: 0.5 0.8 0.4 0.5;
+  --lm-wx-8: 1 1 1 1;
+  --map-num-size: 13;
+  --mist-floor: 0.93;
+  --mist-focus-k: 0.08;
+  --mist-glimpse-low: 0.9;
+  --mist-glimpse-top: 0.4;
+  --mist-land: 0.88;
+  --mist-land-fade: 52;
+  --mist-ring: 24;
+  --mist-ring-fade: 40;
+  --mist-stretch: 4;
+  --mist-veil-edge: 28;
+  --mist-waist: 0.92;
+  --mist-waist3d: 0.45;
+  --mtn-ink-base: #1D2126;
+  --mtn-ink-east: #1D2126;
+  --mtn-jiao: #1D2126;
+  --mtn-shoulder: #1D2126;
+  --mtn-slope-base: #1D2126;
+  --mtn-wash-base: #1D2126;
+  --mtn-week-ink: 0.4;
+  --on-ink: var(--paper);
+  --paper: #1D2126;
+  --ripple: #1D2126;
+  --road: #9CA3A9;
+  --road-open: #9CA3A9;
+  --sat-ambient: 0.8;
+  --sat-field: #646650;
+  --sat-forest: #4B563F;
+  --sat-grass: #5A6849;
+  --sat-rock: #6F6C68;
+  --sat-rock-hi: #807E7A;
+  --sat-sand: #5E5A4D;
+  --sat-shade: 1.15;
+  --sat-shade-tint: #C9D3E0;
+  --sat-snow: #8E959C;
+  --sat-snowline: 146;
+  --sat-sun-tint: #E4E8EE;
+  --sat-water-deep: #0F2128;
+  --sat-water-shallow: #1C3439;
+  --sat-week-desat: 0.2;
+  --sat-week-veil: 0.22;
+  --shadow-float: 0 22px 48px -28px rgba(0,0,0,.7);
+  --shadow-sheet: 0 -1px 0 var(--line), 0 -18px 40px -30px rgba(0,0,0,.45);
+  --shore: #64747E;
+  --tanaka-dark: #07090B;
+  --tanaka-lit: #A9B4BF;
+  --tier-1: #21252B;
+  --tier-2: #252A2F;
+  --tier-3: #2A2E34;
+  --tier-4: #2E3338;
+  --water: #151D25;
+  --water-a: #151D25;
+  --water-b: #151D25;
+  --water-c: #151D25;
+  --waterline: #34434E;
+}
+:root[data-map][data-theme="ani-light"] {
+  --an-cline: #37425F;
+  --an-cline-k: 0.8;
+  --an-crim: 4;
+  --an-ctoon: 0.42 0.72 0.4 4;
+  --an-foam: #F5FCFF;
+  --an-forest: #4F9E66;
+  --an-grass-a: #A9D47F;
+  --an-grass-b: #88C26E;
+  --an-isle-shadow: 0.3;
+  --an-k: 0.45 0.16 30 0.5;
+  --an-k2: 0.35 8 0.8 7;
+  --an-lamp: #F2FCFF;
+  --an-line: #3B4566;
+  --an-line-t: 1 7 2.1 26;
+  --an-mid: 0.88 0.9 0.98;
+  --an-pcut: 0.62 1 1 0;
+  --an-pencil: 0.45;
+  --an-puff-sun: -0.45 0.8 0.4;
+  --an-rim: #FFF1DA;
+  --an-rock: #C9B6A0;
+  --an-rock-hi: #E2D6C6;
+  --an-sand: #EEDCAA;
+  --an-shade: 0.6 0.67 0.88;
+  --an-shade-col: #6C7DB9;
+  --an-sheet: 1 0.75 0.5 1;
+  --an-sheet-c: 0.3 0.515 2.5 0.06;
+  --an-sheet-f: 0.3 0.55 0.35 1.35;
+  --an-sheet-g: 0.4 1.35 1.85 0;
+  --an-sheet-m: 0 0;
+  --an-sheet-s: 560 1.25;
+  --an-sheet-sh: 0 6 0.7 0;
+  --an-sheet-w: 3.75 0.75;
+  --an-sil: #B6B2CB;
+  --an-snow: #F8F9FC;
+  --an-strat: 0.47 1 0.25 0.25;
+  --an-strat-3: 16 0.75 0 0;
+  --an-strat-b: 16 5 4 0.5;
+  --an-strata-a: #E6D6B8;
+  --an-strata-b: #9F93B6;
+  --an-strata-c: #7F95B2;
+  --an-sun: 1.06 1.0 0.87;
+  --an-sun-scr: -0.8 0.6;
+  --an-water-d: #4093C8;
+  --an-water-s: #78CCDC;
+  --an-wisp: 0.25 220 1.5 0.6;
+  --an-wisp-c: #FFFFFF;
+  --bridge: #5A6080;
+  --bridge-gap: #E2D9D0;
+  --cast-k: 0.13;
+  --cloud-belly: #CBC6E6;
+  --cloud-deep: #A6A9D6;
+  --cloud-fog: #F4F2F8;
+  --cloud-fog2: #F8EEEE;
+  --cloud-freedom: 0.3;
+  --cloud-lit: #FFFFFF;
+  --cloud-mid: #EFEBF5;
+  --cloud-rim: #FFF1DA;
+  --cloud-shadow-k: 0.15;
+  --field-diag: 1;
+  --fog-a: #F6F4FA;
+  --fog-b: #F3F1F7;
+  --fog-c: #EFEDF5;
+  --font-brush: "Ink Latin", "Ma Shan Zheng", "LXGW WenKai", "KaiTi", serif;
+  --font-cn: "LXGW WenKai", "KaiTi", "STKaiti", "Noto Serif SC", serif;
+  --ground-fog: 0.2;
+  --land-a: #E2D9D0;
+  --land-b: #E2D9D0;
+  --land-c: #E2D9D0;
+  --lm-awning: #6D93B6;
+  --lm-canyon-a: #E3D3B5;
+  --lm-canyon-b: #8E82A0;
+  --lm-canyon-floor: #6F7C9A;
+  --lm-canyon-top: #D8CAB0;
+  --lm-composite: #7A6DAE;
+  --lm-concrete: #4E9FA4;
+  --lm-crate: #BDAE90;
+  --lm-crop-dark: #5E9A52;
+  --lm-crop-pale: #A9CF7C;
+  --lm-field: #B6CF84;
+  --lm-glass: #CBEAF2;
+  --lm-hull: #F6F4EE;
+  --lm-plank: #C8B79C;
+  --lm-post: #545B6E;
+  --lm-roof: #4E7FA6;
+  --lm-stele: #D3CEC3;
+  --lm-stele-head: #AFA99E;
+  --lm-stone: #DCD5C7;
+  --lm-street: #DBE28E;
+  --lm-tn-sat: 0.42;
+  --lm-wall: #F1E8D6;
+  --map-num-size: 13;
+  --mist-floor: 0.88;
+  --mist-focus-k: 0.08;
+  --mist-glimpse-low: 0.84;
+  --mist-glimpse-top: 0.34;
+  --mist-land: 0.84;
+  --mist-land-fade: 52;
+  --mist-ring: 24;
+  --mist-ring-fade: 40;
+  --mist-stretch: 4;
+  --mist-veil-edge: 28;
+  --mist-waist: 0.9;
+  --mist-waist3d: 0.25;
+  --mtn-ink-base: #E2D9D0;
+  --mtn-ink-east: #E2D9D0;
+  --mtn-jiao: #E2D9D0;
+  --mtn-shoulder: #E2D9D0;
+  --mtn-slope-base: #E2D9D0;
+  --mtn-wash-base: #E2D9D0;
+  --mtn-week-ink: 1;
+  --ripple: #E2D9D0;
+  --road: #FFFFFF;
+  --road-open: #FFFFFF;
+  --sat-ambient: 0.5;
+  --sat-field: #A9C77E;
+  --sat-forest: #5DAE6C;
+  --sat-grass: #94BE72;
+  --sat-rock: #C9B6A0;
+  --sat-rock-hi: #E2D6C6;
+  --sat-sand: #EEDCAA;
+  --sat-shade: 0.9;
+  --sat-shade-tint: #DCE2F4;
+  --sat-snow: #F8F9FC;
+  --sat-snowline: 118;
+  --sat-sun-tint: #FFF4E6;
+  --sat-water-deep: #4093C8;
+  --sat-water-shallow: #78CCDC;
+  --sat-week-desat: 0.25;
+  --sat-week-veil: 0.34;
+  --shadow-sheet: 0 -1px 0 var(--line), 0 -18px 40px -30px rgba(0,0,0,.45);
+  --shore: #F5FCFF;
+  --tanaka-dark: #565B60;
+  --tanaka-lit: #FBFCFC;
+  --tier-1: #DDD6CF;
+  --tier-2: #D2CBC4;
+  --tier-3: #C7C0B9;
+  --tier-4: #BCB5AE;
+  --water: #CFE7EE;
+  --water-a: #CFE7EE;
+  --water-b: #CFE7EE;
+  --water-c: #CFE7EE;
+  --waterline: #9CC9D8;
+}
+:root[data-map][data-theme="ani-dark"] {
+  --an-cline: #29224E;
+  --an-cline-k: 0.85;
+  --an-crim: 5.5;
+  --an-ctoon: 0.42 0.86 0.52 4;
+  --an-foam: #FFE7CC;
+  --an-forest: #4F9E66;
+  --an-grass-a: #A9D47F;
+  --an-grass-b: #88C26E;
+  --an-isle-shadow: 0.3;
+  --an-k: 0.4 0.12 20 0.58;
+  --an-k2: 0.35 8 0.8 7;
+  --an-lamp: #E8FBFF;
+  --an-line: #2A2452;
+  --an-line-t: 1 7 2.1 26;
+  --an-mid: 0.8 0.68 0.88;
+  --an-pcut: 0.62 1 1 0;
+  --an-pencil: 0.12;
+  --an-puff-sun: -0.8 0.55 0.2;
+  --an-rim: #E8C394;
+  --an-rock: #C4B6AC;
+  --an-rock-hi: #E2D6C6;
+  --an-sand: #E0DAD8;
+  --an-shade: 0.56 0.56 0.9;
+  --an-shade-col: #464A8E;
+  --an-sheet: 1 0.75 0.5 1;
+  --an-sheet-c: 0.3 0.54 2.5 0.06;
+  --an-sheet-f: 0.3 0.55 0.35 1.35;
+  --an-sheet-g: 0.3 1.35 1.85 0;
+  --an-sheet-m: 0 0;
+  --an-sheet-s: 560 1.25;
+  --an-sheet-sh: 0 6 0.7 0;
+  --an-sheet-w: 3.75 0.75;
+  --an-sil: #575B82;
+  --an-snow: #F8F9FC;
+  --an-strat: 0.47 1 0.25 0;
+  --an-strat-3: 16 0.7 0 0;
+  --an-strat-b: 16 5 4 0.5;
+  --an-strata-a: #E2D8CA;
+  --an-strata-b: #A2A2C4;
+  --an-strata-c: #91A5BF;
+  --an-sun: 1.04 0.91 0.67;
+  --an-sun-scr: -1 0.12;
+  --an-water-d: #4F5BA8;
+  --an-water-s: #8AA9D4;
+  --an-wisp: 0.5 220 1.5 0.45;
+  --an-wisp-c: #6A6497;
+  --bg-fade: 1;
+  --bridge: #D9CBE0;
+  --bridge-gap: #252A4C;
+  --cast-k: 0.13;
+  --cloud-belly: #A48DCB;
+  --cloud-deep: #6270B6;
+  --cloud-fog: #3F3D73;
+  --cloud-fog2: #57467A;
+  --cloud-freedom: 0.3;
+  --cloud-lit: #FFDDB8;
+  --cloud-mid: #F4A9C4;
+  --cloud-rim: #FFF0C2;
+  --cloud-shadow-k: 0.5;
+  --field-diag: 0;
+  --fog-a: #47447C;
+  --fog-b: #413F76;
+  --fog-c: #3B3A6F;
+  --font-brush: "Ink Latin", "Ma Shan Zheng", "LXGW WenKai", "KaiTi", serif;
+  --font-cn: "LXGW WenKai", "KaiTi", "STKaiti", "Noto Serif SC", serif;
+  --ground-fog: 0.2;
+  --land-a: #252A4C;
+  --land-b: #252A4C;
+  --land-c: #252A4C;
+  --lm-awning: #6D93B6;
+  --lm-canyon-a: #A598AE;
+  --lm-canyon-b: #5E5A86;
+  --lm-canyon-floor: #3E4A82;
+  --lm-canyon-top: #8F8299;
+  --lm-composite: #7A6DAE;
+  --lm-concrete: #4E9FA4;
+  --lm-crate: #BDAE90;
+  --lm-crop-dark: #3E6E52;
+  --lm-crop-pale: #7FA06E;
+  --lm-field: #7F9468;
+  --lm-glass: #8FB4CC;
+  --lm-hull: #F6F4EE;
+  --lm-plank: #C8B79C;
+  --lm-post: #545B6E;
+  --lm-roof: #4E7FA6;
+  --lm-stele: #D3CEC3;
+  --lm-stele-head: #AFA99E;
+  --lm-stone: #DCD5C7;
+  --lm-street: #DBE28E;
+  --lm-tn-sat: 0.45;
+  --lm-wall: #F1E8D6;
+  --map-num-size: 13;
+  --mist-floor: 0.93;
+  --mist-focus-k: 0.08;
+  --mist-glimpse-low: 0.9;
+  --mist-glimpse-top: 0.4;
+  --mist-land: 0.88;
+  --mist-land-fade: 52;
+  --mist-ring: 24;
+  --mist-ring-fade: 40;
+  --mist-stretch: 4;
+  --mist-veil-edge: 28;
+  --mist-waist: 0.92;
+  --mist-waist3d: 0.22;
+  --mtn-ink-base: #252A4C;
+  --mtn-ink-east: #252A4C;
+  --mtn-jiao: #252A4C;
+  --mtn-shoulder: #252A4C;
+  --mtn-slope-base: #252A4C;
+  --mtn-wash-base: #252A4C;
+  --mtn-week-ink: 1;
+  --ripple: #252A4C;
+  --road: #FFE9D2;
+  --road-open: #FFE9D2;
+  --sat-ambient: 0.8;
+  --sat-field: #8F9A6C;
+  --sat-forest: #5DAE6C;
+  --sat-grass: #7F9468;
+  --sat-rock: #A496AE;
+  --sat-rock-hi: #A598AE;
+  --sat-sand: #B3A08A;
+  --sat-shade: 1.15;
+  --sat-shade-tint: #C9CCEA;
+  --sat-snow: #D8D4EC;
+  --sat-snowline: 118;
+  --sat-sun-tint: #FFE6D6;
+  --sat-water-deep: #3E4A82;
+  --sat-water-shallow: #6A6FB0;
+  --sat-week-desat: 0.2;
+  --sat-week-veil: 0.4;
+  --shadow-sheet: 0 -1px 0 var(--line), 0 -18px 40px -30px rgba(0,0,0,.45);
+  --shore: #FFE7CC;
+  --tanaka-dark: #07090B;
+  --tanaka-lit: #A9B4BF;
+  --tier-1: #2A2F52;
+  --tier-2: #2F3457;
+  --tier-3: #34395C;
+  --tier-4: #393E61;
+  --water: #3E4A82;
+  --water-a: #3E4A82;
+  --water-b: #3E4A82;
+  --water-c: #3E4A82;
+  --waterline: #6A6FB0;
+}
+
+/* ======== 原来的 map.css ======== */
+
+/* 地图层自己的 token 和类。boyun.css 原样引用，不改；这里只覆盖四套底色（audit 4.5 / 5 节，加第 2 轮的改动）并加地形、雾的 token。
+   全部对比度和色差见 NOTES 的 token 表（calc/r2/final.mjs 算的）。 */
+
+/* 题字的西文和标点借文楷粗体（马善政的西文是花体） */
+@font-face { font-family: "Ink Latin"; font-display: swap; src: url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/files/lxgwwenkai-bold-subset-119.woff2") format("woff2"); unicode-range: U+20-22, U+27-2A, U+2C-3B, U+3F, U+41-4D, U+4F-5D, U+61-7B, U+7D, U+B7, U+2014, U+3001-3002, U+FF0C, U+FF1A; }
+
+@font-face { font-family: "Ink Latin"; font-display: swap; src: url("https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/files/lxgwwenkai-bold-subset-117.woff2") format("woff2"); unicode-range: U+4E, U+201C-201D, U+FF1F; }
+
+:focus-visible { outline: 3px double var(--ink-1); outline-offset: 2px; }
+
+a.by-btn { text-decoration: none; }
+
+code { font-family: var(--font-mono); font-size: .88em; }
+
+/* ---------- 页头 ---------- */
+.app-bar { padding-top: 6px; }
+
+.brand { padding: 8px 0 10px; }
+
+/* 页头两行：标题一行；“去上课”、今晚和三个数字一行 */
+.hub-head { padding-top: 14px; padding-bottom: 2px; }
+
+.hh-line1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; }
+
+.hh-sub { margin: 0; color: var(--ink-3); font-size: 14px; line-height: 1.5; }
+
+.hh-k { color: var(--ink-3); letter-spacing: .04em; margin-right: .8em; }
+
+.hh-k:empty { display: none; }
+
+.hh-line2 { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 32px; margin-top: 6px; }
+
+.page-title { font-size: clamp(24px, 2.6vw, 30px); line-height: 1.2; }
+
+[data-theme^="cn"] .page-title { font-family: var(--font-brush); font-weight: 400; letter-spacing: .12em; font-size: clamp(32px, 3.4vw, 40px); line-height: 1.1; }
+
+.tonight { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0; }
+
+.tonight .t { color: var(--ink-2); font-size: 14.5px; }
+
+.tonight .t b { color: var(--ink-1); font-weight: var(--by-hw); }
+
+.tonight .meta { color: var(--ink-3); font-size: 13px; margin-left: .4em; }
+
+/* “这次散开”：地图外圈左上角的一行图注，写在雾上，不盖地 */
+.map-caption { position: absolute; left: clamp(18px, 4vw, 48px); top: 4px; z-index: 2; margin: 0; max-width: 46%; color: var(--ink-2); font-size: 13px; line-height: 1.5; pointer-events: none; }
+
+.map-caption:empty { display: none; }
+
+.hub-side { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-5) var(--space-6); }
+
+.hub-side .by-stats { gap: 22px; }
+
+.hub-side .by-stat { display: flex; align-items: baseline; gap: 6px; }
+
+.hub-side .by-stat b { display: inline; margin: 0; font-size: 20px; }
+
+.hub-level:empty { display: none; }
+
+.by-stat b small { font-size: .6em; color: var(--ink-3); font-weight: 400; margin-left: .15em; }
+
+/* ---------- 地图：放回页面的纸上，没有底色、没有线 ---------- */
+.hub-map { position: relative; max-width: 1180px; margin: 0 auto; }
+
+/* 第 7 轮：地图算出来之前，地图区先铺一层雾占位（不空着） */
+.hub-map.loading .hub-map__scroll { height: 600px; background: radial-gradient(58% 52% at 50% 48%, var(--fog) 0, var(--fog) 50%, transparent 78%); }
+
+/* 地图比视口宽时（第 5 轮）：细滚动条；还有内容的一侧淡进页面的纸（mask，由 ui.js 按滚动位置更新）；桌面可以用鼠标拖 */
+.hub-map__scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+
+.hub-map__scroll::-webkit-scrollbar { height: 6px; }
+
+.hub-map__scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+.hub-map__scroll.can-drag { cursor: grab; }
+
+.hub-map__scroll.dragging { cursor: grabbing; user-select: none; }
+
+.hub-map__inner { position: relative; margin: 0 auto; }
+
+.hub-map__inner > canvas, .hub-map__inner > svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+
+.hub-map__inner > canvas { pointer-events: none; }
+
+#over { overflow: visible; }
+
+#over text { font-family: var(--by-font); }
+
+.lab { fill: var(--ink-1); paint-order: stroke; stroke: var(--paper); stroke-linejoin: round; letter-spacing: .02em; }
+
+.lab.wk { fill: var(--ink-2); stroke: var(--fog); }
+
+/* 现代：主峰旁的难度数字（第 5 轮） */
+.ht { fill: var(--ink-3); paint-order: stroke; stroke: var(--paper); stroke-linejoin: round; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 600; pointer-events: none; }
+
+.ht.wk { stroke: var(--fog); }
+
+.lab.focus { font-weight: 700; fill: var(--ink-1); }
+
+[data-theme^="mod"] .lab { font-weight: 500; letter-spacing: .01em; }
+
+[data-theme^="mod"] .lab.focus { font-weight: 700; }
+
+.rgn { fill: var(--ink-3); paint-order: stroke; stroke: var(--paper); stroke-linejoin: round; }
+
+.rgn.wk { stroke: var(--fog); }
+
+[data-theme="cn-dark"] .rgn.wk { fill: var(--ink-2); }
+   /* 暮：区域名写在烟上用 ink-2（云气一起伏 ink-3 就不够） */
+[data-theme^="cn"] .rgn { font-family: var(--font-brush) !important; }
+
+[data-theme^="mod"] .rgn { font-weight: 500; }
+
+.uline { stroke: var(--ink-1); stroke-width: 1.1; }
+
+.focus-dot { fill: var(--accent); }
+
+.focus-ring { fill: none; stroke: var(--accent); stroke-width: 1; }
+
+/* 第 8 轮：暮的朱圈粗一点（1px 的圈在暗底上抗锯齿成一圈半透明的橙，warmedge 会把它当成一道暖边；朱本身不算）。第 9 轮：中式暮也一样 */
+[data-theme$="dark"] .focus-ring { stroke-width: 1.4; }
+
+.pulse { fill: none; stroke: var(--accent); stroke-width: 1.2; transform-box: fill-box; transform-origin: center; }
+
+.hit { cursor: pointer; outline: none; }
+
+.hit rect.area, .hit path.area { fill: transparent; }
+
+.hit-top rect.area { fill: transparent; cursor: pointer; }
+
+.hit .fr { fill: none; stroke: var(--ink-1); stroke-width: 1; visibility: hidden; }
+
+.hit:focus-visible .fr { visibility: visible; }
+
+/* 面板：停在雾最多、离选中地点较远的一侧 */
+.hub-panel { position: absolute; width: 280px; z-index: 3; }
+
+.hub-panel .by-panel__title { font-size: 22px; }
+
+.hub-panel .by-panel__sub { margin-bottom: 12px; }
+
+.hub-panel:focus { outline: none; }
+
+.cl { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+
+.cl li { display: grid; grid-template-columns: 1.1em minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.5; }
+
+.cl .mk { color: var(--ink-1); font-size: 12px; }
+
+.cl li.todo .mk, .cl li.todo .n { color: var(--ink-2); }
+
+/* 第 8 轮：一列，按课分组。第一行是哪天（ink-3、小一号），下面是那一天的概念名：名字本身不折行，名字之间可以换行 */
+.cl .g { display: block; min-width: 0; }
+
+.cl .d { display: block; color: var(--ink-3); font-size: 12.5px; line-height: 1.5; }
+
+.cl .d a { color: var(--ink-2); }
+
+.cl .ns { display: block; word-break: keep-all; overflow-wrap: normal; }
+
+.cl .n { white-space: nowrap; }
+
+.cl .sep { color: var(--ink-3); }
+
+.p-roads { margin: 8px 0 0; color: var(--ink-3); font-size: 13px; line-height: 1.6; }
+
+.p-note { margin: 10px 0 0; color: var(--ink-2); font-size: 13.5px; line-height: 1.6; }
+
+.hub-panel.by-panel { padding: 14px 16px 14px; }
+
+.hub-panel .cl li { padding: 5px 0; font-size: 13.5px; }
+
+/* 第 8 轮：窄条（220 宽，单列）：停在左右外圈的雾里 */
+.hub-panel.strip { width: 220px; padding: 12px 14px 12px; }
+
+.hub-panel.strip .by-panel__title { font-size: 19px; }
+
+.hub-panel.strip .by-panel__sub { margin-bottom: 8px; }
+
+.hub-panel.strip .p-roads { display: none; }
+   /* 窄条里不列"路通向哪里"（点开时地图上已经画出这几条路） */
+.hub-panel.strip .p-note { font-size: 13px; }
+
+/* 图例 */
+.map-foot { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 32px; padding-top: 6px; padding-bottom: var(--space-6); color: var(--ink-3); font-size: 13px; line-height: 1.6; }
+
+.map-foot p { margin: 0; }
+
+.lg { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+
+.lg > span:last-child { flex: 1 1 16em; }
+
+.lg canvas { display: block; }
+
+.lg-states { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+
+.lg-states span b { color: var(--ink-1); font-weight: 400; margin-right: .3em; }
+
+.lg-note { flex: 1 1 26em; }
+
+/* ---------- 本周的课 ---------- */
+.hub-week { padding-bottom: var(--space-7); }
+
+.hub-week .sect-k { margin-top: 0; }
+
+.days { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-strong); }
+
+.days li { border-bottom: 1px solid var(--line); }
+
+.days a, .days .row { display: grid; grid-template-columns: 1.1em 6.5em minmax(0, 1fr) auto; gap: 2px var(--space-4); align-items: baseline; padding: var(--space-3) var(--space-1); color: inherit; text-decoration: none; }
+
+.days a:hover .t { text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+
+.days .mk { color: var(--ink-1); font-size: 12px; }
+
+.days li:not(.done) .mk { color: var(--ink-3); }
+
+.days .d { color: var(--ink-3); font-size: 13.5px; }
+
+.days .now { margin-left: .5em; color: var(--ink-1); }
+
+.days .meta { color: var(--ink-3); font-size: 13px; white-space: nowrap; }
+
+.days .st { margin-right: .8em; color: var(--ink-2); }
+
+details.past { margin-top: var(--space-6); color: var(--ink-3); font-size: 14px; }
+
+details.past summary { width: max-content; cursor: pointer; }
+
+details.past ul { margin: var(--space-2) 0 0; padding-left: 1.2em; }
+
+details.past a { color: var(--ink-2); }
+
+.foot a { margin-right: var(--space-4); color: var(--ink-3); }
+
+@media (max-width: 820px) {
+  /* 手机：面板是通栏的底部面板 */
+  .hub-panel { position: fixed; left: 0; right: 0; bottom: 0; top: auto !important; width: auto; max-height: 56vh; overflow-y: auto; border-left: 0; border-right: 0; border-bottom: 0; padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); box-shadow: var(--shadow-sheet); }
+  .map-caption { max-width: 80%; }
+}
+
+@media (max-width: 560px) {
+  .days a, .days .row { grid-template-columns: 1.1em minmax(0, 1fr); }
+  .days .t, .days .meta { grid-column: 2; }
+  .days .meta { white-space: normal; }
+  .app-bar { gap: 4px 16px; }
+  .app-ctrl { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* 第 7 轮：难度挪到地点名旁边，字号和副标题一样 */
+.hub-panel .by-panel__d { margin-left: 10px; font-size: 13px; font-weight: 500; color: var(--ink-2); letter-spacing: 0; white-space: nowrap; vertical-align: 2px; }
+
+/* ======== 原来的 map3d.css ======== */
+
+/* 3D 版地图：只在 map.css 上面加这几条。画布透明，四边用遮罩淡出（不留矩形的边）；SVG 叠在上面写字。 */
+.hub-map3d { max-width: none; }
+
+.map3d { position: relative; width: 100%; overflow: hidden; touch-action: pan-y; -webkit-user-select: none; user-select: none;
+  /* 上下两条边永远淡出；左右只在还能拖的那一侧淡出（ui3d.js 按平移的位置改 --ml / --mr） */
+  --ml: 36px; --mr: 36px;   /* 左右的长横云伸出画面，由这一段淡出 */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%), linear-gradient(to right, transparent 0, #000 var(--ml), #000 calc(100% - var(--mr)), transparent 100%);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%), linear-gradient(to right, transparent 0, #000 var(--ml), #000 calc(100% - var(--mr)), transparent 100%); mask-composite: intersect; }
+
+.map3d > canvas, .map3d > svg { position: absolute; left: 0; top: 0; display: block; }
+
+.map3d > canvas { pointer-events: none; }
+
+.map3d.can-drag { cursor: grab; }
+
+.map3d.dragging { cursor: grabbing; }
+
+.hub-map3d.loading .map3d { background: radial-gradient(50% 46% at 50% 50%, var(--fog) 0, var(--fog) 46%, transparent 76%); }
+
+#over { overflow: visible; }
+
+#over text { font-family: var(--by-font); }
+
+/* 现代：卫星图上的字用白描边（暗色时用暗描边） */
+[data-theme="mod-light"] .lab, [data-theme="mod-light"] .rgn, [data-theme="mod-light"] .ht { stroke: rgba(250, 250, 247, 0.92) !important; }
+
+[data-theme="mod-dark"] .lab, [data-theme="mod-dark"] .rgn, [data-theme="mod-dark"] .ht { stroke: rgba(22, 26, 30, 0.92) !important; }
+
+[data-theme^="mod"] .ht { fill: var(--ink-1); }
+
+/* 现代的朱点：白圈描边，全屏最显眼 */
+.focus-halo { fill: none; stroke: #FFFFFF; stroke-width: 2.6; }
+
+[data-theme="mod-dark"] .focus-halo { stroke: #F3F4F2; }
+
+.focus-shadow { fill: none; stroke: rgba(0, 0, 0, 0.28); stroke-width: 1.2; }
+
+.lab, .rgn { pointer-events: none; }
+
+.hit, .hit-top { pointer-events: auto; }
+
+[data-theme^="mod"] .focus-ring { stroke-width: 1.8; }
+
+/* 合并第 7 轮：中式的朱圈粗一点（1 / 1.4 → 2 / 2.2），和放大的圈一起，第一眼找得到 */
+[data-theme="cn-light"] .focus-ring { stroke-width: 2; }
+
+[data-theme="cn-dark"] .focus-ring { stroke-width: 2.2; }
+
+.focus-shadow { stroke-width: 2.2; }
+
+/* 现代：主峰山顶的高程点 */
+.hpt { fill: var(--ink-1); stroke: rgba(250, 250, 247, 0.95); stroke-width: 1.2; }
+
+[data-theme="mod-dark"] .hpt { fill: #E7EAED; stroke: rgba(22, 26, 30, 0.9); }
+
+.hpt.wk { opacity: 0.75; }
+
+/* 今晚的路（屏幕空间）：中式细的 ink-2 圆点线；现代一条白线加暗描边 */
+.tonight-road { pointer-events: none; }
+
+.tn-dot { fill: var(--ink-2); }
+
+/* 第 6 轮：缩放。放大到 1.8× 以后地名淡一些，每座峰写自己的概念名；角上三个小按钮 */
+.lab.dim { opacity: 0.62; }
+
+.clab { fill: var(--ink-2); paint-order: stroke; stroke: var(--paper); stroke-linejoin: round; pointer-events: none; }
+
+.cpt { fill: var(--ink-3); }
+
+[data-theme="mod-light"] .clab { stroke: rgba(250, 250, 247, 0.92) !important; font-weight: 500; }
+
+[data-theme="mod-dark"] .clab { stroke: rgba(22, 26, 30, 0.92) !important; font-weight: 500; }
+
+.zoom-hint { position: absolute; right: 54px; bottom: 18px; padding: 6px 10px; border-radius: 6px; background: var(--paper); color: var(--ink-2); border: 1px solid var(--line); font-size: 13px; line-height: 1.3; opacity: 0; transition: opacity 0.25s; pointer-events: none; z-index: 6; }
+
+.zoom-hint.on { opacity: 0.94; }
+
+@media (prefers-reduced-motion: reduce) { .zoom-hint { transition: none; } }
+
+.zoom-ctl { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 4px; z-index: 6; }
+
+.zoom-ctl button { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); color: var(--ink-2); font: 16px/1 var(--by-font, system-ui); cursor: pointer; padding: 0; }
+
+.zoom-ctl button:hover:not(:disabled) { color: var(--ink-1); border-color: var(--ink-4); }
+
+.zoom-ctl button:disabled { opacity: 0.4; cursor: default; }
+
+.zoom-ctl button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+#over { transform-origin: 0 0; }
+
+/* 第 6 轮：路上的流动。中式：点沿线往前走（像有人一路点过去），8 px/s；现代：一小段亮的光带沿线跑，35 px/s、约 4.3 秒一段。
+   周期互相错开（今晚的路 0.5 / 4.3 秒，联系线 0.75 / 3.7 秒），都不同步；软件渲染、后台、减少动态效果时静止 */
+.tn-dots { fill: none; stroke: var(--ink-2); stroke-width: 2.3; stroke-linecap: round; stroke-dasharray: 0 4; }
+
+.ln-dots { fill: none; stroke: var(--road-open); opacity: 0.85; stroke-width: 1.9; stroke-linecap: round; stroke-dasharray: 0 5; }
+
+.tn-flow { fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 4.6; stroke-linecap: round; stroke-dasharray: 0 150; opacity: 0; }
+
+/* 第 7 轮：流动改成 JS 驱动（ui3d.js 的 addFlow）：一条线上同时最多一个。中式是一粒稍深稍大的墨点（笔头）沿线往前走，身后一小段点线略深，走过去就回到原样，10 px/s；
+   现代是一小段柔和的亮光带，12 px/s。软件渲染、切到后台、地图滚出视口、减少动态效果时都停 */
+.ln-tag { fill: var(--ink-2); paint-order: stroke; stroke: var(--paper); stroke-linejoin: round; pointer-events: none; }
+
+[data-theme="mod-light"] .ln-tag { stroke: rgba(250, 250, 247, 0.92) !important; font-weight: 500; }
+
+[data-theme="mod-dark"] .ln-tag { stroke: rgba(22, 26, 30, 0.92) !important; font-weight: 500; }
+
+.flow-trail { fill: none; stroke: var(--ink-2); stroke-width: 2.4; stroke-linecap: round; opacity: 0.26; pointer-events: none; }
+
+.flow-head { fill: var(--ink-1); pointer-events: none; }
+
+[data-theme="cn-dark"] .flow-trail { stroke: var(--ink-1); opacity: 0.3; }
+
+.flow-band { fill: none; stroke: rgba(255, 255, 255, 0.42); stroke-width: 3.4; stroke-linecap: round; pointer-events: none; }
+
+[data-theme="mod-light"] .flow-band { stroke: rgba(255, 252, 240, 0.7); }
+
+.tn-casing { fill: none; stroke: rgba(20, 24, 28, 0.55); stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; }
+
+.tn-line { fill: none; stroke: #FFFFFF; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+[data-theme="mod-dark"] .tn-casing { stroke: rgba(6, 8, 10, 0.7); }
+
+[data-theme="mod-dark"] .tn-line { stroke: #E7EAED; }
+
+/* 首帧：地图算出来之前先铺一层雾占位（页头先出来，下面的内容不跳） */
+.hub-map3d.loading .map3d { height: 600px; }
+
+/* 点开地点时的几条联系（屏幕空间）：中式淡点线；现代细白线加暗描边（比今晚的路细） */
+.link-road { pointer-events: none; }
+
+.ln-dot { fill: var(--road-open); opacity: 0.85; }
+
+.ln-casing { fill: none; stroke: rgba(20, 24, 28, 0.4); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+
+.ln-line { fill: none; stroke: rgba(250, 248, 240, 0.9); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 4 3; }
+   /* 合并第 6 轮：学过的山朝西的肩接一点暖光（原来 #3A3D42 冷灰） */
+
+
+/* ---------- 三态研究（原来 ?st=1..3，收尾时定在第 3 档；选择器原来是 [data-st]，换成同样特异度的 :root）：地名分状态。学过 ink-1；本周没学 ink-3；今晚 ink-1 加粗。
+   区域名比地名大、字距宽，但不比学过的地名抢（ink-3、正常字重）---------- */
+:root .lab { fill: var(--ink-1); font-weight: 600; }
+
+:root .lab.wk { fill: var(--ink-3); font-weight: 400; }
+
+:root .lab.wk.focus, :root .lab.focus { fill: var(--ink-1); font-weight: 700; }
+
+:root .rgn, :root .rgn.wk { fill: var(--ink-3); font-weight: 400; }
+
+:root[data-theme="cn-dark"] .rgn.wk { fill: var(--ink-3); }
+
+/* 三态研究：拨云 R6（雾对纸 ΔE00 ≥ 3）。现代晨第 2 档的谷雾和纸几乎同色（#D1D5D8 对 #D0D0D0），雾提一档、偏冷一点 */
+/* 合并第 9 轮：雾对纸只算明度 2.9（要 ≥ 3）。雾只提明度（OKLab L +0.012，a、b 不变：色相不动），纸不动 */
+/* 合并第 12 轮（守门人评审第 2 次：现代晨“挨着雾的纸”雾对纸只算明度 2.72，要 ≥ 3；天光渐变之前就不到 3）。最不利的是东边那一条（800–960 列）：
+   那里的雾偏暗、偏蓝（地雾东边压暗那一档、云的腹部）。雾和云的五档一起只提明度（OKLab L +0.012，a、b 不变：色相不动），纸不动 */
+/* 暮里没学的地名写在烟上：ink-3 对烟只有 3.9–4.0（不到 4.5），改用 ink-2（5.2–5.5），靠字重和学过的分开 */
+:root[data-theme$="-dark"] .lab.wk:not(.focus) { fill: var(--ink-2); font-weight: 400; }
+
+
+/* 合并第 3 轮：地名三档（三态盲看：“学了一部分”的字是学过的深色、山却是剪影，读成自相矛盾）。
+   全学过 ink-1 · 600；学了一部分 ink-2 · 500；本周一个都没学 ink-3 · 400（暮里写在烟上，ink-3 对烟不到 4.5，用 ink-2 · 400，靠字重和“学了一部分”分开）；今晚 ink-1 · 700 */
+:root .lab.pt { fill: var(--ink-2); font-weight: 500; }
+
+:root .lab.pt.focus { fill: var(--ink-1); font-weight: 700; }
+
+/* 合并第 3 轮：拨云 R6 按明度算（裁定：色相差不算）。中式晨第 2 档的雾提一点（雾对纸的明度差 2.7 → ≥ 3） */
+/* 合并第 4 轮（拨云）：暮里“学了一部分”和“没学”只差字重看不出来。没学的再淡一步（ink-2 和 ink-3 按 58 / 42 混，对烟仍 ≥ 4.5：中式暮约 4.6、现代暮约 4.9） */
+:root[data-theme$="-dark"] .lab.wk:not(.focus) { fill: color-mix(in srgb, var(--ink-2) 58%, var(--ink-3)); font-weight: 400; }
+
+/* 合并 r1：暮 B 里学过的地抬亮了，区域名用 ink-3 对学过的地只有 3.1（中式）、3.8（现代），只够大字。
+   只提字的墨色（雾、地的明暗不动），对学过的地的中位色到 WCAG 4.5 以上：中式 ink-1 30% + ink-2（4.65），现代 ink-2 85% + ink-3（4.96）。
+   仍比学过的地名（ink-1 · 600）暗；没学的区域（写在烟上）同一个色，对烟更高 */
+:root[data-theme="cn-dark"] .rgn, :root[data-theme="cn-dark"] .rgn.wk { fill: color-mix(in srgb, var(--ink-1) 30%, var(--ink-2)); }
+
+:root[data-theme="mod-dark"] .rgn, :root[data-theme="mod-dark"] .rgn.wk { fill: color-mix(in srgb, var(--ink-2) 85%, var(--ink-3)); }
+
+/* 套件第 4 轮 · 中式：暮里“学了一部分”的地名（ink-2 · 500）对学过的地只有 4.25。只提字的墨色：ink-1 25% + ink-2（#D5D0C4），
+   对学过的地的中位色（#5B5854）4.60、对雾（#3A3A3D）7.37。仍比学过的地名（ink-1）暗一档；今晚（.focus）照旧 ink-1 · 700 */
+:root[data-theme="cn-dark"] .lab.pt:not(.focus) { fill: color-mix(in srgb, var(--ink-1) 25%, var(--ink-2)); }
+
+
+/* 收尾（块 A）：画不了 3D（引擎调了 onFail）：画布和字藏起来，地图区留着加载时那层雾（页面的 onFail 再决定放什么） */
+.hub-map3d.failed .map3d canvas, .hub-map3d.failed .map3d svg { visibility: hidden; }
+
+
+/* 收尾（块 A）：换笔墨要整页重开时（地标的地形变了，计划 Q5）：雾先合拢盖住地图（veil-in），重开以后先是满雾（veil），第一帧画好再散开（veil-out） */
+.hub-map3d.veil-in .map3d::after, .hub-map3d.veil .map3d::after, .hub-map3d.veil-out .map3d::after {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; background: var(--fog);
+  -webkit-mask-image: radial-gradient(72% 70% at 50% 50%, #000 62%, transparent 100%); mask-image: radial-gradient(72% 70% at 50% 50%, #000 62%, transparent 100%);
+}
+
+.hub-map3d.veil-in .map3d::after { animation: lh-veil-in .32s var(--ease-mist, ease-out) both; }
+
+.hub-map3d.veil-out .map3d::after { animation: lh-veil-out .45s var(--ease-mist, ease-out) both; }
+
+@keyframes lh-veil-in { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes lh-veil-out { from { opacity: 1; } to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) { .hub-map3d.veil-in .map3d::after, .hub-map3d.veil-out .map3d::after { animation-duration: 1ms; } }
+
+/* ======== 原来的 landmarks.css ======== */
+
+
+
+/* 今晚的路（第 3 轮）：3 级点线两侧夹短横（台阶，加粗）；4–5 级上山那一段是一条线加下坡一侧的短立柱（栈道）。颜色和今晚的路一样，不用朱 */
+.lm-tn-rail { fill: none; stroke: var(--ink-2); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
+
+.lm-tn-post { stroke: var(--ink-2); stroke-width: 1.1; stroke-linecap: round; }
+
+.lm-tn-step { stroke: var(--ink-2); stroke-width: 1.7; stroke-linecap: round; }
+
+.lm-tn-casing { fill: none; stroke: transparent; }
+
+[data-theme^="mod"] .lm-tn-casing { stroke: rgba(20, 24, 28, 0.55); stroke-width: 4.4; stroke-linejoin: round; stroke-linecap: round; }
+
+[data-theme^="mod"] .lm-tn-rail { stroke: #FFFFFF; stroke-width: 2.2; }
+
+[data-theme^="mod"] .lm-tn-post, [data-theme^="mod"] .lm-tn-step { stroke: #FFFFFF; stroke-width: 1.5; }
+
+[data-theme="mod-dark"] .lm-tn-rail, [data-theme="mod-dark"] .lm-tn-post, [data-theme="mod-dark"] .lm-tn-step { stroke: #E7EAED; }
+
+/* 面板里的“你会了：……”（第二态说出来） */
+.hub-panel .p-know { margin: 6px 0 0; color: var(--ink-2); font-size: 13.5px; line-height: 1.6; }
+
+/* 页头“这次散开”那一行和页面左边距对齐（和 .wrap 一样：最宽 1180px 居中、两侧 clamp(18px, 4vw, 48px)） */
+.hub-map3d .map-caption { left: max(clamp(18px, 4vw, 48px), calc((100% - 1180px) / 2 + clamp(18px, 4vw, 48px))); }
+
+
+/* 页底图例（第 4 轮）：一种一句，占满一行；难度那一句放进下面那段说明的开头 */
+.map-foot .lg-kinds { flex: 1 1 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(17em, 1fr)); gap: 6px 28px; align-items: start; }
+
+.lg-kinds > span:last-child { flex: none; }
+
+.lg-kinds .lg-kind { color: var(--ink-2); }
+
+.lg-kinds .lg-kind b { font-weight: inherit; color: var(--ink-1); margin-right: 0.6em; }
+
+.lg-note .lg-diff { display: block; }
+
+/* ======== 原来的 ani.css ======== */
+
+
+
+/* 页面底：晨是淡天蓝 → 桃色；暮是深靛蓝 → 紫红（地图的纸 --paper 是它在地图那一段的颜色）
+   第 5 轮（守门人评审第 3 次第 4.4 节：暮下沿那一档 #563A60 和雾 #3F3D73 一样亮，按竖条量最差 1.4）：100% 那一档压到 #472B50（同色相、同彩度，L* 29 → 22.5）。亮的那一头放不放到左上，等用户定，先不挪 */
+:root[data-map][data-theme="ani-light"] body { background: linear-gradient(180deg, #DDE3EB 0, #E2D9D0 30%, #E4D8CE 100%); background-attachment: fixed; }
+
+:root[data-map][data-theme="ani-dark"] body { background: linear-gradient(180deg, #1E2346 0, #252A4C 34%, #3A2F5C 78%, #472B50 100%); background-attachment: fixed; }
+
+[data-theme^="ani"] .lab { font-weight: 600; letter-spacing: .01em; }
+
+[data-theme^="ani"] .lab.focus { font-weight: 700; }
+
+[data-theme^="ani"] .rgn { font-weight: 700; }
+
+:root[data-theme="ani-light"] .lab, :root[data-theme="ani-light"] .rgn, :root[data-theme="ani-light"] .ht, :root[data-theme="ani-light"] .clab, :root[data-theme="ani-light"] .ln-tag { stroke: rgba(255, 252, 246, 0.95) !important; }
+
+:root[data-theme="ani-dark"] .lab, :root[data-theme="ani-dark"] .rgn, :root[data-theme="ani-dark"] .ht, :root[data-theme="ani-dark"] .clab, :root[data-theme="ani-dark"] .ln-tag { stroke: rgba(36, 30, 72, 0.92) !important; }
+
+[data-theme^="ani"] .ht { fill: var(--ink-1); }
+
+[data-theme^="ani"] .page-title { font-weight: 700; }
+
+/* 朱点：白圈（唯一的朱，全屏最显眼） */
+[data-theme^="ani"] .focus-halo { stroke: #FFFFFF; stroke-width: 3; }
+
+[data-theme^="ani"] .focus-ring { stroke-width: 1.8; }
+
+:root[data-theme="ani-dark"] .hpt { fill: var(--ink-1); stroke: rgba(36, 30, 72, 0.9); }
+
+/* 路（屏幕空间）：白线加深靛蓝的描边；暮：奶白线 */
+[data-theme^="ani"] .tn-casing { stroke: rgba(40, 46, 90, 0.6); }
+
+:root[data-theme="ani-dark"] .tn-casing { stroke: rgba(20, 16, 44, 0.72); }
+
+:root[data-theme="ani-dark"] .tn-line { stroke: #FFF3E4; }
+
+:root[data-theme="ani-light"] .flow-band { stroke: rgba(255, 252, 240, 0.7); }
+
+[data-theme^="ani"] .lm-tn-casing { stroke: rgba(40, 46, 90, 0.6); stroke-width: 4.4; stroke-linejoin: round; stroke-linecap: round; }
+
+[data-theme^="ani"] .lm-tn-rail { stroke: #FFFFFF; stroke-width: 2.2; }
+
+[data-theme^="ani"] .lm-tn-post, [data-theme^="ani"] .lm-tn-step { stroke: #FFFFFF; stroke-width: 1.5; }
+
+:root[data-theme="ani-dark"] .lm-tn-rail, :root[data-theme="ani-dark"] .lm-tn-post, :root[data-theme="ani-dark"] .lm-tn-step { stroke: #FFF3E4; }
+
+/* 区域名：暮里写在学过的地和雾上都要够 4.5（字是奶白 + 深紫描边，不靠底色） */
+:root[data-theme="ani-dark"] .rgn, :root[data-theme="ani-dark"] .rgn.wk { fill: var(--ink-2); }
+
+/* ======== 原来的 sky.css ======== */
+
+/* 天光第 1 轮（D\SPEC-sky-r1.md）：中式、现代的页面底一点渐变。用户 10-24 定为默认开，10-25 选了“放左上远天”（合并第 12 轮的 skyv=2，下面四条就是）。
+   收尾（块 A）：?sky=0、?skyv=1 两个对照删了，选择器去掉 [data-sky="1"]（和 body 抢背景的只有 boyun.css 的 body，特异度够）。
+   只改 body 的背景（画布是透明的，地图外面、雾的软边外面透出来的就是它）；--paper 不动：地图那一段（约 44%–62%）就是 --paper，
+   画布边上淡进 uPaper 的那一圈和底下接得上。数是 D\shots\sky-r1\_wip\gen.py 生成的（停靠点在 design.py 里按 OKLCH 定），别手改。
+   照动画的做法（ani.css 末尾）：背景按视口固定（background-attachment: fixed），上方 = 天顶，视口下沿 = 地平线，左 = 西。
+   - 中式晨：宣纸的底。上方略冷（h 229、C 0.010）、略暗（OKLab L −0.023），往地平线渐亮，到地图那一段就是纸，往下一直是纸（地平线不比纸亮：晨的雾对纸只有 3.6，没有余量）；西边地平线一线极淡的暖（h 82、C 0.014，明度不超过纸，只暖一点）。
+   - 中式暮：烟色的底。上方深（L −0.054）；西边地平线一线很淡的余晖（h 82、C 0.017，L +0.017）；东边压暗（右下角往外一个大椭圆，地平线的东头 L 约 −0.035）。
+   - 现代晨：上方淡蓝灰（h 251、C 0.015），往地平线渐亮到纸；西边地平线一线暖白（h 80、C 0.012，明度不超过纸）。
+   - 现代暮：上方深靛（h 265、C 0.024），往西边地平线渐到很淡的暖灰（h 76、C 0.015，L +0.022）；东边压暗。
+   守的：R2 只有西边的天光暖，余晖的色相离朱 ≥ 35°；R6 雾对纸（只算明度）在最亮的那一处 ≥ 3；页头 ink-3 在最暗（晨）/ 最亮（暮）的那一处 ≥ 4.5。量的结果见 NOTES“天光第 1 轮”。
+   晨的停靠点按“天刚亮”的第 2 档定（现在是唯一的一档，见 map3d.css 末尾）。 */
+
+:root[data-map][data-theme="cn-light"] body {
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(80% 19% at 0% 18%, rgba(212, 207, 198, 1) 0%, rgba(212, 207, 198, 0.896) 20%, rgba(212, 207, 198, 0.648) 40%, rgba(212, 207, 198, 0.352) 60%, rgba(212, 207, 198, 0.104) 80%, rgba(212, 207, 198, 0) 100%),
+    linear-gradient(180deg, #C2CACE 0%, #C2CACE 4%, #C3CBCE 8%, #C5CBCD 12%, #C7CCCD 16%, #C9CDCC 20%, #CBCDCC 24%, #CDCECB 28%, #CFCFCB 32%, #D1CFCA 36%, var(--paper) 40%, var(--paper) 44%, var(--paper) 100%);
+  background-attachment: fixed;
+}
+
+
+:root[data-map][data-theme="cn-dark"] body {
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(86% 20% at 0% 18%, rgba(52, 47, 38, 1) 0%, rgba(52, 47, 38, 0.896) 20%, rgba(52, 47, 38, 0.648) 40%, rgba(52, 47, 38, 0.352) 60%, rgba(52, 47, 38, 0.104) 80%, rgba(52, 47, 38, 0) 100%),
+    radial-gradient(70% 110% at 100% 100%, rgba(29, 33, 37, 0.8) 0%, rgba(29, 33, 37, 0.717) 20%, rgba(29, 33, 37, 0.518) 40%, rgba(29, 33, 37, 0.282) 60%, rgba(29, 33, 37, 0.083) 80%, rgba(29, 33, 37, 0) 100%),
+    linear-gradient(180deg, #1B1F24 0%, #1B1F24 4%, #1C2025 8%, #1D2126 12%, #1F2327 16%, #202429 20%, #22262A 24%, #24282C 28%, #25292D 32%, #262A2F 36%, #272B2F 40%, var(--paper) 44%, var(--paper) 62%, #282C30 68%, #282C30 74%, #282B2F 80%, #272B2F 86%, #272A2E 92%, #272A2E 98%, #272A2E 100%);
+  background-attachment: fixed;
+}
+
+
+:root[data-map][data-theme="mod-light"] body {
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(80% 19% at 0% 18%, rgba(212, 207, 199, 1) 0%, rgba(212, 207, 199, 0.896) 20%, rgba(212, 207, 199, 0.648) 40%, rgba(212, 207, 199, 0.352) 60%, rgba(212, 207, 199, 0.104) 80%, rgba(212, 207, 199, 0) 100%),
+    linear-gradient(180deg, #C2CAD3 0%, #C2CAD3 4%, #C3CBD3 8%, #C5CBD2 12%, #C6CCD2 16%, #C8CDD2 20%, #CACDD1 24%, #CCCED1 28%, #CDCFD1 32%, #CFCFD0 36%, var(--paper) 40%, var(--paper) 44%, var(--paper) 100%);
+  background-attachment: fixed;
+}
+
+
+:root[data-map][data-theme="mod-dark"] body {
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(86% 20% at 0% 18%, rgba(42, 37, 30, 1) 0%, rgba(42, 37, 30, 0.896) 20%, rgba(42, 37, 30, 0.648) 40%, rgba(42, 37, 30, 0.352) 60%, rgba(42, 37, 30, 0.104) 80%, rgba(42, 37, 30, 0) 100%),
+    radial-gradient(70% 110% at 100% 100%, rgba(19, 23, 31, 0.8) 0%, rgba(19, 23, 31, 0.717) 20%, rgba(19, 23, 31, 0.518) 40%, rgba(19, 23, 31, 0.282) 60%, rgba(19, 23, 31, 0.083) 80%, rgba(19, 23, 31, 0) 100%),
+    linear-gradient(180deg, #101520 0%, #101520 4%, #111620 8%, #121721 12%, #141822 16%, #151A22 20%, #171B23 24%, #181D24 28%, #1A1E25 32%, #1B2025 36%, #1C2026 40%, var(--paper) 44%, var(--paper) 62%, #1D2126 68%, #1D2126 74%, #1D2126 80%, #1C2025 86%, #1C2025 92%, #1C2025 98%, #1C2025 100%);
+  background-attachment: fixed;
+}

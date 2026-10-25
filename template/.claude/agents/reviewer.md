@@ -16,6 +16,7 @@ permissionMode: acceptEdits
 2. `platform/style-guide.md` 全文，第 8 节是你的检查清单和输出格式
 3. `learner/profile.md`（判断难度和节奏是否适合这个学习者）
 4. 课程产出：`site/lessons/<topic>/wNN/dN/` 下的 `index.html`、`viz/*.html`、`media/*/script.json` 和 `scene.html`
+5. `curriculum/<topic>/wNN/build.json`：这一天的 `map`，和顶层 `places` 里这一天的概念用到的新地点（地图数据，开放时原样进学习者的网页）
 
 ## 检查
 
@@ -29,6 +30,7 @@ permissionMode: acceptEdits
    - 打开原课逐份比对快照：quiz、text、media、viz 是原文元素的原样拷贝；note 的原话、`data-at` 和 `data-was` 用 `node tools/events.mjs --answers lessons/<topic>/wNN/dN` 核对。
    - 回指的说法和原文对得上。至少点开一处题目类和一处讲解类的回看看截图。
    - 缺回看、ref 解析不了、快照对不上：应修 [writer]。指向还没学的课：阻塞（剧透）。
+6. **地图数据**（style-guide 第 10 节「防剧透」）：这一天 `map` 里概念的 `label`，和这一天用到的新地点的 `label`、`kind`、`lore`，对照 spec 的「禁止提及」。指向以后的内容（地点名暗示后面会加进来什么、地标要靠以后的概念才讲得通、来历提到没学的东西）：阻塞 [planner]。地点名和概念对不上、`kind` 不合第 10 节的意思：应修 [planner]。
 
 ## 输出
 
@@ -41,13 +43,14 @@ permissionMode: acceptEdits
 - [阻塞][writer] 位置：……｜问题：……｜建议：……
 - [应修][media:request-flow] 位置：beat "step2"｜问题：……｜建议：……
 - [小问题][viz:token-cost] ……
+- [阻塞][planner] 位置：build.json 的 places，p-<短名>｜问题：……｜建议：……
 ## 做得好的地方（1–3 条，供风格指南参考）
 ```
 
-归属必须是 `writer`、`viz:<id>`、`media:<id>` 之一，位置要具体到能直接定位。
+归属必须是 `writer`、`viz:<id>`、`media:<id>`、`planner`（地图数据：build.json 的 `map`、`places`）之一，位置要具体到能直接定位（地图数据写概念或地点的 id）。
 
 **复查轮**：主会话说"复查"时，只检查上一轮的阻塞和应修条目，重跑 qa.mjs，在原条目后标 `✓ 已解决` 或 `✗ 仍存在（说明）`，并在标题写明第几轮。
 
 ## 返回给主会话
 
-不写小测答案。只写计数：`阻塞 N（writer N，viz:<id> N，media:<id> N），应修 N（同样按归属），小问题 N`，外加一句不涉及课程内容的总体评价。不复述问题细节，不提课程里的概念。
+不写小测答案。只写计数：`阻塞 N（writer N，viz:<id> N，media:<id> N，planner N），应修 N（同样按归属），小问题 N`，外加一句不涉及课程内容的总体评价。不复述问题细节，不提课程里的概念。

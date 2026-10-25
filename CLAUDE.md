@@ -57,3 +57,5 @@
   - 生成一节 Day 0 约 25 分钟，按 API 价格约 $12，走自己的订阅额度。
   - 跑完测试工作区的服务器还开着，用 `node tools/serve.mjs --stop` 停掉。
 - **改了课程页或组件**：用示例课 `/lab/example/` 和 `/lab/themes/` 跑 QA。
+- **改了 hub（`template/site/index.html`）或拨云**：在测试工作区里放一门课的假数据（`site/manifest.json` 和 `site/map.json`，地图数据的格式见风格指南第 10 节），先跑 `node tools/map-check.mjs <topic>`，再跑 `node tools/qa-hub.mjs --self`：截图、退路（去掉 `places` 退回 2D 等）和地图引擎的自检，结果在 `.tmp/qa-hub/report.txt`。它要本机的 Chrome 或 Edge 开 GPU，一次只开一个浏览器。
+- **拨云**：`template/site/assets/boyun/` 整份是拨云设计系统的导出文件（`map3d/BUILD.json` 记着版本和每个文件的哈希），不在这里手改；拨云更新后整份重新导出。`template/.gitattributes` 让这些文件按原样存（不转换换行），GitHub 上默认折叠。

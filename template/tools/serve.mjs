@@ -2,6 +2,8 @@
 // serve.mjs — 本地学习服务器
 // - 只对外提供 site/ 目录（curriculum/、learner/ 等永远无法通过网页访问，防剧透）
 // - 不列目录；支持 Range 请求（音频拖动需要）
+// - 静态文件带 Last-Modified；浏览器带 If-Modified-Since 来问、文件没改过时回 304（只对不带 Range 的 GET）。
+//   Cache-Control 还是 no-cache：每次都来问，但没改过就不用重下（hub 的 3D 地图约 3.5 MB），Chrome 也才会给脚本做代码缓存
 // - POST /api/event：把学习行为追加到 learner/events.jsonl
 // - GET  /api/health：健康检查（带 pid 和工作区路径，--stop 和 lib/server.mjs 用）
 // 用法（端口取 .env 里的 PORT，默认 4321，只监听本机）：
@@ -127,7 +129,15 @@ function serveStatic(req, res, pathname) {
   }
 
   const type = TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream';
-  const headers = { 'Content-Type': type, 'Cache-Control': 'no-cache', 'Accept-Ranges': 'bytes' };
+  const headers = { 'Content-Type': type, 'Cache-Control': 'no-cache', 'Accept-Ranges': 'bytes', 'Last-Modified': st.mtime.toUTCString() };
+  // 304：HTTP 的日期只到秒，所以文件的修改时间也按秒比。日期写错、比现在还晚的，照常回 200
+  if (req.method === 'GET' && !req.headers.range && req.headers['if-modified-since']) {
+    const since = Date.parse(req.headers['if-modified-since']);
+    if (!Number.isNaN(since) && since <= Date.now() && Math.floor(st.mtimeMs / 1000) * 1000 <= since) {
+      res.writeHead(304, { 'Cache-Control': 'no-cache', 'Last-Modified': headers['Last-Modified'] });
+      return res.end();
+    }
+  }
   const range = req.headers.range && /^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
   if (range) {
     let start, end;

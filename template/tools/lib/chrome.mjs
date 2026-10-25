@@ -1,8 +1,9 @@
-// chrome.mjs — 启动本机的 Chrome / Edge（headless），用 DevTools 协议（CDP）控制页面。qa.mjs 和 render-video.mjs 共用。
+// chrome.mjs — 启动本机的 Chrome / Edge（headless），用 DevTools 协议（CDP）控制页面。qa.mjs、render-video.mjs 和 qa-hub.mjs 共用。
 // 不依赖 npm 包，也不需要另外下载浏览器：找不到时可以用环境变量 CHROME_BIN 指定浏览器路径。
+// qa-hub.mjs 另外用到 gpu、窗口大小、像素比、额外参数（hub 的 3D 地图要开 GPU 才画得出来），和一次只开一个浏览器的锁（withLock）。
 
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, statSync, utimesSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -34,18 +35,25 @@ export function findChrome() {
   return hit;
 }
 
-// 启动一个独立的 headless 浏览器（用自己的配置目录，不影响你平时用的浏览器）
-export async function launchChrome(profileDir) {
+// 启动一个独立的 headless 浏览器（用自己的配置目录，不影响你平时用的浏览器）。
+// 选项：
+//   gpu      true：用真显卡画 WebGL（Windows 上走 ANGLE / D3D11，不理会显卡黑名单）。默认 false：无头浏览器一般是软件渲染
+//   width、height  窗口大小（默认 1280 × 800）；dpr 像素比（默认 1）
+//   args     额外的 Chrome 参数，例如 ['--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost']（假装断网，只留本机）
+export async function launchChrome(profileDir, { gpu = false, width = 1280, height = 800, dpr = 1, args = [] } = {}) {
   await mkdir(profileDir, { recursive: true });
-  const proc = spawn(findChrome(), [
-    '--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profileDir}`,
+  const flags = [
+    '--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profileDir}`, `--window-size=${width},${height}`,
     '--no-first-run', '--no-default-browser-check', '--hide-scrollbars', '--mute-audio', '--force-color-profile=srgb',
-    '--autoplay-policy=no-user-gesture-required',
-    'about:blank',
-  ], { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+    '--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling',
+  ];
+  if (gpu) flags.push(...(process.platform === 'win32' ? ['--use-angle=d3d11', '--use-gl=angle'] : []), '--enable-gpu', '--ignore-gpu-blocklist');
+  if (dpr !== 1) flags.push(`--force-device-scale-factor=${dpr}`);
+  flags.push(...args, 'about:blank');
+  const proc = spawn(findChrome(), flags, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
   const wsUrl = await new Promise((resolve, reject) => {
     let buf = '';
-    const timer = setTimeout(() => reject(new Error('浏览器启动超时')), 20000);
+    const timer = setTimeout(() => reject(new Error('浏览器启动超时（机器内存紧时常这样：关掉别的无头浏览器再试）')), 20000);
     proc.stderr.on('data', d => {
       buf += d;
       const m = buf.match(/DevTools listening on (ws:\/\/\S+)/);
@@ -70,7 +78,13 @@ export async function launchChrome(profileDir) {
       page.close();
       await fetch(`http://127.0.0.1:${port}/json/close/${page.targetId}`).catch(() => {});
     },
-    close() { proc.kill(); },
+    // 关掉浏览器，等进程真的退出（Windows 上配置目录要等它退出才删得掉）
+    async close() {
+      if (proc.exitCode !== null) return;
+      const gone = new Promise(r => proc.once('exit', r));
+      proc.kill();
+      await Promise.race([gone, sleep(5000)]);
+    },
   };
 }
 
@@ -116,4 +130,26 @@ export class Cdp {
     return r.result.value;
   }
   close() { this.ws.close(); }
+}
+
+// 一次只开一个浏览器：用一个目录当锁（mkdir 是原子的），拿到才跑 fn，跑完删掉。
+// 拿着锁的时候每 30 秒摸一下目录，别的进程看修改时间判断是不是死锁（超过 stale 毫秒没摸过就抢过来）。
+// 内存紧的电脑上并行开几个 GPU 浏览器会起不来，所以给同一个目录的就一起排队
+export async function withLock(lockDir, fn, { wait = 60 * 60e3, stale = 15 * 60e3, log = console.log } = {}) {
+  if (!lockDir) return fn();
+  const t0 = Date.now();
+  let said = false;
+  for (;;) {
+    try { mkdirSync(lockDir); break; } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+      try {
+        if (Date.now() - statSync(lockDir).mtimeMs > stale) { log(`锁 ${lockDir} 超过 ${Math.round(stale / 60e3)} 分钟没动，当成死锁拿走`); rmSync(lockDir, { recursive: true, force: true }); continue; }
+      } catch { /* 刚好被别人删了：再试一次 */ }
+      if (!said) { log(`等锁 ${lockDir}（别的截图在跑）`); said = true; }
+      if (Date.now() - t0 > wait) throw new Error(`等锁超时：${lockDir}`);
+      await sleep(5000);
+    }
+  }
+  const tick = setInterval(() => { try { const n = new Date(); utimesSync(lockDir, n, n); } catch { /* 没关系 */ } }, 30e3);
+  try { return await fn(); } finally { clearInterval(tick); try { rmSync(lockDir, { recursive: true, force: true }); } catch { /* 没关系 */ } }
 }

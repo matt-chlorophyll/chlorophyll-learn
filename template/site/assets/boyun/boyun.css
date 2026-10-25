@@ -1,5 +1,5 @@
-/* 拨云 Boyun: tokens (4 themes) + components + page patterns. Generated from the design system; change values in the tokens, not here. */
-/* 拨云 Boyun — generated from tokens.json */
+/* 拨云 Boyun：页面 token（6 个主题：cn / mod / ani 各自的 light、dark）+ 组件 + 页面模式。
+   这个文件就是源头：改值就改这里，改完跑 scripts/check-tokens.mjs。3D 地图的 token 和地图页的配色在 map3d/boyun-map3d.css。 */
 :root, [data-theme="cn-light"] {
   --paper: #f3f2ee;
   --fog: #fbfbf9;
@@ -12,7 +12,7 @@
   --line-strong: var(--ink-4);
   --accent: #b23b26;
   --on-ink: var(--paper);
-  --focus: var(--accent);
+  --focus: var(--ink-1);
   --shadow-float: 0 22px 48px -32px rgba(29,29,27,0.45);
 }
 [data-theme="cn-dark"] {
@@ -27,7 +27,7 @@
   --line-strong: var(--ink-4);
   --accent: #e2735a;
   --on-ink: var(--paper);
-  --focus: var(--accent);
+  --focus: var(--ink-1);
   --shadow-float: 0 22px 48px -28px rgba(0,0,0,0.75);
 }
 [data-theme="mod-light"] {
@@ -42,7 +42,7 @@
   --line-strong: var(--ink-4);
   --accent: #c2410c;
   --on-ink: var(--paper);
-  --focus: var(--accent);
+  --focus: var(--ink-1);
   --shadow-float: 0 22px 48px -32px rgba(19,21,24,0.42);
 }
 [data-theme="mod-dark"] {
@@ -57,8 +57,38 @@
   --line-strong: var(--ink-4);
   --accent: #f07a4a;
   --on-ink: var(--paper);
-  --focus: var(--accent);
+  --focus: var(--ink-1);
   --shadow-float: 0 22px 48px -28px rgba(0,0,0,0.8);
+}
+[data-theme="ani-light"] {
+  --paper: #E2D9D0;
+  --fog: #F4F2F8;
+  --ink-1: #232842;
+  --ink-2: #3A3F5E;
+  --ink-3: #555A79;
+  --ink-4: #777A94;
+  --ink-5: #C4C5D6;
+  --line: #D6CFD6;
+  --line-strong: var(--ink-4);
+  --accent: #BD1D00;
+  --on-ink: var(--paper);
+  --focus: var(--ink-1);
+  --shadow-float: 0 22px 48px -32px rgba(35, 40, 66, .42);
+}
+[data-theme="ani-dark"] {
+  --paper: #252A4C;
+  --fog: #3F3D73;
+  --ink-1: #FFF6EC;
+  --ink-2: #F1E4DC;
+  --ink-3: #D0C2D3;
+  --ink-4: #9E94B5;
+  --ink-5: #5F598A;
+  --line: #3A3E66;
+  --line-strong: var(--ink-4);
+  --accent: #FF927D;
+  --on-ink: var(--paper);
+  --focus: var(--ink-1);
+  --shadow-float: 0 22px 48px -28px rgba(0, 0, 0, .7);
 }
 :root {
   --space-1: 4px;
@@ -105,14 +135,15 @@
 
 /* ---------- components ---------- */
 
-/* ---------- register: 中式 (default) / 现代, keyed off data-theme ---------- */
+/* ---------- 笔墨：中式（默认）/ 现代 / 动画，跟着 data-theme ---------- */
 :root{--by-font:var(--font-cn);--by-fs:16.5px;--by-lh:1.95;--by-hw:500;--by-texture:ink}
 [data-theme^="mod"]{--by-font:var(--font-mod);--by-fs:15.5px;--by-lh:1.75;--by-hw:600;--by-texture:grain}
+[data-theme^="ani"]{--by-font:var(--font-mod);--by-fs:15.5px;--by-lh:1.75;--by-hw:600;--by-texture:grain}
 [data-theme$="dark"]{color-scheme:dark}
 body{margin:0;background:var(--paper);color:var(--ink-1);font-family:var(--by-font);font-size:var(--by-fs);line-height:var(--by-lh);-webkit-font-smoothing:antialiased}
 .by-preview{padding:var(--space-5);box-sizing:border-box}
 .by-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
-:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+:focus-visible{outline:3px double var(--focus);outline-offset:2px}
 
 /* ---------- button ---------- */
 .by-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);height:36px;padding:0 var(--space-4);border:1px solid var(--ink-1);border-radius:var(--radius-hair);background:var(--ink-1);color:var(--on-ink);font:500 14px/1 var(--by-font);letter-spacing:.02em;cursor:pointer;white-space:nowrap;transition:background-color var(--dur-state) var(--ease-mist),color var(--dur-state) var(--ease-mist),border-color var(--dur-state) var(--ease-mist)}
@@ -248,8 +279,8 @@ textarea.by-field__input{min-height:110px;resize:vertical;line-height:1.8}
 
 /* ---------- page patterns ---------- */
 /* follow the viewer's light/dark until a theme is chosen */
-@media (prefers-color-scheme: dark){:root:not([data-theme]){--paper:#141413;--fog:#232321;--ink-1:#ecebe4;--ink-2:#c9c7c0;--ink-3:#a3a19a;--ink-4:#74736e;--ink-5:#4a4946;--line:#2b2b28;--line-strong:var(--ink-4);--accent:#e2735a;--on-ink:var(--paper);--focus:var(--accent);--shadow-float:0 22px 48px -28px rgba(0,0,0,0.75);color-scheme:dark}}
-:root[data-theme="dark"]{--paper:#141413;--fog:#232321;--ink-1:#ecebe4;--ink-2:#c9c7c0;--ink-3:#a3a19a;--ink-4:#74736e;--ink-5:#4a4946;--line:#2b2b28;--line-strong:var(--ink-4);--accent:#e2735a;--on-ink:var(--paper);--focus:var(--accent);--shadow-float:0 22px 48px -28px rgba(0,0,0,0.75);color-scheme:dark}
+@media (prefers-color-scheme: dark){:root:not([data-theme]){--paper:#141413;--fog:#232321;--ink-1:#ecebe4;--ink-2:#c9c7c0;--ink-3:#a3a19a;--ink-4:#74736e;--ink-5:#4a4946;--line:#2b2b28;--line-strong:var(--ink-4);--accent:#e2735a;--on-ink:var(--paper);--focus:var(--ink-1);--shadow-float:0 22px 48px -28px rgba(0,0,0,0.75);color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#141413;--fog:#232321;--ink-1:#ecebe4;--ink-2:#c9c7c0;--ink-3:#a3a19a;--ink-4:#74736e;--ink-5:#4a4946;--line:#2b2b28;--line-strong:var(--ink-4);--accent:#e2735a;--on-ink:var(--paper);--focus:var(--ink-1);--shadow-float:0 22px 48px -28px rgba(0,0,0,0.75);color-scheme:dark}
 
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--paper)}

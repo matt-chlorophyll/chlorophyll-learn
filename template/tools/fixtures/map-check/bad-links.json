@@ -1,0 +1,84 @@
+{
+  "_note": "links 找不到（w1-dice → w0-missing）、指向后面的课（w1-taste-first → w2-blanch）；p-knife 和它的两个概念的 region 不在 regions 里（grill）。",
+  "_expect": { "errors": ["link-later", "link-missing", "region-missing"], "warnings": [] },
+  "topics": {
+    "cooking": {
+      "regions": [
+        { "id": "base", "label": "地基", "lanes": 4, "home": { "x": 0, "y": 0, "ext": 46 } },
+        { "id": "knife", "label": "刀工", "lanes": 2 },
+        { "id": "heat", "label": "火候", "lanes": 2 },
+        { "id": "taste", "label": "调味", "lanes": 2 }
+      ],
+      "moves": [["p-adjust", "p-tools"]],
+      "places": [
+        { "id": "p-tools", "label": "厨房工具", "region": "base" },
+        { "id": "p-knife", "label": "握刀切菜", "region": "grill" },
+        { "id": "p-old-brine", "label": "老卤", "region": "taste", "kind": "ruin", "lore": "一锅卤水每次续着用，味道是一代代留下来的。" },
+        { "id": "p-sear", "label": "煎出焦香", "region": "heat", "kind": "canyon" },
+        { "id": "p-adjust", "label": "尝了再调", "region": "taste", "kind": "ferry" },
+        { "id": "p-stock", "label": "一锅高汤", "region": "taste", "kind": "city", "lore": "焯水、慢炖、撇沫、调味，几样合起来才是一锅汤。" }
+      ],
+      "weeks": [
+        {
+          "week": 0,
+          "days": [
+            {
+              "day": 0,
+              "map": [
+                { "id": "w0-kitchen-zones", "label": "厨房分区", "region": "base", "links": [], "difficulty": 1, "place": "p-tools" },
+                { "id": "w0-knife-grip", "label": "握刀的手势", "region": "grill", "links": ["w0-kitchen-zones"], "difficulty": 2, "place": "p-knife" },
+                { "id": "w0-brine-reuse", "label": "卤水续着用", "region": "taste", "links": [], "difficulty": 1, "place": "p-old-brine" },
+                { "id": "w0-brine-story", "label": "老卤的来历", "region": "taste", "links": ["w0-brine-reuse"], "difficulty": 1, "place": "p-old-brine" }
+              ]
+            }
+          ]
+        },
+        {
+          "week": 1,
+          "days": [
+            {
+              "day": 1,
+              "map": [
+                { "id": "w1-hot-pan", "label": "热锅冷油", "region": "heat", "links": [], "difficulty": 3, "place": "p-sear" },
+                { "id": "w1-browning", "label": "焦香从哪来", "region": "heat", "links": ["w1-hot-pan"], "difficulty": 4, "place": "p-sear", "trap": true }
+              ]
+            },
+            {
+              "day": 2,
+              "map": [
+                { "id": "w1-flip-early", "label": "翻早了会粘", "region": "heat", "links": ["w1-browning"], "difficulty": 3, "place": "p-sear" },
+                { "id": "w1-taste-first", "label": "先尝一口", "region": "taste", "links": ["w2-blanch"], "difficulty": 1, "place": "p-adjust" }
+              ]
+            },
+            {
+              "day": 3,
+              "map": [
+                { "id": "w1-salt-again", "label": "补盐再尝", "region": "taste", "links": ["w1-taste-first"], "difficulty": 2, "place": "p-adjust" },
+                { "id": "w1-dice", "label": "切丁", "region": "grill", "links": ["w0-knife-grip", "w0-missing"], "difficulty": 2, "place": "p-knife" }
+              ]
+            }
+          ]
+        },
+        {
+          "week": 2,
+          "days": [
+            {
+              "day": 1,
+              "map": [
+                { "id": "w2-blanch", "label": "焯骨头", "region": "taste", "links": [], "difficulty": 2, "place": "p-stock" },
+                { "id": "w2-simmer", "label": "小火慢炖", "region": "taste", "links": ["w1-hot-pan"], "difficulty": 3, "place": "p-stock" }
+              ]
+            },
+            {
+              "day": 2,
+              "map": [
+                { "id": "w2-skim", "label": "撇浮沫", "region": "taste", "links": ["w2-simmer"], "difficulty": 2, "place": "p-stock" },
+                { "id": "w2-season-stock", "label": "高汤调味", "region": "taste", "links": ["w2-blanch", "w1-salt-again"], "difficulty": 3, "place": "p-stock" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

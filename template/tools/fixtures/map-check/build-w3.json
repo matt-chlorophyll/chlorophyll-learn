@@ -1,0 +1,36 @@
+{
+  "_note": "bad-build.json 用的 build.json：还没开放的第 3 周。加一个新区域、两个新地点（p-garnish 没有概念），一个概念加进旧地点 p-stock。",
+  "topic": "cooking",
+  "week": 3,
+  "title": "上桌",
+  "regions": [
+    { "id": "plate", "label": "摆盘", "lanes": 2 }
+  ],
+  "places": [
+    { "id": "p-plating", "label": "装盘", "region": "plate" },
+    { "id": "p-garnish", "label": "点缀", "region": "plate" }
+  ],
+  "days": [
+    {
+      "day": 1,
+      "date": "2026-01-19",
+      "title": "第 3 周第 1 课",
+      "est": 50,
+      "concepts": ["盘子先温", "收汁"],
+      "map": [
+        { "id": "w3-warm-plate", "label": "盘子先温", "region": "plate", "links": [], "difficulty": 1, "place": "p-plating" },
+        { "id": "w3-reduce", "label": "收汁", "region": "taste", "links": ["w2-season-stock"], "difficulty": 3, "place": "p-stock" }
+      ]
+    },
+    {
+      "day": 2,
+      "date": "2026-01-20",
+      "title": "第 3 周第 2 课",
+      "est": 50,
+      "concepts": ["堆在中间"],
+      "map": [
+        { "id": "w3-center-pile", "label": "堆在中间", "region": "plate", "links": ["w3-warm-plate"], "difficulty": 2, "place": "p-plating" }
+      ]
+    }
+  ]
+}

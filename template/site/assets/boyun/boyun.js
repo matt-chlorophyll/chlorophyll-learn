@@ -251,14 +251,15 @@
   };
 })();
 
-/* Boyun.theme({ reg, day, fallback, key }): wires the 笔墨 / 昼夜 switch (two .by-seg groups with button[data-v]).
+/* Boyun.theme({ reg, day, fallback, key }): wires the 笔墨 / 晨暮 switch (two .by-seg groups with button[data-v]).
+   笔墨 is cn | mod | ani, 晨暮 is light | dark; data-theme is always {cn|mod|ani}-{light|dark}.
    Follows the system light/dark until the reader picks; remembers the pick in localStorage. */
 (function () {
   var B = window.Boyun, root = document.documentElement;
   B.theme = function (o) {
     o = o || {};
     var key = o.key || 'boyun-theme', reg0 = o.fallback || 'cn', mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null, chosen = null;
-    try { var s = localStorage.getItem(key); if (/^(cn|mod)-(light|dark)$/.test(s || '')) chosen = s; } catch (e) {}
+    try { var s = localStorage.getItem(key); if (/^(cn|mod|ani)-(light|dark)$/.test(s || '')) chosen = s; } catch (e) {}
     function sysDay() { return mq && mq.matches ? 'dark' : 'light'; }
     function cur() { return (root.getAttribute('data-theme') || (reg0 + '-' + sysDay())).split('-'); }
     function sync() { var c = cur(); [[o.reg, 0], [o.day, 1]].forEach(function (p) { if (!p[0]) return; [].slice.call(p[0].querySelectorAll('button[data-v]')).forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-v') === c[p[1]] ? 'true' : 'false'); }); }); }
