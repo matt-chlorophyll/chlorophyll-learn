@@ -32,7 +32,8 @@ if ! up; then
   echo "服务器已在后台启动（日志：.tmp/server.log）。停止：node tools/serve.mjs --stop"
 fi
 URL="http://localhost:$PORT/$1"
-if command -v open >/dev/null 2>&1; then open "$URL"
+# open 只在 macOS 上用：有些 Linux 上的 open 是 openvt，打不开网页
+if [ "$(uname)" = Darwin ]; then open "$URL"
 elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"
 else echo "用浏览器打开：$URL"
 fi
