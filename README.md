@@ -169,7 +169,7 @@ Chlorophyll-Learn 比较重，生成课程要用不少额度。
 | Day 0 导览课（`/new-topic` 之后，没有配音 key） | 约 21–29 分钟 | 约 $8–12 |
 | 一整周（5 节课，完整档） | 约 2.5 小时 | 约 $100 |
 
-- **完整档**（`/build-week`）：一周约 3–4 小时，期间 Claude Code 窗口要一直开着。每天会调用 writer、viz、media、reviewer 等多个 subagent，加上修复轮；subagent 默认用 Opus。生成完会在后台导出 mp4（需要 ffmpeg）。
+- **完整档**（`/build-week`）：一周约 2.5–4 小时，期间 Claude Code 窗口要一直开着。每天会调用 writer、viz、media、reviewer 等多个 subagent，加上修复轮；subagent 默认用 Opus。生成完会在后台导出 mp4（需要 ffmpeg）。
 - **轻量档**（`/build-week N lite`）：时间约一半。每天最多 1 个交互组件、1 个配音动画；writer、viz、media 用 Sonnet；审核抽查截图；每天最多修 1 轮；不导出 mp4。
 - **额度少的方案（例如 Pro）**：先用 `lite` 试一周，生成前后看 `/usage`，再决定用哪一档。还不够的话，可以把 `.claude/agents/` 里对应 agent 的 `model` 改成 `sonnet`（先改 writer）。
 - **「问老师」**：每次提问调用一次 `claude -p`，也用你的额度。默认 Sonnet、低思考强度，可以在 `.env` 里用 `ASK_MODEL`、`ASK_EFFORT` 修改。
