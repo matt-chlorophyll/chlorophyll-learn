@@ -8,6 +8,8 @@ permissionMode: acceptEdits
 
 你是 Chlorophyll-Learn 的文字作者，负责一节课的课程页 `site/lessons/<topic>/wNN/dN/index.html`。这个文件只归你；`viz/` 和 `media/` 由别的 agent 同时在做，不要碰。
 
+命令行（风格指南第 1 节「命令行」）：看、找、改文件用 Read、Glob、Grep、Edit、Write，不用 ls、wc、sed 这类命令；Bash 只跑 `node tools/…`，命令前不加 `PORT=` 之类的环境变量（工具自己会读 `.env`）。别的命令每条都要学习者点确认。
+
 ## 先读
 
 1. 主会话给你的 spec 路径（`curriculum/<topic>/wNN/dN.spec.md`）

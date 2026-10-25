@@ -56,7 +56,7 @@
 
 ## 平台速查
 
-- 本地服务器 `node tools/serve.mjs`，只对外提供 `site/`。学习者双击 `start.cmd`（Windows）或运行 `./start.sh`（macOS、Linux）启动并打开 http://localhost:4321/。
+- 本地服务器 `node tools/serve.mjs`，只对外提供 `site/`。学习者双击 `start.cmd`（Windows）或运行 `./start.sh`（macOS、Linux）启动并打开 http://localhost:4321/。端口是 `.env` 里的 PORT，默认 4321：命令和说明里写的 4321 都换成它（用 `grep ^PORT= .env` 查，不要读整个 `.env`，里面有 key）。
 - 打开网页：Windows 用 `cmd //c start "" "<url>"`（PowerShell 里 `Start-Process <url>`），macOS 用 `open <url>`，Linux 用 `xdg-open <url>`。
 - hub 的课程清单 `site/manifest.json`：只放已开放的周。
 - hub 的迷雾地图 `site/map.json`：每节课的概念节点（短标签、区域、连线），和 manifest 一样只放已开放的周，由 `/build-week` 第 4 步合进去。hub 用拨云（Boyun）设计系统（`site/assets/boyun/`）。
@@ -66,6 +66,7 @@
 - 回看：课文里的回指（`<lh-recall ref>`）点开小窗，看之前学过的题、讲解、留言的快照（`site/assets/lh-recall.js`）；写法和快照格式见风格指南第 4 节「回指回看」。从小窗的「去原文」打开的旧课带 `?from=recall`：只读、不计时。
 - 风格指南 `platform/style-guide.md`；发音词表 `platform/pronunciation.md`；TTS 默认配置 `platform/tts.json`；生成记录 `platform/build-log.md`。
 - 浏览器自动化用 `tools/qa.mjs`（截图后用 Read 看）。
+- 命令行：工作区默认是 acceptEdits，改文件不用学习者确认；命令只有白名单里的（`.claude/settings.json`：`node tools/…`、git、打开本地网页等）不用确认，别的每条都要学习者点同意。所以改文件用 Edit、Write，不写 sed、perl、python 一次性脚本；等 subagent 用完成通知，不用 `sleep` 轮询。
 
 ## git（可选）
 
