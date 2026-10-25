@@ -12,14 +12,14 @@
 // 截图（默认 .tmp/qa/<课程路径>/，用 Read 查看）：
 //   page-top.png（1440×900 首屏）、page.png（整页 1440 宽）、page-narrow.png（820 宽）、sec-<id>.png（每段）、
 //   media-<id>-00-cover.png + media-<id>-<序号>-<beat>.png（每个 beat 70% 处）、viz-<id>.png
-// 结果写入 report.json；有错误时退出码为 1。服务器没开会自动临时启动。
+// 结果写入 report.json；有错误时退出码为 1。服务器没开会在后台启动（之后一直运行，停止用 node tools/serve.mjs --stop）。
 
-import { spawn } from 'node:child_process';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { launchChrome, sleep } from './lib/chrome.mjs';
+import { ensureServer } from './lib/server.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 if (existsSync(path.join(ROOT, '.env'))) process.loadEnvFile(path.join(ROOT, '.env'));
@@ -110,18 +110,6 @@ async function capture(file, mode = 'full', selector) {
   await writeFile(file, Buffer.from(data, 'base64'));
 }
 
-async function health() {
-  try { return (await fetch(`${ORIGIN}/api/health`)).ok; } catch { return false; }
-}
-
-let server = null;
-async function ensureServer() {
-  if (await health()) return;
-  server = spawn(process.execPath, [path.join(ROOT, 'tools', 'serve.mjs')], { stdio: 'ignore', windowsHide: true });
-  for (let i = 0; i < 40 && !(await health()); i++) await new Promise(r => setTimeout(r, 150));
-  if (!(await health())) throw new Error('本地服务器启动失败');
-}
-
 const report = { lesson: lessonPath, time: new Date().toISOString(), errors: [], warnings: [], missing: [], est: 0, media: [], viz: [], screenshots: [] };
 const err = (where, msg) => report.errors.push(`[${where}] ${msg}`);
 const shot = async (file, mode, selector) => {
@@ -132,7 +120,7 @@ const shot = async (file, mode, selector) => {
 
 await acquireLock();
 try {
-  await ensureServer();
+  await ensureServer(ROOT, PORT);
   await openBrowser();
   await rm(OUT, { recursive: true, force: true });
   await mkdir(OUT, { recursive: true });
@@ -230,7 +218,6 @@ try {
   err('qa', e.message);
 } finally {
   chrome?.close();
-  server?.kill();
   await sleep(300);
   await rm(path.join(ROOT, '.tmp', `qa-chrome-${process.pid}`), { recursive: true, force: true }).catch(() => {});
   await rm(LOCK, { force: true });

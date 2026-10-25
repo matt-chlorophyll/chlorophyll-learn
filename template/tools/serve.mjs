@@ -3,8 +3,11 @@
 // - 只对外提供 site/ 目录（curriculum/、learner/ 等永远无法通过网页访问，防剧透）
 // - 不列目录；支持 Range 请求（音频拖动需要）
 // - POST /api/event：把学习行为追加到 learner/events.jsonl
-// - GET  /api/health：健康检查
-// 用法：node tools/serve.mjs    （端口取 .env 里的 PORT，默认 4321，只监听本机）
+// - GET  /api/health：健康检查（带 pid 和工作区路径，--stop 和 lib/server.mjs 用）
+// 用法（端口取 .env 里的 PORT，默认 4321，只监听本机）：
+//   node tools/serve.mjs            前台运行（start.cmd、start.sh 用）
+//   node tools/serve.mjs --detach   没在运行就在后台启动，等能访问再返回。独立进程，不随 Claude Code 的后台任务结束
+//   node tools/serve.mjs --stop     停掉这个工作区的服务器
 
 import http from 'node:http';
 import { createReadStream, existsSync, statSync } from 'node:fs';
@@ -18,6 +21,27 @@ const EVENTS = path.join(ROOT, 'learner', 'events.jsonl');
 if (existsSync(path.join(ROOT, '.env'))) process.loadEnvFile(path.join(ROOT, '.env'));
 const PORT = Number(process.env.PORT) || 4321;
 const HOST = '127.0.0.1';
+
+// --detach、--stop：只管理服务器，这个进程自己不监听
+if (process.argv.includes('--detach') || process.argv.includes('--stop')) {
+  const { ensureServer, health, samePath } = await import('./lib/server.mjs');
+  if (process.argv.includes('--detach')) {
+    try {
+      const { started } = await ensureServer(ROOT, PORT);
+      console.log(`Chlorophyll-Learn ${started ? '已在后台启动' : '已经在运行'}：http://localhost:${PORT}/（日志 .tmp/server.log；停止：node tools/serve.mjs --stop）`);
+      process.exit(0);
+    } catch (e) { console.error(e.message); process.exit(1); }
+  }
+  const h = await health(PORT);
+  if (!h) { console.log(`端口 ${PORT} 上没有运行 Chlorophyll-Learn`); process.exit(0); }
+  if (!h.pid) { console.error('正在运行的服务器是更新前启动的，没法用 --stop 停：关掉 start.cmd 打开的服务器窗口，或者用 start.sh 启动时打印的 kill 命令'); process.exit(1); }
+  if (h.root && !samePath(h.root, ROOT)) { console.error(`端口 ${PORT} 上运行的是另一个工作区的服务器（${h.root}），没有停`); process.exit(1); }
+  process.kill(h.pid);
+  for (let i = 0; i < 25 && (await health(PORT)); i++) await new Promise(r => setTimeout(r, 200));
+  if (await health(PORT)) { console.error(`没能停掉服务器（pid ${h.pid}）`); process.exit(1); }
+  console.log(`已停止 Chlorophyll-Learn（端口 ${PORT}）`);
+  process.exit(0);
+}
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -135,7 +159,7 @@ const server = http.createServer(async (req, res) => {
   try {
     const { pathname, searchParams } = new URL(req.url, `http://${HOST}`);
     if (pathname === '/api/event' && req.method === 'POST') return await handleEvent(req, res);
-    if (pathname === '/api/health') return sendJson(res, 200, { ok: true, app: 'chlorophyll-learn' });
+    if (pathname === '/api/health') return sendJson(res, 200, { ok: true, app: 'chlorophyll-learn', pid: process.pid, root: ROOT });
     if (pathname === '/api/exists') return sendJson(res, 200, { exists: siteFileExists(searchParams.get('path')) });
     // POST /api/ask：网页「问老师」，调用 claude -p 回答（tools/ask.mjs，第一次提问时才加载）
     if (pathname === '/api/ask' && req.method === 'POST') {

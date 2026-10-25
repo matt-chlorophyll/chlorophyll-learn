@@ -8,14 +8,15 @@
 // 已有 video.mp4 且比 scene.html / audio.mp3 / timeline.json 都新时跳过，--force 强制重做。
 //
 // 用一个独立的 headless Chrome / Edge（tools/lib/chrome.mjs），通过 DevTools 协议控制。
-// 需要本机装了 Chrome 或 Edge，以及 ffmpeg；服务器没开会临时启动。无配音（silent）的动画导出成没有声音、带字幕的 mp4。
+// 需要本机装了 Chrome 或 Edge，以及 ffmpeg；服务器没开会在后台启动（之后一直运行，停止用 node tools/serve.mjs --stop）。无配音（silent）的动画导出成没有声音、带字幕的 mp4。
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, statSync, readdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { launchChrome, sleep } from './lib/chrome.mjs';
+import { ensureServer } from './lib/server.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 if (existsSync(path.join(ROOT, '.env'))) process.loadEnvFile(path.join(ROOT, '.env'));
@@ -46,17 +47,8 @@ const mediaDirs = existsSync(path.join(dir, 'scene.html'))
     ? readdirSync(path.join(dir, 'media')).map(d => path.join(dir, 'media', d)).filter(d => existsSync(path.join(d, 'scene.html')))
     : [];
 if (!mediaDirs.length) { console.error(`${path.relative(ROOT, dir)} 下没有配音动画（media/<id>/scene.html）`); process.exit(1); }
-
-// ---------- 本地服务器 ----------
-
-let server;
-const health = async () => { try { return (await fetch(`${ORIGIN}/api/health`)).ok; } catch { return false; } };
-async function ensureServer() {
-  if (await health()) return;
-  server = spawn(process.execPath, [path.join(ROOT, 'tools', 'serve.mjs')], { stdio: 'ignore', windowsHide: true });
-  for (let i = 0; i < 40 && !(await health()); i++) await sleep(150);
-  if (!(await health())) throw new Error('本地服务器启动失败');
-}
+// 没装 ffmpeg：说明一下就退出（/build-week 直接运行这条命令，不用先自己检查）
+if (spawnSync('ffmpeg', ['-version'], { stdio: 'ignore', windowsHide: true }).error) { console.log('没装 ffmpeg，跳过导出 mp4。装好 ffmpeg 后再运行这条命令就行。'); process.exit(0); }
 
 // ---------- 导出一个动画 ----------
 
@@ -133,7 +125,7 @@ try {
   const todo = mediaDirs.filter(d => flag('force') || !upToDate(d));
   for (const d of mediaDirs.filter(d => !todo.includes(d))) console.log(`- ${path.relative(ROOT, d).replaceAll('\\', '/')}：video.mp4 已是最新，跳过（--force 重做）`);
   if (todo.length) {
-    await ensureServer();
+    await ensureServer(ROOT, PORT);
     chrome = await launchChrome(path.join(ROOT, '.tmp', 'render-chrome'));
     for (const d of todo) await render(chrome, d);
   }
@@ -142,5 +134,4 @@ try {
   process.exitCode = 1;
 } finally {
   chrome?.close();
-  server?.kill();
 }

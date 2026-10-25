@@ -14,7 +14,7 @@ disable-model-invocation: true
 1. 参数里有 `lite` 就用**轻量档**（见文末「轻量档」），下面每一步按它的说明收缩。
 2. 从 `learner/state.md` 取主题 slug（下文记作 `<topic>`）和视觉主题（`site/manifest.json` 的 `topics.<topic>.theme`；新主题还没进 manifest 时看 `state.md` 的「视觉主题」，下文记作 `<theme>`）。新主题还没进 manifest 的，现在就在 manifest 的 `topics` 里建 `"<topic>": { "title": "主题名", "theme": "<theme>", "weeks": [] }`，不改 `current`（hub 上看不出变化）：这样课程页、组件和 QA 截图从一开始就用这门课的主题。周序号 N：用参数；没有参数就用当前周 + 1。`NN` 是两位数（`w00`、`w01`）。
 3. 记下开始时间（`date "+%F %T"`），结束时写进生成记录。
-4. 确认本地服务器在运行：`curl -s http://127.0.0.1:4321/api/health`。没有就用 Bash 的 `run_in_background` 启动 `node tools/serve.mjs`，整个流程期间保持运行（qa.mjs 依赖它）。
+4. 确保本地服务器在运行：`node tools/serve.mjs --detach`（已经在运行会直接说；没有就在后台启动，输出地址）。它是独立进程，整个流程期间一直运行。不要用 Bash 的 `run_in_background` 启动服务器（后台任务有时长上限，会被停掉），也不用 curl 检查。
 5. 告诉学习者：开始生成第 N 周，大约需要多久（完整档 3–4 小时，轻量档约一半），期间窗口要保持打开；可以随时在这里提问。
 
 ## 1. 规划
@@ -63,7 +63,7 @@ N = 0 时改为：「任务 B：规划 Week 0，只有一节 Day 0 导览课（�
 2. 更新 `learner/state.md`：当前周、「本周概念」（合并 build.json 各天的 `concepts`）、下一步。
 3. 在 `platform/build-log.md` 追加一行：日期、主题/周、课数、用时、修复轮次、被砍掉的部分、备注（例如有没有弹权限确认、哪个 agent 最慢）。
 4. 工作区是 git 仓库时：`git add -A`，然后 `git commit -m "build: <topic> wNN（N 节课）"`；有远端再 `git push`（见 CLAUDE.md「git」）。不是 git 仓库就跳过。
-5. **导出 mp4**（后台，不阻塞；轻量档、没装 ffmpeg 时跳过）：用 Bash 的 `run_in_background` 对每节课跑 `node tools/render-video.mjs site/lessons/<topic>/wNN/dN`，每个动画目录下生成 `video.mp4`（不进 git，可重新生成；约为动画时长的 1.7 倍）。
+5. **导出 mp4**（后台，不阻塞；轻量档跳过。没装 ffmpeg 时 render-video.mjs 会自己说明并跳过，不用先检查）：用 Bash 的 `run_in_background`（`timeout` 设成最大的 7200000：默认约 10 分钟就会被停）对每节课跑 `node tools/render-video.mjs site/lessons/<topic>/wNN/dN`，每个动画目录下生成 `video.mp4`（不进 git，可重新生成；约为动画时长的 1.7 倍）。
 6. 告诉学习者：本周课程已就绪（列出每天的标题和预计分钟），从 hub 或 `/today` 开始。
 
 ## 注意
