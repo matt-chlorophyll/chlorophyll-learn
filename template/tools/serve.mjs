@@ -14,6 +14,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { appendFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { learnerTimezone, nowIn } from './now.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = path.join(ROOT, 'site');
@@ -70,12 +71,10 @@ const TYPES = {
   '.wasm': 'application/wasm',
 };
 
-// 带时区的本地时间，便于分析"什么时候学习"
+// 带时区的时间，按学习者的时区（learner/profile.md，没写就用电脑的时区），便于分析"什么时候学习"
 function localIso(d = new Date()) {
-  const off = -d.getTimezoneOffset();
-  const pad = n => String(Math.floor(Math.abs(n))).padStart(2, '0');
-  const local = new Date(d.getTime() + off * 60000).toISOString().slice(0, 19);
-  return `${local}${off >= 0 ? '+' : '-'}${pad(off / 60)}:${pad(off % 60)}`;
+  const n = nowIn(learnerTimezone(ROOT).timezone, d);
+  return `${n.date}T${n.time}${n.offset}`;
 }
 
 function sendJson(res, status, obj) {

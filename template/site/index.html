@@ -85,7 +85,15 @@ const root = document.documentElement;
 const WEEKDAY = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ls = k => { try { return localStorage.getItem(k); } catch { return null; } };
-const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+// 今天的日期，按学习者的时区：manifest 的 timezone（/build-week 从 learner/profile.md 抄过来，UTC+8 或 Asia/Shanghai 这样）；
+// 没有就用电脑的时区
+function todayIn(tz) {
+  const d = new Date();
+  const off = /^UTC([+-])(\d{1,2})(?::(\d{2}))?$/.exec(tz || '');
+  if (off) return new Date(d.getTime() + (off[1] === '-' ? -1 : 1) * (Number(off[2]) * 60 + Number(off[3] || 0)) * 60000).toISOString().slice(0, 10);
+  try { if (tz) return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d); } catch { /* 看不懂的时区 */ }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------- 笔墨 / 昼夜 ----------
@@ -119,6 +127,8 @@ try {
   app.innerHTML = `<div class="wrap view-head"><p class="sub">读不到课程清单 manifest.json（${esc(e.message)}）。请确认是通过 start.cmd 打开的。</p></div>`;
   throw e;
 }
+
+const today = todayIn(m.timezone);
 
 const lab = document.getElementById('lab');
 if ((m.lab || []).length) {

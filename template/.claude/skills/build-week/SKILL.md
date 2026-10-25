@@ -13,7 +13,7 @@ disable-model-invocation: true
 
 1. 参数里有 `lite` 就用**轻量档**（见文末「轻量档」），下面每一步按它的说明收缩。
 2. 从 `learner/state.md` 取主题 slug（下文记作 `<topic>`）和视觉主题（`site/manifest.json` 的 `topics.<topic>.theme`；新主题还没进 manifest 时看 `state.md` 的「视觉主题」，下文记作 `<theme>`）。新主题还没进 manifest 的，现在就在 manifest 的 `topics` 里建 `"<topic>": { "title": "主题名", "theme": "<theme>", "weeks": [] }`，不改 `current`（hub 上看不出变化）：这样课程页、组件和 QA 截图从一开始就用这门课的主题。周序号 N：用参数；没有参数就用当前周 + 1。`NN` 是两位数（`w00`、`w01`）。
-3. 记下开始时间（`date "+%F %T"`），结束时写进生成记录。
+3. 运行 `node tools/now.mjs`，记下开始时间（学习者时区的日期、星期和时间；不用 `date` 命令，那是电脑的时区）。结束时再运行一次，用时写进生成记录。
 4. 确保本地服务器在运行：`node tools/serve.mjs --detach`（已经在运行会直接说；没有就在后台启动，输出地址）。它是独立进程，整个流程期间一直运行。不要用 Bash 的 `run_in_background` 启动服务器（后台任务有时长上限，会被停掉），也不用 curl 检查。
 5. 告诉学习者：开始生成第 N 周，大约需要多久（完整档 3–4 小时，轻量档约一半），期间窗口要保持打开；可以随时在这里提问。
 
@@ -21,9 +21,9 @@ disable-model-invocation: true
 
 派 `planner`：
 
-> 任务 B：规划第 N 周。主题 `<topic>`。（轻量档时加上：「轻量档：每天最多 1 个 viz、1 个 media，能用文字讲清的不做组件。」）（如有）上周复盘摘要：`learner/digests/<文件>`。（如有）`learner/state.md` 未结事项里待转给 planner 的内容，例如诊断题作答：<原样贴上>。完成后按约定返回。
+> 任务 B：规划第 N 周。主题 `<topic>`。今天（学习者时区）：<now.mjs 输出的日期和星期>。（轻量档时加上：「轻量档：每天最多 1 个 viz、1 个 media，能用文字讲清的不做组件。」）（如有）上周复盘摘要：`learner/digests/<文件>`。（如有）`learner/state.md` 未结事项里待转给 planner 的内容，例如诊断题作答：<原样贴上>。完成后按约定返回。
 
-N = 0 时改为：「任务 B：规划 Week 0，只有一节 Day 0 导览课（≤30 分钟），内容见 /new-topic 的要求」。
+N = 0 时改为：「任务 B：规划 Week 0，只有一节 Day 0 导览课（≤30 分钟），内容见 /new-topic 的要求。今天（学习者时区）：<日期和星期>」。
 
 然后读 `curriculum/<topic>/wNN/build.json`（只有本周的标题、组件 id、概念，可以读）。
 
@@ -57,6 +57,7 @@ N = 0 时改为：「任务 B：规划 Week 0，只有一节 Day 0 导览课（�
    - 在 manifest 的 `topics.<topic>.weeks` 里加入本周：`{ "week": N, "title": build.json 的 title, "lessons": [{ "day", "date", "title", "est", "path": "/lessons/<topic>/wNN/dN/" }] }`。
    - 主题第一次出现时先建 `topics.<topic> = { "title": "主题名", "theme": "<theme>", "weeks": [] }`。
    - 把 `current` 设为 `{ "topic": "<topic>", "week": N }`。
+   - 把 manifest 顶层的 `timezone` 设为 `node tools/now.mjs --json` 输出的 `timezone`（hub 用它判断哪节课是今天）。
    - 迷雾地图：在 `site/map.json` 的 `topics.<topic>.weeks` 里加入（已有同一周就替换）`{ "week": N, "days": [{ "day", "map": build.json 那天的 map }] }`。主题第一次出现时先建 `topics.<topic> = { "regions": build.json 的 regions, "weeks": [] }`；build.json 带了新区域（只会加在末尾）就追加到 `regions` 末尾，已有区域的顺序和 `lanes` 不动。
    - 合完检查 map.json：`id` 不重复，每个 `links` 指向的 id 都已经在 map.json 里，每个 `region` 都在 `regions` 里。有问题让 planner 改 build.json，不要自己编连线。
    - **例外**：上一周的课还没学完（看 `state.md` 的本周进度），而且今天还在上一周里，就先不改 manifest 和 map.json，在 `state.md` 记「第 N 周已生成，等上一周学完或新的一周开始时开放」；之后由 `/today` 开放，两个文件一起改。Week 0 和第 1 周直接开放。
