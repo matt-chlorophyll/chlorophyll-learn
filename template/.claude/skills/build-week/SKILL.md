@@ -68,6 +68,7 @@ N = 0 时改为：「任务 B：规划 Week 0，只有一节 Day 0 导览课（�
 
 ## 注意
 
+- 派出的 subagent 完成时你会收到通知，等通知就行：不要用 `sleep` 轮询，也不要反复查输出文件（白名单以外的命令都要学习者点确认）。
 - 生成过程中学习者可能来问问题：照常回答（遵守深挖拦截），subagent 在后台继续跑。
 - 如果 `planner`、`writer` 等 agent 类型不可用（新加的 agent 要重启 Claude Code 才生效），用 `general-purpose` 代替，提示开头加：「先读 `.claude/agents/<名字>.md`，严格按它的说明工作。」
 - 额度紧张时用轻量档；还不够，在对应 agent 文件的 frontmatter 把 `model` 改成 `sonnet`（writer 优先降级）。

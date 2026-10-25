@@ -51,6 +51,25 @@ function copy(from, to) {
   copyFileSync(from, to);
 }
 
+// .claude/settings.json 是种子文件，但新版本加的权限设置要带给老用户：只补模板这次新加的 allow 条目和 defaultMode。
+// install.json 记着上次装进来的模板设置，学习者自己删掉的条目不会被加回来（从没有这份记录的 0.1.0 更新时，模板里有、工作区里没有的都补上）
+const SETTINGS = '.claude/settings.json';
+const templatePerms = () => JSON.parse(readFileSync(path.join(TEMPLATE, SETTINGS), 'utf8')).permissions ?? {};
+function mergeSettings(seeded) {
+  const abs = path.join(target, SETTINGS);
+  let cur;
+  try { cur = JSON.parse(readFileSync(abs, 'utf8')); } catch { return null; } // 不是合法的 JSON：不动它
+  const tpl = templatePerms(), perms = (cur.permissions ??= {}), allow = (perms.allow ??= []);
+  const added = (tpl.allow ?? []).filter(r => !seeded?.allow?.includes(r) && !allow.includes(r));
+  allow.push(...added);
+  if (tpl.defaultMode && !seeded?.defaultMode && !perms.defaultMode) {
+    perms.defaultMode = tpl.defaultMode;
+    added.push(`defaultMode: ${tpl.defaultMode}`);
+  }
+  if (added.length) writeFileSync(abs, JSON.stringify(cur, null, 2) + '\n');
+  return added;
+}
+
 // ---------- 环境检查 ----------
 
 function run(cmd, a) {
@@ -78,7 +97,7 @@ async function checkEnv(ws) {
 
 // ---------- 安装 / 更新 ----------
 
-const summary = { target, version: VERSION, mode: null, created: [], updated: [], backedUp: [], keptLocal: [], removed: [], keptModified: [], seedsKept: 0, backupDir: null };
+const summary = { target, version: VERSION, mode: null, created: [], updated: [], backedUp: [], keptLocal: [], removed: [], keptModified: [], seedsKept: 0, settingsAdded: [], backupDir: null };
 
 if (!flag('check')) {
   if (!existsSync(TEMPLATE)) throw new Error(`插件里找不到模板：${TEMPLATE}`);
@@ -137,6 +156,8 @@ if (!flag('check')) {
     if (sha(abs) === h) { rmSync(abs); summary.removed.push(dest); } else summary.keptModified.push(dest);
   }
 
+  if (prev && !summary.created.includes(SETTINGS)) summary.settingsAdded = mergeSettings(prev.settings);
+
   if (!existsSync(path.join(target, '.env')) && existsSync(path.join(target, '.env.example'))) {
     copyFileSync(path.join(target, '.env.example'), path.join(target, '.env'));
     summary.created.push('.env');
@@ -144,7 +165,7 @@ if (!flag('check')) {
   if (process.platform !== 'win32') { try { chmodSync(path.join(target, 'start.sh'), 0o755); } catch { /* 没有就算了 */ } }
 
   mkdirSync(path.dirname(stateFile), { recursive: true });
-  writeFileSync(stateFile, JSON.stringify({ version: VERSION, installedAt: prev?.installedAt ?? new Date().toISOString(), updatedAt: new Date().toISOString(), files }, null, 2) + '\n');
+  writeFileSync(stateFile, JSON.stringify({ version: VERSION, installedAt: prev?.installedAt ?? new Date().toISOString(), updatedAt: new Date().toISOString(), files, settings: templatePerms() }, null, 2) + '\n');
 }
 
 summary.env = await checkEnv(target);
@@ -158,6 +179,8 @@ if (summary.mode === 'update') {
   if (summary.keptLocal.length) console.log(`  你改过、新版本没改的 ${summary.keptLocal.length} 个文件保留了你的版本：${summary.keptLocal.join('、')}`);
   if (summary.backedUp.length) console.log(`  你改过、新版本也改了的 ${summary.backedUp.length} 个文件换成了新版本，你的版本备份在 ${summary.backupDir}/：${summary.backedUp.join('、')}`);
   if (summary.keptModified.length) console.log(`  新版本不再需要、但你改过的文件（留着没删）：${summary.keptModified.join('、')}`);
+  if (summary.settingsAdded?.length) console.log(`  ${SETTINGS} 补上了新版本的权限设置：${summary.settingsAdded.join('、')}`);
+  if (summary.settingsAdded === null) console.log(`  ${SETTINGS} 不是合法的 JSON，没有补上新版本的权限设置`);
 }
 console.log('环境：');
 console.log(`  ${mark(e.node.ok)} Node.js ${e.node.version}${e.node.ok ? '' : '（需要 22 或更新）'}`);
