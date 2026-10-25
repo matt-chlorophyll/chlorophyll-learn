@@ -12,7 +12,10 @@ disable-model-invocation: true
 
 ```
 node tools/events.mjs --since <state.md 里的「事件已处理到」>
+node tools/version.mjs
 ```
+
+`version.mjs` 检查 Chlorophyll-Learn 有没有新版本：一天最多查一次，同一个新版本只提醒一次。没有输出就是不用管。
 
 再读 `learner/state.md`、`site/manifest.json`，以及当前周的 `curriculum/<topic>/wNN/build.json`（只含本周标题、概念和题目对应的概念，可以读）。
 
@@ -30,6 +33,8 @@ node tools/events.mjs --since <state.md 里的「事件已处理到」>
 运行 `node tools/serve.mjs --detach`：已经在运行会直接说，没有就在后台启动，输出地址。然后打开课程 `<地址>lessons/<topic>/wNN/dN/`（打开网页的命令见 CLAUDE.md「平台速查」）。
 
 告诉学习者：今天的标题、预计分钟、一句话说今天的重点。如果昨天有「这里没懂」或错得多的题，用 2–4 句直接在这里讲清楚（最小必要深度），不用等课件调整。
+
+version.mjs 有输出（有新版本）：在最后加一句，转告新版本号和它给的两步更新方法，建议下课后再更新（要重启 Claude Code）。学习者要你帮忙更新插件，就运行那两条 `claude plugin …` 命令（会弹确认），然后提醒学习者重启 Claude Code，在工作区里运行 `/chlorophyll-learn:setup`。
 
 昨天打卡写了「讲给老师听」的，先回应它：对照 build.json 那天的 `concepts`，用 2–3 句说讲对了什么，漏了或讲偏了哪个最重要的概念，再补一句正确说法就停。先说讲对的部分；没写就不提。
 
