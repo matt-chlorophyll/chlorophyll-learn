@@ -20,7 +20,7 @@ node tools/events.mjs --since <state.md 里的「事件已处理到」>
 
 - `state.md` 里记着「第 N 周已生成，等…开放」，而且上一周的课都打卡了，或者今天已经是第 N 周的第一天：先按 `/build-week` 第 4 步第 1 条开放第 N 周（manifest 和 map.json 一起改），并按第 4 步第 2 条更新 `state.md`。
 
-- 今天的日期（按 `learner/profile.md` 里的时区）对应 manifest 当前周里 `date` 相同的那节课。
+- 今天的日期：运行 `node tools/now.mjs`（按 `learner/profile.md` 里的时区；不用 `date` 命令，那是电脑的时区）。它对应 manifest 当前周里 `date` 相同的那节课。
 - 有更早的课没打卡：问学习者是先补那节，还是直接学今天的（没学的不堆积，后面交给 planner 合并）。
 - 今天是周六或周日：周末以练为主。直接带学习者复习本周「这里没懂」、标"模糊"的概念和停车场的周末问（周末练习还没做成命令，见 CLAUDE.md「命令」）。
 - 本周课程全部打卡了：恭喜，说说这周完成了什么；建议周末做练习和复盘，然后 `/build-week` 生成下一周。

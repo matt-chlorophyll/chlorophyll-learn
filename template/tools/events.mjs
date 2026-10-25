@@ -2,7 +2,8 @@
 // events.mjs — 把 learner/events.jsonl 压缩成按课程汇总的 markdown（/today、周复盘用；不要直接读整个 events.jsonl）
 //
 // 用法：node tools/events.mjs [--since <时间>] [--until <时间>] [--prefix <路径前缀>] [--lab]
-//   --since/--until：ISO 日期或时间，如 2026-10-19 或 2026-10-19T21:00（按事件的本地时间比较）
+//   --since/--until：ISO 日期或时间，如 2026-10-19 或 2026-10-19T21:00（按事件的本地时间比较）；
+//     带时区偏移的（如 2026-10-19T21:00:00+08:00）按绝对时间比较
 //   --prefix：只看某个路径下的课程，如 lessons/<topic>/w01
 //   --lab：包含 /lab/ 下的测试页（默认排除）
 //   --answers <课程路径>：只列那节课你当时的作答和留言（带 ts），写回看快照用（data-was、data-at），如 lessons/<topic>/w00/d0
@@ -19,6 +20,9 @@ const FILE = path.join(ROOT, 'learner', 'events.jsonl');
 const argv = process.argv.slice(2);
 const flag = name => { const i = argv.indexOf(`--${name}`); return i >= 0 ? argv[i + 1] : undefined; };
 const since = flag('since'), until = flag('until');
+// 带时区偏移的时间（「事件已处理到」记的就是这种）按绝对时间比较，电脑和学习者的时区不同、换过时区也不会错；
+// 只写日期或时刻的，按事件的本地时间比较
+const cmp = (ts, bound) => (/(Z|[+-]\d\d:\d\d)$/.test(bound) ? Date.parse(ts) - Date.parse(bound) : ts < bound ? -1 : ts > bound ? 1 : 0);
 const prefix = flag('prefix') && `/${flag('prefix').replaceAll('\\', '/').replace(/^[A-Za-z]:\/.*?\/Git\//, '').replace(/^\/+/, '')}`;
 const includeLab = argv.includes('--lab');
 const answersOf = flag('answers') && `/${flag('answers').replaceAll('\\', '/').replace(/^[A-Za-z]:\/.*?\/Git\//, '').replace(/^(.*\/)?site\//, '').replace(/^\/+/, '').replace(/index\.html$/, '').replace(/\/?$/, '/')}`;
@@ -27,7 +31,7 @@ if (!existsSync(FILE)) { console.log('还没有任何学习事件（learner/even
 
 const events = (await readFile(FILE, 'utf8')).split(/\r?\n/).filter(Boolean).flatMap(l => {
   try { return [JSON.parse(l)]; } catch { return []; }
-}).filter(e => (!since || e.ts >= since) && (!until || e.ts < until));
+}).filter(e => (!since || cmp(e.ts, since) >= 0) && (!until || cmp(e.ts, until) < 0));
 
 // 先猜题：id p1、p2…，选择题和回想题都有（新事件另有 guess: true）。「还不确定」：选项 x（新事件另有 unsure: true），和答错分开写
 const isGuess = a => a.guess === true || /^p\d+$/.test(a.id);
