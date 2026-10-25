@@ -61,7 +61,7 @@
 - hub 的课程清单 `site/manifest.json`：只放已开放的周。
 - hub 的迷雾地图 `site/map.json`：每节课的概念节点（短标签、区域、连线），和 manifest 一样只放已开放的周，由 `/build-week` 第 4 步合进去。hub 用拨云（Boyun）设计系统（`site/assets/boyun/`）。
 - 视觉主题：`site/assets/themes/`（quest 工程/编程、ink 文科、anatomy 数学/金融/理论；规范见其中的 README.md），每门课在 manifest 的 `topics.<topic>.theme` 指定。样例页在 http://localhost:4321/lab/themes/。
-- 工具：`tools/tts.mjs`（配音；`.env` 里没有 TTS key 或没装 ffmpeg 时自动改成无配音的字幕版）、`tools/qa.mjs`（课程 QA + 截图，用本机的 Chrome 或 Edge）、`tools/events.mjs`（学习事件汇总）、`tools/render-video.mjs`（配音动画导出 mp4，需要 ffmpeg）。
+- 工具：`tools/tts.mjs`（配音；`.env` 里没有 TTS key 或没装 ffmpeg 时自动改成字幕版，播放时由浏览器朗读）、`tools/qa.mjs`（课程 QA + 截图，用本机的 Chrome 或 Edge）、`tools/events.mjs`（学习事件汇总）、`tools/render-video.mjs`（配音动画导出 mp4，需要 ffmpeg）。
 - 问老师：课程页的面板（`site/assets/lh-ask.js`）→ `POST /api/ask`（`tools/ask.mjs`）调用 `claude -p`，不带任何工具，用学习者自己的 Claude Code 登录额度；`.env` 里可用 `ASK_MODEL`、`ASK_EFFORT` 换模型和思考强度。面板里可以「发送，稍后看」；页面中途刷新或关掉，回答也照常记进学习记录。
 - 回看：课文里的回指（`<lh-recall ref>`）点开小窗，看之前学过的题、讲解、留言的快照（`site/assets/lh-recall.js`）；写法和快照格式见风格指南第 4 节「回指回看」。从小窗的「去原文」打开的旧课带 `?from=recall`：只读、不计时。
 - 风格指南 `platform/style-guide.md`；发音词表 `platform/pronunciation.md`；TTS 默认配置 `platform/tts.json`；生成记录 `platform/build-log.md`。

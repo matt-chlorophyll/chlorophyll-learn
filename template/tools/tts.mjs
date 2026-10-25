@@ -13,7 +13,7 @@
 //
 // - 每个 beat 单独合成，按内容哈希缓存在 .cache/tts/；改稿后重跑只会重新合成改动过的 beat。
 // - 时长由解码后的采样数精确计算，所以 timeline.json 与 audio.mp3 严格对齐。
-// - provider=silent 不调用任何 API，按字数估算时长，只写 timeline.json（不生成音频，播放器用字幕版）。
+// - provider=silent 不调用任何 API，按字数估算时长，只写 timeline.json（不生成音频；播放器显示字幕，默认用浏览器朗读）。
 //   没有指定 --provider、而默认 provider 的 key 没填或没装 ffmpeg 时，自动改用 silent。
 // - 默认配置在 platform/tts.json，发音词表在 platform/pronunciation.md。
 
@@ -395,7 +395,10 @@ async function synthesize(dir, flags) {
     const start = cursor;
     const end = start + pcms[i].length / 2 / SR;
     const speaker = dialog && b.speaker === 'b' ? { speaker: 'b' } : {};
-    timelineBeats.push({ id: b.id, start: r3(start), end: r3(end), text: b.text, ...speaker });
+    // 无配音时播放器用浏览器朗读：读法和字幕不同（say、发音词表）就把读法也写进时间轴
+    const spoken = applyGlossary(b.say ?? b.text, glossary);
+    const say = provider === 'silent' && spoken !== b.text ? { say: spoken } : {};
+    timelineBeats.push({ id: b.id, start: r3(start), end: r3(end), text: b.text, ...say, ...speaker });
     cues.push(...makeCues(b.text, start, end).map(cue => ({ ...cue, ...speaker })));
     const pause = i === beats.length - 1 ? 0.6 : (b.pauseAfter ?? base.pauseAfterBeat ?? 0.35);
     chunks.push(pcms[i], silence(pause));
