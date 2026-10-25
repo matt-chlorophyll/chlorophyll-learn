@@ -211,7 +211,7 @@ Chlorophyll-Learn 比较重，生成课程要用不少额度。
 - 只有简体中文：老师、课程和网页都是中文。
 - 周末练习和每周复盘还没做成命令，由老师在对话里手动带。
 - 主要在一个主题（作者自己在学的 AI 工程）上用过，其他学科刚开始试。
-- 主要在 Windows 上用过；macOS 上从安装到 Day 0 跑通过一次，Linux 还没在真机上试过。
+- 主要在 Windows 上用过；macOS 上从安装到 Day 0 跑通过一次。Linux 只在 WSL 的 Ubuntu 上测过 setup、`start.sh`、QA 截图和导出 mp4，还没用 Linux 生成过课程。WSL 里浏览器没有自动打开的话，在 Windows 的浏览器里打开 `start.sh` 给出的地址就行。
 - 比较重，费额度，见「额度和时间」。生成一周时 Claude Code 窗口要一直开着。
 - 要用 Claude Code 的命令行版：只用桌面版 Claude 的，先按「需要什么」装命令行版。
 
