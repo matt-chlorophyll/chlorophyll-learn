@@ -33,8 +33,8 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/setup.mjs" "<工作区文件夹>"
 1. 环境里有 ✗ 的，按下面给出一句话的解决办法（可选的项说明"不装也能用"）：
    - Claude Code 找不到：「问老师」要用命令行里的 `claude`，确认 `claude --version` 能运行。
    - 浏览器：装 Chrome，或者在工作区 `.env` 里用 `CHROME_BIN` 指定 Chrome / Edge 的路径。
-   - ffmpeg（可选）：Windows `winget install Gyan.FFmpeg`，macOS `brew install ffmpeg`，Linux 用包管理器。没有它，配音动画是无配音的字幕版，也不能导出 mp4。
-   - 配音 key（可选）：在工作区的 `.env` 里填 `MINIMAX_API_KEY`（中文推荐，https://www.minimax.io ）或 `ELEVENLABS_API_KEY`。没有 key 也能上课，配音动画只显示字幕。提醒用户不要把 key 贴到对话里，自己打开 `.env` 填。
+   - ffmpeg（可选）：Windows `winget install Gyan.FFmpeg`，macOS `brew install ffmpeg`，Linux 用包管理器。没有它，配音动画是字幕版（播放时由浏览器朗读），也不能导出 mp4。
+   - 配音 key（可选）：在工作区的 `.env` 里填 `MINIMAX_API_KEY`（中文推荐，https://www.minimax.io ）或 `ELEVENLABS_API_KEY`。没有 key 也能上课：配音动画显示字幕，播放时由浏览器免费朗读（Edge 的在线声音最自然），音质不如 MiniMax。提醒用户不要把 key 贴到对话里，自己打开 `.env` 填。
 2. git（可选）：工作区还不是 git 仓库、电脑上有 git 时，问一句要不要初始化（推荐：能回看每周生成了什么，出问题可以回退）。要的话在工作区里运行 `git init`，再 `git add -A` 和 `git commit -m "init: Chlorophyll-Learn <版本>"`。提醒：以后推到远端，仓库一定要设成私有，里面有学习档案和隐藏路线图。
 3. 告诉用户下一步（照这个顺序，简短）：
    - 在工作区里重新打开 Claude Code：`cd "<工作区文件夹>"`，然后 `claude`。老师规则、命令和 subagent 都在工作区里，要在那里打开才会生效。

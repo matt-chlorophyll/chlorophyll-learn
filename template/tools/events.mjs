@@ -141,11 +141,12 @@ for (const [key, evs] of [...lessons].sort((a, b) => a[1][0].ts.localeCompare(b[
     if (m.max != null) s.max = Math.max(s.max, m.max);
     if (m.duration) s.duration = m.duration;
     if (m.type === 'media_speed') s.speed = m.speed;
+    if (m.type === 'media_tts') s.tts = m.on;
     if (m.type === 'media_ended') s.ended = true;
     media.set(id, s);
   }
   if (media.size) {
-    out.push(`- 配音动画：${[...media].map(([id, s]) => `${id} ${s.ended ? '看完' : `到 ${s.duration ? Math.round((s.max / s.duration) * 100) : '?'}%`}${s.speed && s.speed !== 1 ? `（${s.speed}×）` : ''}`).join('，')}`);
+    out.push(`- 配音动画：${[...media].map(([id, s]) => `${id} ${s.ended ? '看完' : `到 ${s.duration ? Math.round((s.max / s.duration) * 100) : '?'}%`}${s.speed && s.speed !== 1 ? `（${s.speed}×）` : ''}${s.tts === false ? '（关了浏览器朗读）' : ''}`).join('，')}`);
   }
 
   // 回看：点开了哪些回指（ref），同一处点了几次

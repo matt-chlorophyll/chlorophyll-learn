@@ -21,6 +21,7 @@
 // - 音频和时间轴默认取同目录的 audio.mp3 / timeline.json；URL 加 ?media=<目录>/ 可以换一套配音。
 // - 无配音模式：timeline.json 的 provider 是 "silent"（没有 TTS key 时 tts.mjs 自动生成）就不加载音频，
 //   用一个和 <audio> 接口相同的时钟（SilentClock）驱动画面，字幕始终打开。
+//   默认用浏览器朗读字幕（Narrator，Web Speech API），时钟跟着读到哪句走；播放器里可以关，选择记在浏览器里。
 // - QA 钩子：window.__LH.seekBeat('terms', 0.5) 后截图，即可检查任意时刻的画面。
 
 import { log } from './lh-log.js';
@@ -42,49 +43,88 @@ export const ease = {
 const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
 
-// 无配音时代替 <audio>：只实现播放器用到的部分（currentTime、paused、ended、playbackRate、play/pause 和三个事件）
+// 无配音时代替 <audio>：只实现播放器用到的部分（currentTime、paused、ended、playbackRate、play/pause 和三个事件）。
+// 开着浏览器朗读时，时钟只在 Narrator 给的窗口 [lo, hi] 里按正常速度走：落在 lo 前面（读得比估算的快）就 3 倍速追，
+// 走到 hi（读得慢）就停住等；到了 hi 有 onReach 就调用它。
 class SilentClock extends EventTarget {
   constructor(duration) {
     super();
     this.duration = duration;
     this.paused = true;
-    this.playbackRate = 1;
+    this.narrator = null;
+    this._rate = 1;
     this._t = 0;
     this._since = 0;
     this._timer = 0;
+    this._lo = -Infinity;
+    this._hi = Infinity;
+    this._onReach = null;
   }
   get currentTime() {
     if (this.paused) return this._t;
-    return Math.min(this.duration, this._t + ((performance.now() - this._since) / 1000) * this.playbackRate);
+    const dt = ((performance.now() - this._since) / 1000) * this._rate;
+    const t = this._t, hi = Math.min(this._hi, this.duration);
+    if (t >= hi) return t;
+    const fast = Math.max(0, this._lo - t) / 3; // 追到 lo 要用掉的 dt
+    return dt <= fast ? t + dt * 3 : Math.min(hi, Math.max(t, this._lo) + dt - fast);
   }
   set currentTime(t) {
     this._t = clamp(t, 0, this.duration);
     this._since = performance.now();
-    if (!this.paused) this._schedule();
+    if (!this.paused) this._go(true);
   }
   get ended() { return this.currentTime >= this.duration; }
   get playbackRate() { return this._rate; }
   set playbackRate(r) {
-    if (this._rate && !this.paused) { this._t = this.currentTime; this._since = performance.now(); }
+    this._commit();
     this._rate = r;
     if (!this.paused) this._schedule();
   }
+  _commit() {
+    if (!this.paused) { this._t = this.currentTime; this._since = performance.now(); }
+  }
+  setWindow(lo, hi, onReach = null) {
+    this._commit();
+    this._lo = lo;
+    this._hi = hi;
+    this._onReach = onReach;
+    if (!this.paused) this._schedule();
+  }
+  setNarrator(n) {
+    this.narrator?.stop();
+    this.narrator = n;
+    this.setWindow(-Infinity, Infinity);
+    if (!this.paused) this._go();
+  }
+  // 开始走（播放、播放中拖动）：有朗读就交给它从当前位置读起
+  _go(seek = false) {
+    if (this.narrator) this.narrator.start(seek);
+    else this._schedule();
+  }
   _schedule() {
     clearTimeout(this._timer);
-    this._timer = setTimeout(() => {
-      this._t = this.duration;
-      this.paused = true;
-      this.dispatchEvent(new Event('pause'));
-      this.dispatchEvent(new Event('ended'));
-    }, ((this.duration - this._t) / this._rate) * 1000);
+    const end = Math.min(this._hi, this.duration);
+    const done = end === this.duration ? () => this._end() : this._onReach;
+    if (!done) return;
+    const t = this._t, fast = Math.max(0, Math.min(this._lo, end) - t);
+    const ms = ((fast / 3 + Math.max(0, end - t - fast)) / this._rate) * 1000;
+    this._timer = setTimeout(() => { this._commit(); done(); }, ms);
+  }
+  _end() {
+    this._t = this.duration;
+    this.paused = true;
+    this.narrator?.stop();
+    this.dispatchEvent(new Event('pause'));
+    this.dispatchEvent(new Event('ended'));
   }
   play() {
     if (!this.paused) return Promise.resolve();
     if (this._t >= this.duration) this._t = 0;
     this._since = performance.now();
     this.paused = false;
-    this._schedule();
+    // 先发 play：播放器借这个事件暂停同页的其它动画（它们会停掉自己的朗读），然后才开始读
     this.dispatchEvent(new Event('play'));
+    this._go();
     return Promise.resolve();
   }
   pause() {
@@ -92,8 +132,158 @@ class SilentClock extends EventTarget {
     this._t = this.currentTime;
     this.paused = true;
     clearTimeout(this._timer);
+    this.narrator?.stop();
     this.dispatchEvent(new Event('pause'));
   }
+}
+
+// 朗读时长的粗略权重，和 tools/tts.mjs 的 weight 一致：汉字 1，英文单词 1.6，数字 0.7
+function weight(s) {
+  const cjk = (s.match(/[一-鿿]/g) || []).length;
+  const words = (s.match(/[A-Za-z]+/g) || []).length;
+  const digits = (s.match(/\d/g) || []).length;
+  return Math.max(0.5, cjk + words * 1.6 + digits * 0.7);
+}
+
+// 按句切开朗读：Chrome 的在线声音一次读太长（约 15 秒）会断。过长的句子再按逗号切。
+function splitSpeech(text, max = 40) {
+  const out = [];
+  for (const sentence of text.match(/[^。！？!?；;\n]+[。！？!?；;]*[”’」』）)]*/g) || [text]) {
+    if (weight(sentence) <= max) { out.push(sentence); continue; }
+    let buf = '';
+    for (const piece of sentence.match(/[^，,、：:]+[，,、：:]*/g) || [sentence]) {
+      if (buf && weight(buf + piece) > max) { out.push(buf); buf = piece; } else buf += piece;
+    }
+    if (buf) out.push(buf);
+  }
+  const parts = out.map(s => s.trim()).filter(s => /[\p{L}\p{N}]/u.test(s));
+  return parts.length ? parts : [text];
+}
+
+// 选声音：普通话（大陆优先，不用粤语），在线的自然人声优先（Edge 的 "Online (Natural)"、Chrome 的 Google 普通话），
+// 没有就用系统自带的中文声音。双人对话的第二个声音要同一档的另一个，没有就同一个声音读（字幕颜色照样分开）。
+function pickVoices(list) {
+  const score = v =>
+    (/^(zh|cmn)[-_](Hans[-_])?CN$/i.test(v.lang) ? 8 : /CN|Hans/i.test(v.lang) ? 6 : 4) +
+    (/natural|premium|enhanced/i.test(v.name) ? 2 : 0) + (v.localService ? 0 : 1) +
+    (/xiaoxiao|晓晓/i.test(v.name) ? 0.5 : /yunxi\b|云希/i.test(v.name) ? 0.25 : 0);
+  const zh = list.filter(v => /^(zh|cmn)([-_]|$)/i.test(v.lang) && !/HK|yue/i.test(v.lang)).sort((x, y) => score(y) - score(x));
+  if (!zh.length) return null;
+  const [a, b] = zh;
+  return { a, b: b && Math.floor(score(b)) === Math.floor(score(a)) ? b : a };
+}
+
+// 浏览器朗读（Web Speech API）：字幕版的免费配音。每个 beat 按句排进朗读队列，读到哪句，时钟就在那句的时间范围里走；
+// beat 之间照常停顿。暂停、拖动时取消，继续播放时从当前这句的开头重读。
+class Narrator {
+  constructor(clock, timeline) {
+    this.clock = clock;
+    this.speed = timeline.speed || 1;
+    this.voices = null;
+    this.onFail = null;
+    this.units = []; // 每句：beat 序号、估算的时间范围、要读的文字
+    timeline.beats.forEach((b, beat) => {
+      const parts = splitSpeech(b.say ?? b.text);
+      const ws = parts.map(weight);
+      const total = ws.reduce((x, y) => x + y, 0);
+      let t = b.start;
+      parts.forEach((text, i) => {
+        const d = ((b.end - b.start) * ws[i]) / total;
+        this.units.push({ beat, start: t, end: t + d, text, speaker: b.speaker });
+        t += d;
+      });
+    });
+    this._gen = 0; // 每次 stop 加一：旧的朗读事件晚到时认得出来，不再理会
+    this._dog = 0;
+    this._live = [];
+  }
+  // 返回有没有能用的声音。在线声音出过错（offline）以后只用系统自带的
+  setVoices(list) {
+    this._list = list;
+    const v = pickVoices(this.offline ? list.filter(x => x.localService) : list);
+    if (v) this.voices = v;
+    return !!v;
+  }
+  stop() {
+    this._gen++;
+    clearTimeout(this._dog);
+    this._live = [];
+    speechSynthesis.cancel();
+  }
+  // 从时钟的位置读起。播放、打开朗读：在一句中间就退回句首重读（停在句尾等朗读时暂停的，也重读这句）。
+  // 播放中拖动、快进（seek）：落在一句的后半就从下一句读起，免得往回跳
+  start(seek = false) {
+    this.stop();
+    const gen = this._gen, c = this.clock;
+    let k = this.units.findIndex(u => c._t <= u.end);
+    if (seek && k >= 0 && c._t > (this.units[k].start + this.units[k].end) / 2) c._t = this.units[k++].end;
+    c._since = performance.now();
+    const u = this.units[k];
+    if (!u) return c.setWindow(-Infinity, Infinity); // 最后一句之后：照常走到结尾
+    if (c._t < u.start) return this._wait(k, gen); // 在 beat 之间的停顿里
+    c._t = u.start;
+    this._speak(k, gen);
+  }
+  // 时钟走到第 k 句的开头再读（beat 之间的停顿）；上一句读得快，就先追到上一句的结尾
+  _wait(k, gen) {
+    this.clock.setWindow(k ? this.units[k - 1].end : -Infinity, this.units[k].start, () => gen === this._gen && this._speak(k, gen));
+  }
+  // 读第 k 句。一句一句地排：倍速、换声音从下一句起就生效
+  _speak(k, gen) {
+    const c = this.clock, u = this.units[k], next = this.units[k + 1];
+    c.setWindow(u.start, u.start); // 真的开始读之前，画面停在句首等
+    const ut = new SpeechSynthesisUtterance(u.text);
+    clearTimeout(this._dog);
+    this._dog = setTimeout(() => this._error(k, gen, ut.voice, 'timeout'), 8000); // 一直不开始就当读不出来
+    ut.voice = u.speaker === 'b' ? this.voices.b : this.voices.a;
+    ut.lang = ut.voice.lang;
+    ut.rate = c.playbackRate * this.speed;
+    ut.onstart = () => {
+      if (gen !== this._gen) return;
+      clearTimeout(this._dog);
+      c.setWindow(u.start, u.end);
+    };
+    ut.onend = () => {
+      if (gen !== this._gen) return;
+      if (!next) c.setWindow(u.end, Infinity); // 读完最后一句：走到结尾
+      else if (next.beat === u.beat || document.hidden) this._speak(k + 1, gen); // 同一个 beat 接着读；页面在后台时定时器会被限流，也直接读
+      else this._wait(k + 1, gen); // beat 之间照常停顿
+    };
+    ut.onerror = e => {
+      if (e.error !== 'interrupted' && e.error !== 'canceled') this._error(k, gen, ut.voice, e.error);
+    };
+    this._live = [ut]; // 留着引用：Chrome 会回收没人引用的 utterance，之后的事件就收不到了
+    speechSynthesis.speak(ut);
+  }
+  // 读不出来：在线声音（比如断网时）先换系统自带的声音重读这句，还不行就回到静音字幕版
+  _error(k, gen, voice, reason) {
+    if (gen !== this._gen) return;
+    if (!voice.localService && !this.offline) {
+      this.offline = true;
+      if (this.setVoices(this._list)) {
+        this.stop();
+        return this._speak(k, this._gen);
+      }
+    }
+    this._fail(reason);
+  }
+  _fail(reason) {
+    if (this.clock.narrator !== this) return;
+    this.clock.setNarrator(null);
+    this.onFail?.(reason);
+  }
+}
+
+// 浏览器的声音列表：Chrome、Edge 要等 voiceschanged 才有，最多等 2 秒
+function loadVoices() {
+  const synth = window.speechSynthesis;
+  if (!synth) return Promise.resolve([]);
+  if (synth.getVoices().length) return Promise.resolve(synth.getVoices());
+  return new Promise(resolve => {
+    const done = () => resolve(synth.getVoices());
+    synth.addEventListener('voiceschanged', done, { once: true });
+    setTimeout(done, 2000);
+  });
 }
 
 function makeCtx(timeline) {
@@ -372,6 +562,38 @@ export async function mountScene(scene, opts = {}) {
   if (silent) ccBtn.hidden = true; // 没有配音时字幕就是全部内容，不让关
   else ccBtn.addEventListener('click', () => applyCc(root.classList.contains('cc-off')));
 
+  // 浏览器朗读（只在无配音时；默认开，全局偏好）。浏览器没有中文声音就不显示开关，保持静音字幕版
+  if (silent && window.speechSynthesis) {
+    const narrator = new Narrator(audio, timeline);
+    const ttsBtn = el('button', 'lh-ccbtn lh-ttsbtn', '朗读');
+    ttsBtn.hidden = true;
+    ccBtn.after(ttsBtn);
+    const applyTts = (on, save = true) => {
+      audio.setNarrator(on ? narrator : null);
+      ttsBtn.classList.toggle('on', on);
+      ttsBtn.title = on ? `浏览器朗读：${narrator.voices.a.name}（点一下关掉）` : '浏览器朗读（点一下打开）';
+      playBtn.title = on ? '播放/暂停（空格）' : '播放/暂停（空格）：这段动画没有配音，看字幕';
+      if (save) localStorage.setItem('lh.tts', on ? '1' : '0');
+    };
+    narrator.onFail = reason => {
+      applyTts(false, false);
+      ttsBtn.title = `朗读出错（${reason}），先看字幕；点一下重试`;
+    };
+    ttsBtn.addEventListener('click', () => {
+      applyTts(!ttsBtn.classList.contains('on'));
+      log('media_tts', { media: mediaId, on: ttsBtn.classList.contains('on') });
+    });
+    // Edge 的在线声音可能晚一点才加进列表：每次列表变化都重新挑，下一句起生效
+    const onVoices = list => {
+      if (!narrator.setVoices(list) || !ttsBtn.hidden) return;
+      ttsBtn.hidden = false;
+      applyTts(localStorage.getItem('lh.tts') !== '0', false);
+    };
+    loadVoices().then(onVoices);
+    speechSynthesis.addEventListener('voiceschanged', () => onVoices(speechSynthesis.getVoices()));
+    window.addEventListener('pagehide', () => speechSynthesis.cancel());
+  }
+
   // 全屏（嵌在 iframe 里时需要 allow="fullscreen"）
   const toggleFs = () => (document.fullscreenElement ? document.exitFullscreen() : root.requestFullscreen?.().catch(() => {}));
   fsBtn.addEventListener('click', toggleFs);
@@ -415,6 +637,7 @@ export async function mountScene(scene, opts = {}) {
     },
     play: () => audio.play(),
     pause: () => audio.pause(),
+    tts: () => audio.narrator?.voices.a.name ?? null, // 正在用的朗读声音；没开朗读是 null
   };
   document.dispatchEvent(new CustomEvent('lh:ready'));
   return window.__LH;
