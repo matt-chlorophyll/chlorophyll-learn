@@ -29,7 +29,7 @@ disable-model-invocation: true
 
 ## 2. 写记忆
 
-- 主题 slug：英文小写加连字符（如 `ai-engineer`、`macroeconomics`）。
+- 主题 slug：英文小写加连字符（如 `home-cooking`、`macroeconomics`）。
 - 改写 `learner/profile.md` 的「目标」「背景」（标注"自述，<日期>"），第一次用时连同「基本情况」「节奏与时长」一起填。
 - 改写 `learner/state.md`：主题、slug、视觉主题、当前状态、下一步（`/build-week` 第一次把这门课加进 manifest 时会写上 `theme`）。
 

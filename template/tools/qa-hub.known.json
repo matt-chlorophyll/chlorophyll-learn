@@ -1,0 +1,17 @@
+{
+  "说明": "qa-hub --self 的已知项：拨云的地图规矩里还没定下来（暂行）、量出来不过的几项。列在报告里（已知），不算不过。每一条：主题（* = 全部）、自检项名字的开头（和 report.txt 里的一样）、拨云规矩里暂行条目的编号、为什么。规矩定下来、拨云改好以后，重新导出 site/assets/boyun/，从这里删掉对应的条目，再跑一遍。",
+  "items": [
+    { "theme": "cn-light", "item": "deep.hueSpread", "rule": "12.9", "why": "中式晨雾的色相极差略大于 15°：雾的彩度只有 0.006 上下，正好在“不算色相”的线上，8 位取整以后色相抖得厉害" },
+    { "theme": "cn-dark", "item": "headCheck（none）", "rule": "12.10", "why": "中式暮雾里渡口的头比山头亮 0.02 左右" },
+    { "theme": "cn-dark", "item": "headCheck（fog）", "rule": "12.10", "why": "同上（lmfog）" },
+    { "theme": "cn-dark", "item": "deep.warmEdge 成条 / 成边（all）", "rule": "12.5", "why": "中式暮全学完时成边超过余晖许的 2 条：山脚的墨加了以后多出来的，规矩还没定" },
+    { "theme": "ani-light", "item": "headCheck（none）", "rule": "12.7", "why": "动画雾里的头：遗迹的碑、城的树冠比山头亮，渡口的细件暗；口径还没定" },
+    { "theme": "ani-light", "item": "headCheck（fog）", "rule": "12.7", "why": "同上（lmfog）" },
+    { "theme": "ani-dark", "item": "headCheck（none）", "rule": "12.7", "why": "同上（动画暮）" },
+    { "theme": "ani-dark", "item": "headCheck（fog）", "rule": "12.7", "why": "同上（动画暮，lmfog）" },
+    { "theme": "ani-light", "item": "pgCheck（2×）", "rule": "12.12", "why": "动画放大 2× 时，学过的部件脚下那一圈的外沿还有几十个暗的像素（要 ≤ 5）；1× 过，规矩只在 1× 定过" },
+    { "theme": "ani-dark", "item": "pgCheck（2×）", "rule": "12.12", "why": "同上（动画暮）" },
+    { "theme": "ani-light", "item": "stain / flicker", "rule": "12.13", "why": "动画学了一部分的地点，0–60 秒地点框的平均明度起伏超过 3：云片整块飘过地点框。flicker 的阈值是照体积云定的，动画的云片没对过" },
+    { "theme": "ani-dark", "item": "stain / flicker", "rule": "12.13", "why": "同上（动画暮）" }
+  ]
+}

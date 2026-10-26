@@ -47,6 +47,7 @@ N = 0 时改为：「任务 B：规划 Week 0，只有一节 Day 0 导览课（�
 
 - reviewer 返回的计数里有**阻塞或应修**：用 SendMessage 把对应 builder 叫回来（agent 已不可用就新派一个同类型的，附上 spec 路径）：
   > 修复轮：读 `curriculum/<topic>/wNN/dN.review.md` 里归你的阻塞和应修条目，逐条修复，自测后返回。
+- 归 `planner` 的（地图数据）：派 planner「修复轮：读 `curriculum/<topic>/wNN/dN.review.md` 里归 planner 的条目，改 build.json 里那天的 `map` 和 `places`，返回改了哪几天」。
 - 修完后让 reviewer 复查：「复查（第 2 轮）：只看上一轮的阻塞和应修条目。」
 - 只剩小问题就算通过。
 - 第 2 轮后仍有阻塞：派 `writer`「读 dN.review.md 里仍存在的阻塞条目，把对应的插槽或段落从 index.html 删掉，调整 data-min，让页面能独立成立」，然后跑一次 `node tools/qa.mjs lessons/<topic>/wNN/dN` 确认没有错误。在生成记录里写明砍掉了什么（按组件 id 写，不写内容）。
@@ -58,9 +59,15 @@ N = 0 时改为：「任务 B：规划 Week 0，只有一节 Day 0 导览课（�
    - 主题第一次出现时先建 `topics.<topic> = { "title": "主题名", "theme": "<theme>", "weeks": [] }`。
    - 把 `current` 设为 `{ "topic": "<topic>", "week": N }`。
    - 把 manifest 顶层的 `timezone` 设为 `node tools/now.mjs --json` 输出的 `timezone`（hub 用它判断哪节课是今天）。
-   - 迷雾地图：在 `site/map.json` 的 `topics.<topic>.weeks` 里加入（已有同一周就替换）`{ "week": N, "days": [{ "day", "map": build.json 那天的 map }] }`。主题第一次出现时先建 `topics.<topic> = { "regions": build.json 的 regions, "weeks": [] }`；build.json 带了新区域（只会加在末尾）就追加到 `regions` 末尾，已有区域的顺序和 `lanes` 不动。
-   - 合完检查 map.json：`id` 不重复，每个 `links` 指向的 id 都已经在 map.json 里，每个 `region` 都在 `regions` 里。有问题让 planner 改 build.json，不要自己编连线。
-   - **例外**：上一周的课还没学完（看 `state.md` 的本周进度），而且今天还在上一周里，就先不改 manifest 和 map.json，在 `state.md` 记「第 N 周已生成，等上一周学完或新的一周开始时开放」；之后由 `/today` 开放，两个文件一起改。Week 0 和第 1 周直接开放。
+   - 迷雾地图（规则见 style-guide 第 10 节「合并」）：
+     - 主题第一次出现时先建 `topics.<topic> = { "regions": build.json 的 regions, "places": [], "weeks": [] }`。
+     - 在 `topics.<topic>.weeks` 里加入（已有同一周就替换）`{ "week": N, "days": [{ "day", "map": build.json 那天的 map }] }`，`difficulty`、`place`、`trap` 原样跟着进去。
+     - build.json 带了新区域（只会加在末尾）就追加到 `regions` 末尾，已有区域的顺序、`lanes`、`home` 不动。
+     - build.json 顶层 `places` 里 id 不在 map.json 的，追加到 `places` 末尾；已有的不动（`id`、`kind` 永远不改，`label` 只在 planner 明说改正时改）。合完删掉没有概念的地点。
+   - 合完跑 `node tools/map-check.mjs <topic>`：只打印计数和出错的 id。有错误让 planner 改 build.json 再重合，不要自己编连线、地点或难度；警告看一眼，值得记的写进生成记录。
+     - 例外：这门课是老版本生成的（合并前 map.json 里这门课已经有周，但没有 `places`），map-check 会对旧周的概念报 `difficulty`、`place-missing`。这不是 build.json 的问题：派 planner「任务 D：补地图数据。主题 `<topic>`」，补完再跑一遍 map-check。
+   - 开放以后跑 `node tools/qa-hub.mjs --only shots --themes ani-dark --progress part --widths 1280`，用 Read 看 `.tmp/qa-hub/shots/` 里的截图，确认地图正常（这时这一周已经开放，学习者也看得到）。它用本机的 Chrome 或 Edge 开 GPU 画 3D；这台电脑画不了 3D 时截到的是 2D 地图，也算正常。
+   - **例外**：上一周的课还没学完（看 `state.md` 的本周进度），而且今天还在上一周里，就先不改 manifest 和 map.json，在 `state.md` 记「第 N 周已生成，等上一周学完或新的一周开始时开放」；之后由 `/today` 开放，两个文件一起改。这时先跑 `node tools/map-check.mjs <topic> --build curriculum/<topic>/wNN/build.json` 查一遍地图数据：在内存里合，不写文件，这一周的 id 不打印。Week 0 和第 1 周直接开放。
 2. 更新 `learner/state.md`：当前周、「本周概念」（合并 build.json 各天的 `concepts`）、下一步。
 3. 在 `platform/build-log.md` 追加一行：日期、主题/周、课数、用时、修复轮次、被砍掉的部分、备注（例如有没有弹权限确认、哪个 agent 最慢）。
 4. 工作区是 git 仓库时：`git add -A`，然后 `git commit -m "build: <topic> wNN（N 节课）"`；有远端再 `git push`（见 CLAUDE.md「git」）。不是 git 仓库就跳过。

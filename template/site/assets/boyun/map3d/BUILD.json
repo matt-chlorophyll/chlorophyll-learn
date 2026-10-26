@@ -1,0 +1,39 @@
+{
+ "from": "boyun-design skill",
+ "rev": "map3d-v1-1-g1d61f10",
+ "builtAt": "2026-10-25T23:14:40.922Z",
+ "files": {
+  "boyun.css": {
+   "bytes": 24042,
+   "sha256": "d30f9f1870132646"
+  },
+  "boyun.js": {
+   "bytes": 19319,
+   "sha256": "2217509f0b177396"
+  },
+  "map3d/boyun-map3d.js": {
+   "bytes": 1260263,
+   "sha256": "766aee0ea59baf0f"
+  },
+  "map3d/boyun-map3d-dev.js": {
+   "bytes": 29123,
+   "sha256": "8f1fa38bada99b61"
+  },
+  "map3d/boyun-map3d.css": {
+   "bytes": 51368,
+   "sha256": "4b289100dc7cb00e"
+  },
+  "map3d/vendor/three.iife.js": {
+   "bytes": 2117162,
+   "sha256": "eb190fabf1e15da2"
+  },
+  "map3d/vendor/LICENSE": {
+   "bytes": 1081,
+   "sha256": "8b378ebe60e2fe50"
+  },
+  "map3d/vendor/VERSION": {
+   "bytes": 8,
+   "sha256": "3c3136cc3a91054e"
+  }
+ }
+}

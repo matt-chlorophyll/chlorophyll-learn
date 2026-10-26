@@ -6,15 +6,19 @@
 
 ![课程页（水墨主题）](docs/screenshots/lesson.jpg)
 
-下面的截图都来自用本插件生成的一节演示课：「古诗词鉴赏入门」的 Day 0，学习者是虚构的，没有配 TTS key，所以配音动画是字幕版（播放时由浏览器朗读）。
+下面的截图都来自用本插件生成的一节演示课：「古诗词鉴赏入门」的 Day 0，学习者是虚构的，没有配 TTS key，所以配音动画是字幕版（播放时由浏览器朗读）。首页地图的截图例外：用的是一门虚构的「学习科学」课（三周）的假数据，看得出地图长大以后的样子。
 
-| 首页和迷雾知识地图 | 交互组件：用四层透镜读《绝句》 |
+| 首页和 3D 迷雾地图 | 交互组件：用四层透镜读《绝句》 |
 |---|---|
 | ![hub](docs/screenshots/hub.jpg) | ![交互组件](docs/screenshots/viz.jpg) |
 
 | 配音动画（字幕版） | 三个视觉主题 |
 |---|---|
 | ![配音动画](docs/screenshots/media.jpg) | ![视觉主题](docs/screenshots/themes.jpg) |
+
+首页地图的三套笔墨（中式、现代、动画），上面一排是晨，下面一排是暮：
+
+![首页地图的六个主题](docs/screenshots/hub-themes.jpg)
 
 ## 它是什么
 
@@ -43,7 +47,7 @@ Chlorophyll-Learn 安装后，会在你选的文件夹里生成一个学习工�
 - **讲给老师听**：课末打卡用自己的话讲一遍今天最重要的东西，第二天 `/today` 告诉你讲对了什么、漏了什么。
 - **回指回看**：课文提到以前学过的题、讲解或你的留言时，点开小窗就能看到当时的版本。
 - **按学习数据调整**：本地服务器记录每段用时、作答、「暂停」和「犯困了」。`pace_factor`（实际用时 ÷ 预计用时）用来校准之后课程的分钟数；正确率、难度或用时偏离目标时，planner 在后台调整后几天的课。
-- **按周的节奏和迷雾地图**：首页按周列出课程；迷雾地图把已开放各周的概念画成节点和连线：打卡过的概念是实心的，本周还没学的在雾里，没开放的部分不显示。
+- **按周的节奏和迷雾地图**：首页按周列出课程，上面是一张 3D 的迷雾地图：几个"是一回事"的概念合成一座山或一处地标（城、峡谷、渡口、遗迹），山的高低是难度；打卡过的地方雾散开，本周还没学的隔着薄雾，没开放的部分不显示。有中式、现代、动画三套笔墨，各分晨暮。浏览器画不了 3D 时退回平面的雾图。
 - **三个视觉主题**：quest（工程、编程）、ink（文科）、anatomy（数学、金融、理论），开新主题时按学科推荐。
 
 ## 和同类的区别
@@ -214,6 +218,7 @@ Chlorophyll-Learn 比较重，生成课程要用不少额度。
 - 主要在 Windows 上用过；macOS 上从安装到 Day 0 跑通过一次。Linux 只在 WSL 的 Ubuntu 上测过 setup、`start.sh`、QA 截图和导出 mp4，还没用 Linux 生成过课程。WSL 里浏览器没有自动打开的话，在 Windows 的浏览器里打开 `start.sh` 给出的地址就行。
 - 比较重，费额度，见「额度和时间」。生成一周时 Claude Code 窗口要一直开着。
 - 要用 Claude Code 的命令行版：只用桌面版 Claude 的，先按「需要什么」装命令行版。
+- 首页的 3D 地图在 Intel 核显上帧率低，打开约 7 秒后云会停住不动（不报错，地图和其余功能照常）。
 
 欢迎反馈，用起来哪里不顺都可以说。
 
@@ -229,8 +234,8 @@ Chlorophyll-Learn 比较重，生成课程要用不少额度。
 
 ## 第三方
 
-- [three.js](https://threejs.org/)（MIT），用于 3D 交互组件和动画，在 `template/site/assets/vendor/three/`，许可证见 [`template/site/assets/vendor/three/LICENSE`](template/site/assets/vendor/three/LICENSE)。
-- 拨云（Boyun）设计系统：课程首页（hub）用的设计系统，在 `template/site/assets/boyun/`。它是作者自己的设计系统，随本仓库以 MIT 开源。
+- [three.js](https://threejs.org/)（MIT），用于 3D 交互组件和动画，在 `template/site/assets/vendor/three/`，许可证见 [`template/site/assets/vendor/three/LICENSE`](template/site/assets/vendor/three/LICENSE)；首页 3D 地图用的另一份（r186，打包成普通脚本）在 `template/site/assets/boyun/map3d/vendor/`。
+- 拨云（Boyun）设计系统：课程首页（hub）用的设计系统和 3D 地图组件，在 `template/site/assets/boyun/`。它是作者自己的设计系统，随本仓库以 MIT 开源。
 
 ## 名字的来历
 

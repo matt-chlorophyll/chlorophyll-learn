@@ -1,69 +1,52 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="mod-dark">
+<html lang="zh-CN" data-theme="ani-dark" data-map>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Chlorophyll-Learn</title>
 <link rel="icon" href="/favicon.svg">
 <script>
-  // 笔墨和昼夜：学习者选过就用选过的，没选过是“现代 + 夜”。放在最前面，免得先闪一下别的颜色
-  try { const t = localStorage.getItem('lh:hub:theme'); if (/^(cn|mod)-(light|dark)$/.test(t || '')) document.documentElement.dataset.theme = t; } catch { /* 隐私模式等：用默认 */ }
+  // 启动（放在最前面，免得先闪一下别的颜色）。
+  // 笔墨和晨暮：选过的记在 lh:hub:theme，照旧认（以前的“昼 / 夜”存的就是 light / dark，现在叫“晨 / 暮”，值不用换）；
+  // 没选过默认动画，5:00–17:00 晨，其余暮。?theme= 只在 ?dev=1 时认（截图、自检用）。
+  // 再查一次 WebGL 2：没有就不加载 3D 地图的脚本（three.js 约 2 MB），直接用 2D 的雾图。
+  // data-map：拨云“地图页”的配色（纸、雾、墨、朱、字体）只在有这个属性的页面生效，课程页不受影响。
+  (function () {
+    var ok = /^(cn|mod|ani)-(light|dark)$/, q = new URLSearchParams(location.search), t = q.get('dev') === '1' ? q.get('theme') : null;
+    if (!ok.test(t || '')) { try { t = localStorage.getItem('lh:hub:theme'); } catch (e) { t = null; } }
+    var hr = new Date().getHours();
+    document.documentElement.setAttribute('data-theme', ok.test(t || '') ? t : 'ani-' + (hr >= 5 && hr < 17 ? 'light' : 'dark'));
+    var gl2 = false;
+    try { gl2 = !!(window.WebGL2RenderingContext && document.createElement('canvas').getContext('webgl2')); } catch (e) { gl2 = false; }
+    window.__noGL2 = !gl2;
+    window.__t0 = performance.now();   // 地图引擎的计时从这里算
+  })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- 字体不挡着页面渲染：断网时直接用系统字体 -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
-<!-- 拨云（Boyun）设计系统：hub 的样式基础，在 site/assets/boyun/ 里统一改；hub 自己的样式写在下面 -->
+<!-- 字体不挡着页面渲染：断网时直接用系统字体。中式用霞鹜文楷和马善政（题字），现代、动画用 Geist 和思源黑体 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400&family=Noto+Sans+SC:wght@400;500;700&display=swap" media="print" onload="this.media='all'">
+<!-- 拨云（Boyun）设计系统：site/assets/boyun/ 整份是拨云的导出文件，不在这里改；hub 自己的样式写在下面 -->
 <link rel="stylesheet" href="/assets/boyun/boyun.css">
+<link rel="stylesheet" href="/assets/boyun/map3d/boyun-map3d.css">
 <style>
-  /* hub 自己的样式。颜色、字体、间距、动效都用拨云的 token，这里只管布局（课程页的样式由视觉主题决定，见 /assets/themes/） */
-  code { font-family: var(--font-mono); font-size: .88em; }
+  /* hub 自己的样式：页头、3D 地图、本周的课的样式都在拨云的 boyun-map3d.css（地图首页）里，这里只放 2D 退路和几处小地方 */
   a.by-btn { text-decoration: none; }
 
-  /* 页头：左边是主题和本周，右边是几个数字；数字再往右给等级留位置 */
-  .hub-side { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-5) var(--space-6); }
-  .hub-level:empty { display: none; }
-
-  /* 地图按世界坐标 1:1 显示：概念多了就左右拖，字不缩小。地图只有放进来的节点那么大 */
+  /* 2D 退路（没有地点数据、画不了 3D 时）：和原来的 2D 雾图一样。地图按世界坐标 1:1 显示：概念多了就左右拖，字不缩小 */
   #map { max-width: var(--map-w); margin: 0 auto; }
   #map .by-map__inner { width: var(--map-w); min-width: 0; }
   #map .dot.ex { fill: var(--ink-1); }
-  #map .known .lab { paint-order: stroke; stroke: var(--paper); stroke-width: 4px; stroke-linejoin: round; }
+  /* boyun-map3d.css 里 3D 地名的 .lab 规则（描边、字重）也会落到 2D 的名字上：这里按 2D 原来的样子盖回去 */
+  #map .lab { font-weight: 400; letter-spacing: .02em; fill: var(--ink-2); stroke: none !important; }
+  #map .lab.ex { fill: var(--ink-1); }
+  #map .known .lab { paint-order: stroke; stroke: var(--paper) !important; stroke-width: 4px; stroke-linejoin: round; }
   #map .roads, #map .known { pointer-events: none; }
   #map .hit rect { fill: transparent; }
   #map .hit:focus-visible rect { stroke: var(--focus); stroke-width: 1.5; }
-  .hub-map .map-foot { padding-bottom: var(--space-7); }
-
-  /* 本周的课：实心点是打卡了，空心是还没有（和地图上的点一样） */
-  .hub-week { padding-bottom: var(--space-7); }
-  .hub-week .sect-k { margin-top: 0; }
-  .days { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-strong); }
-  .days li { border-bottom: 1px solid var(--line); }
-  .days a, .days .row {
-    display: grid; grid-template-columns: 8px 6.5em minmax(0, 1fr) auto; gap: 2px var(--space-4); align-items: baseline;
-    padding: var(--space-3) var(--space-1); color: inherit; text-decoration: none;
-  }
-  .days a:hover .t { text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
-  .days .mk { width: 8px; height: 8px; align-self: center; border: 1.3px solid var(--ink-3); border-radius: var(--radius-round); }
-  .days li.done .mk { background: var(--ink-1); border-color: var(--ink-1); }
-  .days li.weekend .mk { visibility: hidden; }
-  .days .d { color: var(--ink-3); font-size: 13.5px; }
-  .days .now { margin-left: .5em; color: var(--ink-1); }
-  .days .meta { color: var(--ink-3); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .days .st { margin-right: .8em; color: var(--ink-2); }
-  details.past { margin-top: var(--space-6); color: var(--ink-3); font-size: 14px; }
-  details.past summary { width: max-content; cursor: pointer; }
-  details.past ul { margin: var(--space-2) 0 0; padding-left: 1.2em; }
-  details.past a { color: var(--ink-2); }
-  .foot a { margin-right: var(--space-4); color: var(--ink-3); }
-  @media (max-width: 560px) {
-    .days a, .days .row { grid-template-columns: 8px minmax(0, 1fr); }
-    .days .t, .days .meta { grid-column: 2; }
-    .days .meta { white-space: normal; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { transition: none !important; animation: none !important; }
-  }
+  .hub-map2d .map-foot { padding-bottom: var(--space-7); }
 </style>
 </head>
 <body>
@@ -71,20 +54,23 @@
 <header class="wrap app-bar">
   <div class="brand">Chlorophyll-Learn</div>
   <div class="app-ctrl">
-    <div class="by-seg" role="group" aria-label="笔墨" id="segReg"><button type="button" data-v="cn">中式</button><button type="button" data-v="mod">现代</button></div>
-    <div class="by-seg" role="group" aria-label="昼夜" id="segDay"><button type="button" data-v="light">昼</button><button type="button" data-v="dark">夜</button></div>
+    <div class="by-seg" role="group" aria-label="笔墨" id="segReg"><button type="button" data-v="cn">中式</button><button type="button" data-v="mod">现代</button><button type="button" data-v="ani">动画</button></div>
+    <div class="by-seg" role="group" aria-label="晨暮" id="segDay"><button type="button" data-v="light">晨</button><button type="button" data-v="dark">暮</button></div>
   </div>
 </header>
 </div>
-<main id="app"><div class="wrap view-head"><p class="sub">读取课程清单…</p></div></main>
+<main id="app"><div class="wrap hub-head"><p class="hh-sub">读取课程清单…</p></div></main>
 <footer class="wrap"><div class="foot" id="lab" hidden></div></footer>
 <script src="/assets/boyun/boyun.js"></script>
 <script type="module">
 const app = document.getElementById('app');
 const root = document.documentElement;
 const WEEKDAY = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+const CN_NUM = '〇一二三四五六七八九';
+const KINDS = ['city', 'canyon', 'ferry', 'ruin'];   // 地标的四种；不写 = 峰
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ls = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const localDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 // 今天的日期，按学习者的时区：manifest 的 timezone（/build-week 从 learner/profile.md 抄过来，UTC+8 或 Asia/Shanghai 这样）；
 // 没有就用电脑的时区
 function todayIn(tz) {
@@ -92,31 +78,22 @@ function todayIn(tz) {
   const off = /^UTC([+-])(\d{1,2})(?::(\d{2}))?$/.exec(tz || '');
   if (off) return new Date(d.getTime() + (off[1] === '-' ? -1 : 1) * (Number(off[2]) * 60 + Number(off[3] || 0)) * 60000).toISOString().slice(0, 10);
   try { if (tz) return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d); } catch { /* 看不懂的时区 */ }
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return localDay(d);
 }
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isCn = () => /^cn/.test(root.dataset.theme || '');
+const cnNum = n => (n < 10 ? CN_NUM[n] : n < 20 ? '十' + (n % 10 ? CN_NUM[n % 10] : '') : CN_NUM[Math.floor(n / 10)] + '十' + (n % 10 ? CN_NUM[n % 10] : ''));
+// 调试参数只在 ?dev=1 时认（和地图引擎一样）：done=all|none|<课,…>、half=、today=、map=2d、nostore=1
+const Q = new URLSearchParams(location.search);
+const DEV = Q.get('dev') === '1';
+const QD = k => (DEV ? Q.get(k) : null);
+// 给自检看的：地图用的是 3D 还是 2D、为什么、页头和本周的课什么时候画好（从打开页面算，毫秒）
+const HUB = window.__hub = { mode: null, why: null, headAt: null };
 
-// ---------- 笔墨 / 昼夜 ----------
-// 拨云的 Boyun.theme 在没选过时跟随系统深浅色；hub 要默认“夜”，所以这几行自己接。选择存在 lh:hub:theme
-const pick = () => (root.dataset.theme || 'mod-dark').split('-');
-const SEGS = [['segReg', 0], ['segDay', 1]];
-function syncSeg() {
-  const c = pick();
-  for (const [id, i] of SEGS) for (const b of document.querySelectorAll(`#${id} button`)) b.setAttribute('aria-pressed', String(b.dataset.v === c[i]));
-}
-for (const [id, i] of SEGS) document.getElementById(id).addEventListener('click', e => {
-  const b = e.target.closest('button[data-v]');
-  if (!b) return;
-  const c = pick();
-  c[i] = b.dataset.v;
-  root.dataset.theme = c.join('-');
-  try { localStorage.setItem('lh:hub:theme', root.dataset.theme); } catch { /* 记不住就只管这一次 */ }
-  syncSeg();
-});
-syncSeg();
+// 从课程页点“返回”回到这里时，浏览器可能直接拿出离开前的整页（往返缓存）：打卡记录是旧的，3D 地图的显存也已经还掉了。重开一次
+addEventListener('pageshow', e => { if (e.persisted) location.reload(); });
 
-// ---------- 读课程清单和地图数据 ----------
-// 地图数据读不到也不影响课程表
+// ---------- 读课程清单和地图数据（同时去取；地图数据读不到也不影响课程表） ----------
 const mapReq = fetch('/map.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).catch(() => null);
 let m;
 try {
@@ -124,80 +101,279 @@ try {
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   m = await r.json();
 } catch (e) {
-  app.innerHTML = `<div class="wrap view-head"><p class="sub">读不到课程清单 manifest.json（${esc(e.message)}）。请确认是通过 start.cmd 打开的。</p></div>`;
+  app.innerHTML = `<div class="wrap hub-head"><p class="hh-sub">读不到课程清单 manifest.json（${esc(e.message)}）。请确认是通过 start.cmd 打开的。</p></div>`;
   throw e;
 }
 
-const today = todayIn(m.timezone);
-
-const lab = document.getElementById('lab');
+const labBox = document.getElementById('lab');
 if ((m.lab || []).length) {
-  lab.innerHTML = '平台自测：' + m.lab.map(x => `<a href="${esc(x.path)}">${esc(x.title)}</a>`).join('');
-  lab.hidden = false;
+  labBox.innerHTML = '平台自测：' + m.lab.map(x => `<a href="${esc(x.path)}">${esc(x.title)}</a>`).join('');
+  labBox.hidden = false;
 }
 
-const topic = m.current && m.topics?.[m.current.topic];
+const slug = m.current?.topic;
+const topic = slug && m.topics?.[slug];
 const week = topic?.weeks?.find(w => w.week === m.current.week);
 if (!week) {
-  app.innerHTML = `<div class="wrap view-head"><div><h1 class="page-title">还没有开始学习主题</h1>
-    <p class="sub">在 Claude Code 里输入 <code>/new-topic 主题名</code>，老师会先问你几个问题，然后准备第一周的内容。</p></div></div>`;
+  app.innerHTML = `<div class="wrap hub-head"><h1 class="page-title">还没有开始学习主题</h1>
+    <p class="hh-sub">在 Claude Code 里输入 <code>/new-topic 主题名</code>，老师会先问你几个问题，然后准备第一周的内容。</p></div>`;
+  HUB.mode = 'none';
+  themeOnly();
 } else {
-  const done = l => !!ls(`lh:${l.path}:done`);
-  const dayName = l => l.label || (l.date ? WEEKDAY[new Date(`${l.date}T12:00:00`).getDay()] : `第 ${l.day} 天`);
-  // 和课程页页头的说法一致：「第 1 周，周一」「导览课（Day 0）」
-  const when = (w, l) => (w.week === 0 ? `导览课（${l.label || `Day ${l.day}`}）` : `第 ${w.week} 周，${dayName(l)}`);
-  const next = week.lessons.find(l => !done(l)); // 下一节要上的课：本周第一节还没打卡的
-  const nDone = week.lessons.filter(done).length;
+  start();
+}
 
-  const rows = week.lessons.map(l => {
-    const isDone = done(l), started = !!ls(`lh:${l.path}:time`), isToday = l.date === today;
-    const cls = [isDone && 'done', started && !isDone && 'started', isToday && 'today'].filter(Boolean).join(' ');
-    const st = isDone ? '已打卡' : started ? '学到一半' : '';
-    return `<li class="${cls}"><a href="${esc(l.path)}">
-      <span class="mk" aria-hidden="true"></span>
-      <span class="d">${esc(dayName(l))}${isToday ? '<span class="now">今天</span>' : ''}</span>
-      <span class="t">${esc(l.title)}</span>
-      <span class="meta">${st ? `<span class="st">${st}</span>` : ''}约 ${esc(l.est)} 分钟</span></a></li>`;
-  }).join('');
-  const weekend = week.week > 0
-    ? `<li class="weekend"><div class="row"><span class="mk" aria-hidden="true"></span><span class="d">周末</span>
-        <span class="t">复习和动手练习：在 Claude Code 里跟老师说「开始周末练习」</span><span class="meta">不限时</span></div></li>` : '';
-  const past = topic.weeks.filter(w => w.week < week.week);
-  const pastHtml = past.length ? `<details class="past"><summary>之前的周</summary><ul>${past.map(w =>
-    w.lessons.map(l => `<li><a href="${esc(l.path)}">${w.week === 0 ? '导览' : `第 ${w.week} 周`}：${esc(l.title)}</a></li>`).join('')).join('')}</ul></details>` : '';
-  const heading = week.week === 0 ? `${esc(topic.title)}：导览` : `${esc(topic.title)}，第 ${week.week} 周`;
+// 还没有开始学习主题（没有课、没有地图）：笔墨和晨暮只换页面的颜色，也记下来。有课时的版本在 start() 里（还要通知地图）
+function themeOnly() {
+  const SEG = [['segReg', 0], ['segDay', 1]];
+  const sync = () => {
+    const c = (root.dataset.theme || 'ani-dark').split('-');
+    for (const [id, i] of SEG) for (const b of document.querySelectorAll(`#${id} button`)) b.setAttribute('aria-pressed', String(b.dataset.v === c[i]));
+  };
+  for (const [id, i] of SEG) document.getElementById(id).addEventListener('click', e => {
+    const b = e.target.closest('button[data-v]');
+    if (!b) return;
+    const c = (root.dataset.theme || 'ani-dark').split('-');
+    c[i] = b.dataset.v;
+    root.dataset.theme = c.join('-');
+    try { localStorage.setItem('lh:hub:theme', root.dataset.theme); } catch { /* 记不住就只管这一次 */ }
+    sync();
+  });
+  sync();
+}
+
+// ---------- 适配层 ① 课和进度 ----------
+// 已开放的周（manifest 里本来就只有已开放的；比本周晚的再防一次），每节课一个 key：w01d3 这样
+function openedWeeks() {
+  return topic.weeks.filter(w => w.week <= week.week).sort((a, b) => a.week - b.week).map(w => ({
+    week: w.week, title: w.title || '',
+    lessons: w.lessons.map(l => ({
+      key: `w${String(w.week).padStart(2, '0')}d${l.day}`, day: l.day, label: l.label || null, date: l.date || null,
+      title: l.title, est: l.est, path: l.path,
+    })),
+  }));
+}
+// 打卡怎么算（和原来的 hub 一样）：lh:<课的路径>:done 有值 = 打卡了；没打卡、但有 lh:<路径>:time = 学到一半。
+// ?dev=1&done=all|none|<key,…>、half=、today= 盖掉它们（另开一个端口测试时 localStorage 是空的；截图、验收用，规则和地图引擎一样）
+function readProgress(weeks) {
+  const all = weeks.flatMap(w => w.lessons);
+  const list = s => s.split(',').map(x => x.trim()).filter(Boolean);
+  const dq = QD('done'), hq = QD('half'), tq = QD('today');
+  const done = dq == null ? all.filter(l => ls(`lh:${l.path}:done`)).map(l => l.key)
+    : dq === 'all' ? all.map(l => l.key) : dq === 'none' ? [] : list(dq);
+  const half = hq != null ? list(hq) : all.filter(l => !done.includes(l.key) && ls(`lh:${l.path}:time`)).map(l => l.key);
+  const today = /^\d{4}-\d\d-\d\d$/.test(tq || '') ? tq : todayIn(m.timezone);
+  return { done, half, today };
+}
+
+// ---------- 适配层 ② 地图引擎的输入（window.BOYUN_MAP3D，字段见 /assets/boyun/map3d/boyun-map3d.js 里 src/state.js 开头的说明） ----------
+// 从 map.json 里只拿已开放的课的概念；连线、地点、区域、换位都只留指向这些概念的。地点的概念列表按每个概念的 place 收；
+// 没写 place（或者写的地点不在、不在同一个区域）的概念自己成一座峰（id p:<概念 id>，名字 = 概念名）。难度没写的按 2（引擎补）
+function mapInput(md, weeks, prog) {
+  const regions = (md.regions || []).filter(r => r?.id).map(r => ({ id: r.id, label: r.label, ...(r.home ? { home: r.home } : {}) }));
+  const regionIds = new Set(regions.map(r => r.id));
+  const concepts = {}, placeOf = {};
+  for (const w of weeks) {
+    const days = md.weeks?.find(x => x.week === w.week)?.days || [];
+    for (const l of w.lessons) {
+      for (const c of days.find(d => d.day === l.day)?.map || []) {
+        if (!c?.id || concepts[c.id] || !regionIds.has(c.region)) continue;
+        concepts[c.id] = { label: c.label, region: c.region, difficulty: c.difficulty, links: c.links || [], week: w.week, day: l.day, ...(c.trap ? { trap: true } : {}) };
+        placeOf[c.id] = c.place || null;
+      }
+    }
+  }
+  for (const c of Object.values(concepts)) c.links = c.links.filter(id => concepts[id]);
+  const places = new Map();
+  for (const p of md.places || []) {
+    if (!p?.id || !regionIds.has(p.region)) continue;
+    places.set(p.id, {
+      id: p.id, label: p.label, region: p.region, concepts: [],
+      ...(KINDS.includes(p.kind) ? { kind: p.kind } : {}), ...(Number.isFinite(p.seed) ? { seed: p.seed } : {}), ...(p.lore ? { lore: p.lore } : {}),
+    });
+  }
+  for (const [id, c] of Object.entries(concepts)) {
+    const p = places.get(placeOf[id]);
+    if (p && p.region === c.region) p.concepts.push(id);
+    else places.set(`p:${id}`, { id: `p:${id}`, label: c.label, region: c.region, concepts: [id] });
+  }
+  const used = [...places.values()].filter(p => p.concepts.length);
+  const usedIds = new Set(used.map(p => p.id));
+  return {
+    topic: { slug, title: topic.title },
+    current: { week: week.week },
+    regions: regions.filter(r => used.some(p => p.region === r.id)),
+    places: used,
+    concepts,
+    weeks,
+    moves: (md.moves || []).filter(mv => Array.isArray(mv) && usedIds.has(mv[0]) && usedIds.has(mv[1])),
+    progress: prog,
+    store: `lh:hub:${slug}`,   // <store>:seen 和原来 2D 的是同一个键（看过哪些学过的概念，用来算“这次散开”）
+    hooks: {},
+  };
+}
+
+// ---------- 页面 ----------
+function start() {
+  const weeks = openedWeeks();
+  const lessons = weeks.flatMap(w => w.lessons.map(l => ({ ...l, week: w.week })));
+  const cur = lessons.filter(l => l.week === week.week);
+  let P = readProgress(weeks);
+  let mapInfo = null, statsExtra = '';
+  const isDone = l => P.done.includes(l.key);
+  const nextOf = () => cur.find(l => !isDone(l)) || null;   // 下一节要上的课：本周第一节还没打卡的
+  const dayName = l => (l.week === 0 ? l.label || `Day ${l.day}` : l.date ? WEEKDAY[new Date(`${l.date}T12:00:00`).getDay()] : l.label || `第 ${l.day} 天`);
+  const weekName = n => (n === 0 ? '导览' : isCn() ? `第${cnNum(n)}周` : `第 ${n} 周`);
 
   app.innerHTML = `
-    <div class="wrap view-head">
-      <div><h1 class="page-title">${heading}</h1>${week.title ? `<p class="sub">${esc(week.title)}</p>` : ''}</div>
-      <div class="hub-side">
-        <div class="by-stats" id="stats"><span class="by-stat"><b>${nDone} / ${week.lessons.length}</b>本周已打卡</span></div>
-        <div class="hub-level" id="level"></div>
+    <div class="wrap hub-head">
+      <div class="hh-line1">
+        <h1 class="page-title" id="title"></h1>
+        <p class="hh-sub"><span class="hh-k" id="topic"></span><span id="wtitle"></span></p>
+      </div>
+      <div class="hh-line2">
+        <p class="tonight" id="tonight"></p>
+        <div class="hub-side"><div class="by-stats" id="stats"></div><div class="hub-level" id="level"></div></div>
       </div>
     </div>
-    <section class="hub-map" id="mapSec" aria-label="知识地图" hidden>
-      <div class="map-wrap"><div id="map"></div><aside class="by-panel is-float map-panel" id="panel" aria-live="polite" hidden></aside></div>
-      <div class="wrap map-foot"><p>实心的点是你打卡过的概念。雾里看得见名字的，是本周还没学的。点一个，看它在哪节课。</p></div>
+    <section class="hub-map hub-map3d loading" id="hubMap" aria-label="知识地图" hidden>
+      <div class="map3d" id="map3d">
+        <canvas id="gl" aria-hidden="true"></canvas>
+        <svg id="over" role="group" aria-label="知识地图：点一个地点，看里面的概念；方向键在地点之间移动"><g id="pan"></g></svg>
+      </div>
+      <p class="map-caption" id="cleared"></p>
+      <aside class="by-panel is-float hub-panel" id="panel" tabindex="-1" aria-live="polite" hidden></aside>
+    </section>
+    <div class="wrap map-foot" id="legend" hidden></div>
+    <section class="hub-map hub-map2d" id="mapSec" aria-label="知识地图" hidden>
+      <div class="map-wrap"><div id="map"></div><aside class="by-panel is-float map-panel" id="panel2d" aria-live="polite" hidden></aside></div>
+      <div class="wrap map-foot"><p id="why2d" hidden></p><p>实心的点是你打卡过的概念。雾里看得见名字的，是本周还没学的。点一个，看它在哪节课。</p></div>
     </section>
     <section class="wrap hub-week">
       <p class="sect-k">本周的课</p>
-      <ol class="days">${rows}${weekend}</ol>
-      ${pastHtml}
+      <ol class="days" id="days"></ol>
+      <div id="past"></div>
     </section>`;
+  const $ = id => document.getElementById(id);
 
-  const md = (await mapReq)?.topics?.[m.current.topic];
-  if (md?.regions?.length) showMap(md);
+  // 页头：标题、这一周、今晚的入口、数字。先画，不等地图
+  function renderHead() {
+    const next = nextOf();
+    $('title').textContent = weekName(week.week);
+    $('topic').textContent = topic.title;
+    $('wtitle').textContent = week.title || '';
+    if (next) {
+      const when = next.date && next.date === P.today ? '今晚' : '下一节';
+      $('tonight').innerHTML = `<a class="by-btn" href="${esc(next.path)}">去上课</a><span class="t">${when}：<b>${esc(dayName(next))}　${esc(String(next.title).split('：')[0])}</b>${next.est ? `<span class="meta">约 ${esc(next.est)} 分钟</span>` : ''}</span>`;
+    } else {
+      $('tonight').innerHTML = week.week === 0 ? '<span class="t">导览课打卡了。</span>'
+        : '<span class="t">这周的课都打卡了。周末在 Claude Code 里跟老师说「开始周末练习」。</span>';
+    }
+    renderStats();
+  }
+  // 第一个数字是“本周已打卡 n / N”（页面自己数）；3D 地图画好第一帧（onReady）再加“本周登上”“雾全散”；2D 退路加“已点亮的概念”
+  function renderStats() {
+    const stat = (b, k) => `<span class="by-stat"><b>${b}</b>${k}</span>`;
+    const w = mapInfo?.week;
+    $('stats').innerHTML = stat(`${cur.filter(isDone).length}<small> / ${cur.length}</small>`, '本周已打卡')
+      + (w ? stat(`${w.up}<small> 处</small>`, '本周登上') + stat(`${w.full}<small> 处</small>`, '雾全散') : '') + statsExtra;
+  }
+  // 本周的课（实心 = 打卡了，半个 = 学到一半，空心 = 还没有）、周末、之前的周
+  function renderWeek() {
+    $('days').innerHTML = cur.map(l => {
+      const d = isDone(l), h = !d && P.half.includes(l.key), isToday = l.date === P.today;
+      const st = d ? '已打卡' : h ? '学到一半' : '';
+      return `<li class="${[d && 'done', h && 'started', isToday && 'today'].filter(Boolean).join(' ')}"><a href="${esc(l.path)}">
+        <span class="mk" aria-hidden="true">${d ? '●' : h ? '◐' : '○'}</span>
+        <span class="d">${esc(dayName(l))}${isToday ? '<span class="now">今天</span>' : ''}</span>
+        <span class="t">${esc(l.title)}</span>
+        <span class="meta">${st ? `<span class="st">${st}</span>` : ''}约 ${esc(l.est)} 分钟</span></a></li>`;
+    }).join('') + (week.week > 0
+      ? `<li class="weekend"><div class="row"><span class="mk" aria-hidden="true"></span><span class="d">周末</span>
+          <span class="t">复习和动手练习：在 Claude Code 里跟老师说「开始周末练习」</span><span class="meta">不限时</span></div></li>` : '');
+    const past = weeks.filter(w => w.week < week.week);
+    $('past').innerHTML = past.length ? `<details class="past"><summary>之前的周</summary><ul>${past.map(w =>
+      w.lessons.map(l => `<li><a href="${esc(l.path)}">${w.week === 0 ? '导览' : `第 ${w.week} 周`}：${esc(l.title)}</a></li>`).join('')).join('')}</ul></details>` : '';
+  }
+  renderHead();
+  renderWeek();
+  HUB.headAt = Math.round(performance.now());
 
-  // ---------- 迷雾地图 ----------
+  // 笔墨 / 晨暮：先记下来，再交给地图（换晨暮页内重画；换笔墨时峡谷的形要变，地图先合拢一层雾、整页重开）。
+  // 3D 还没好、用的是 2D 时只换颜色（2D 自己跟着重画）
+  function syncSeg() {
+    const c = (root.dataset.theme || 'ani-dark').split('-');
+    for (const [id, i] of [['segReg', 0], ['segDay', 1]]) for (const b of document.querySelectorAll(`#${id} button`)) b.setAttribute('aria-pressed', String(b.dataset.v === c[i]));
+  }
+  for (const [id, i] of [['segReg', 0], ['segDay', 1]]) $(id).addEventListener('click', e => {
+    const b = e.target.closest('button[data-v]');
+    if (!b) return;
+    const c = (root.dataset.theme || 'ani-dark').split('-');
+    c[i] = b.dataset.v;
+    const t = c.join('-');
+    try { localStorage.setItem('lh:hub:theme', t); } catch { /* 记不住就只管这一次 */ }
+    const ui = HUB.mode === '3d' && window.MAP3?.ui;
+    if (!(ui?.setTheme && ui.setTheme(t))) root.dataset.theme = t;
+    syncSeg();
+    renderHead();   // 标题跟着笔墨：中式写“第一周”
+  });
+  syncSeg();
+
+  // ---------- 地图：有地点数据、能画 3D 就用 3D，不然退回 2D 雾图 ----------
+  mapReq.then(md => {
+    const tp = md?.topics?.[slug];
+    if (!tp?.regions?.length) return;   // 没有地图数据：只有课程表（和原来一样）
+    if (QD('map') === '2d') return show2D(tp, 'dev');
+    if (!tp.places?.length) return show2D(tp, 'noplaces');   // 旧格式：整门课还没有地点数据
+    const input = mapInput(tp, weeks, P);
+    if (!input.places.length) return show2D(tp, 'noplaces');   // 已开放的周里一个概念都没有
+    if (window.__noGL2) return show2D(tp, 'nowebgl2');
+    let fell = false;
+    const fallBack = why => { if (fell) return; fell = true; window.__failed = why; show2D(tp, why); };
+    input.hooks = {
+      onReady(info) { mapInfo = info; renderStats(); },
+      onFail: fallBack,   // nowebgl2、init（初始化出错）、contextlost（显卡重置、显存不够）
+    };
+    window.BOYUN_MAP3D = input;
+    HUB.mode = '3d';
+    $('hubMap').hidden = false;
+    $('legend').hidden = false;
+    // 页头和本周的课先出来；地图区是一层雾。下一帧再加载 three.js 和引擎（约 3.5 MB；服务器回 304，第二次打开不用重下）
+    requestAnimationFrame(() => setTimeout(() => {
+      const base = '/assets/boyun/map3d/';
+      for (const f of ['vendor/three.iife.js', 'boyun-map3d.js', ...(DEV ? ['boyun-map3d-dev.js'] : [])]) {
+        const s = document.createElement('script');
+        s.src = base + f;
+        s.async = false;   // 并行下载、按顺序执行
+        s.onerror = () => { console.error(`加载不了 ${s.src}`); fallBack('init'); };
+        if (f === 'boyun-map3d.js') s.onload = () => {
+          if (fell) return;
+          if (!window.MAP3?.ui) return fallBack('init');   // 引擎没起来，也没调 onFail（例如 three.js 坏了）
+          // 引擎算好的进度（规则和上面一样）为准，再画一遍页头和本周的课
+          if (window.MAP?.progress) { const g = window.MAP.progress(); P = { done: g.done, half: g.half, today: g.today }; renderHead(); renderWeek(); }
+        };
+        document.body.append(s);
+      }
+    }, 0));
+  });
+
+  // ---------- 2D 退路：原来 hub 的 2D 雾图（下面 show2D、layout、fogMap 是原来的 showMap 那一段，只把“打卡没有”换成上面算好的进度） ----------
+  const WHY = { nowebgl2: '这个浏览器没有 WebGL 2', init: '3D 地图初始化出错', contextlost: '显卡把画布收回去了（驱动重置或显存不够）' };
   // 只放两种节点：已学（那节课打卡了）和本周还没学的。之前的周没打卡的课、还没开放的周都不放：
   // 页面源码里也不能有它们（map.json 本来就只有已开放的周）
-  function showMap(md) {
-    const opened = topic.weeks.filter(w => w.week <= week.week).sort((a, b) => a.week - b.week);
-    const lessons = opened.flatMap(w => w.lessons.map(l => ({
+  function show2D(md, why) {
+    HUB.mode = '2d';
+    HUB.why = why;
+    $('hubMap').hidden = true;
+    $('legend').hidden = true;
+    if (WHY[why]) { $('why2d').textContent = `这台电脑画不了 3D 地图（${WHY[why]}），先用平面的地图。`; $('why2d').hidden = false; }
+    const next = nextOf();
+    const when = (w, l) => (w.week === 0 ? `导览课（${l.label || `Day ${l.day}`}）` : `第 ${w.week} 周，${dayName({ ...l, week: w.week })}`);
+    const lessons2 = weeks.flatMap(w => w.lessons.map(l => ({
       l, w, map: md.weeks?.find(x => x.week === w.week)?.days?.find(d => d.day === l.day)?.map || [],
     })));
-    const all = layout(md.regions, lessons);
-    const nodes = all.filter(n => n.learned || n.w === week);
+    const all = layout(md.regions, lessons2, isDone);
+    const nodes = all.filter(n => n.learned || n.w.week === week.week);
     if (!nodes.length) return;
 
     // 地图大小只由放进来的节点决定：按它们的范围裁出来，雾的外面什么都没有。左边留出区域名的位置
@@ -217,28 +393,29 @@ if (!week) {
       return first && { label: r.label, x: first.x - regionW(r), y: first.y + 5, lit: first.learned };
     }).filter(Boolean);
     // 朱色焦点：下一节课的第一个概念（planner 把这节课最核心的概念排在第一个）；本周都打卡了就没有
-    const nextFirst = next && lessons.find(x => x.l === next)?.map[0]?.id;
-    const focus = (next && (by.get(nextFirst) || nodes.find(n => n.l === next))) || null;
+    const nextFirst = next && lessons2.find(x => x.l.key === next.key)?.map[0]?.id;
+    const focus = (next && (by.get(nextFirst) || nodes.find(n => n.l.key === next.key))) || null;
 
-    // 第一次看到某个已学的概念时，它那一片雾散开（记在 lh:hub:<主题>:seen）
-    const SEEN = `lh:hub:${m.current.topic}:seen`;
+    // 第一次看到某个已学的概念时，它那一片雾散开（记在 lh:hub:<主题>:seen，和 3D 地图同一个键；?dev=1&nostore=1 不读也不写）
+    const SEEN = `lh:hub:${slug}:seen`, nostore = !!QD('nostore');
     let seen = [];
-    try { seen = JSON.parse(ls(SEEN) || '[]'); } catch { /* 坏数据就当没看过 */ }
+    try { seen = JSON.parse((!nostore && ls(SEEN)) || '[]'); } catch { /* 坏数据就当没看过 */ }
     for (const n of nodes) n.fresh = n.learned && !seen.includes(n.id);
-    try { localStorage.setItem(SEEN, JSON.stringify(nodes.filter(n => n.learned).map(n => n.id))); } catch { /* 记不住就每次都散一遍 */ }
+    if (!nostore) { try { localStorage.setItem(SEEN, JSON.stringify(nodes.filter(n => n.learned).map(n => n.id))); } catch { /* 记不住就每次都散一遍 */ } }
 
-    const nLit = nodes.filter(n => n.learned).length;
-    document.getElementById('stats').insertAdjacentHTML('afterbegin', `<span class="by-stat"><b>${nLit}</b>已点亮的概念</span>`);
-    document.getElementById('mapSec').hidden = false;
+    statsExtra = `<span class="by-stat"><b>${nodes.filter(n => n.learned).length}</b>已点亮的概念</span>`;
+    mapInfo = null;
+    renderStats();
+    $('mapSec').hidden = false;
 
-    const box = document.getElementById('map'), panel = document.getElementById('panel');
+    const box = $('map'), panel = $('panel2d');
     const map = fogMap(box, { W, H, nodes, edges, regions, focus, onSelect: openPanel });
     // 一打开就能看到焦点：焦点在右边看不见的地方才滚过去；全都学完了就停在最新的地方
     const sc = map.scroll;
     if (focus) { if (focus.x > sc.clientWidth * 0.7) sc.scrollLeft = focus.x - sc.clientWidth * 0.4; } else sc.scrollLeft = sc.scrollWidth;
 
     function openPanel(n) {
-      const isNext = n.l === next, where = when(n.w, n.l);
+      const isNext = next && n.l.key === next.key, where = when(n.w, n.l);
       panel.innerHTML = `<button class="by-panel__close" type="button" data-close>收起</button>
         <p class="by-panel__k">${esc(n.regionLabel)}</p>
         <h3 class="by-panel__title">${esc(n.label)}</h3>
@@ -257,11 +434,11 @@ if (!week) {
   }
 }
 
-// ---------- 地图布局 ----------
+// ---------- 2D 地图布局 ----------
 // 区域从上到下排成横带（顺序和每条带的车道数在 map.json 里，开课后不改），课按 manifest 的顺序从左到右排成列。
 // 同一节课、同一区域的概念先竖着排满车道，再往右开一小列；单数车道往右错开一点，免得排成方阵。
 // 每节课的位置只取决于它前面的课，所以加了新一周，旧节点不动。课和课之间留一道缝，学过的那一片雾散开时不会漫到下一节课
-function layout(regions, lessons) {
+function layout(regions, lessons, isDone) {
   const LANE = 34, SUB = 176, GAP = 44, BAND = 22;
   const band = {};
   let y = 0;
@@ -275,7 +452,7 @@ function layout(regions, lessons) {
       ns.forEach((n, i) => {
         const lane = i % b.lanes;
         out.push({
-          ...n, l, w, regionLabel: b.label, learned: !!ls(`lh:${l.path}:done`), lw: textWidth(n.label),
+          ...n, l, w, regionLabel: b.label, learned: isDone(l), lw: textWidth(n.label),
           x: x + Math.floor(i / b.lanes) * SUB + (lane % 2) * 18, y: b.y + lane * LANE + LANE / 2,
         });
       });
@@ -288,7 +465,7 @@ function layout(regions, lessons) {
 // 名字有多宽（世界坐标，15px 字）：汉字约 15.5，英文和数字约 8.6
 function textWidth(s) { return Math.ceil([...s].reduce((sum, c) => sum + (c.charCodeAt(0) < 0x2000 ? 8.6 : 15.5), 0)) + 4; }
 
-// ---------- 迷雾地图的绘制 ----------
+// ---------- 2D 迷雾地图的绘制 ----------
 // 结构和样式沿用拨云的 Boyun.map（boyun.css 的 .by-map），雾用 Boyun.fog。没直接调 Boyun.map，因为这里要的它给不了，
 // 而拨云文件要保持原样，方便以后整份同步：
 //   1. 本周还没学的概念都要隔着薄雾看得见名字；Boyun.map 只让和已学相连的点露出名字

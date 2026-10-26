@@ -59,13 +59,14 @@
 - 本地服务器 `node tools/serve.mjs`，只对外提供 `site/`。学习者双击 `start.cmd`（Windows）或运行 `./start.sh`（macOS、Linux）启动并打开 http://localhost:4321/。你要用服务器时运行 `node tools/serve.mjs --detach`：已经在运行就直接返回，没有就在后台启动（独立进程，不受 Claude Code 后台任务的时长限制），输出地址；不要用 `run_in_background` 启动它，也不用 curl 检查。`qa.mjs` 发现服务器没开也会这样启动它。服务器一直运行，学习者想停时运行 `node tools/serve.mjs --stop`，或者关掉 start.cmd 打开的窗口。端口是 `.env` 里的 PORT，默认 4321：命令和说明里写的 4321 都换成它（用 `grep ^PORT= .env` 查，不要读整个 `.env`，里面有 key）。
 - 打开网页：Windows 用 `cmd //c start "" "<url>"`（PowerShell 里 `Start-Process <url>`），macOS 用 `open <url>`，Linux 用 `xdg-open <url>`。
 - hub 的课程清单 `site/manifest.json`：只放已开放的周。
-- hub 的迷雾地图 `site/map.json`：每节课的概念节点（短标签、区域、连线），和 manifest 一样只放已开放的周，由 `/build-week` 第 4 步合进去。hub 用拨云（Boyun）设计系统（`site/assets/boyun/`）。
+- hub 的迷雾地图 `site/map.json`：每节课的概念节点（短标签、区域、连线、难度 `difficulty`、所属地点 `place`），加上地点表 `places`（地标的 `kind`、可选的 `lore`），和 manifest 一样只放已开放的周，由 `/build-week` 第 4 步合进去，合完跑 `node tools/map-check.mjs <topic>`（只打计数和出错的 id）；字段和规则见风格指南第 10 节。
+- hub 的地图（`site/index.html`）：拨云（Boyun）设计系统的 3D 地图组件（`site/assets/boyun/map3d/`），页面里的适配层把 manifest、`map.json` 和打卡记录拼成它的输入；`map.json` 没有地点数据、浏览器没有 WebGL 2、显卡出错时退回 2D 雾图。笔墨（中式 / 现代 / 动画）× 晨暮，选过的记在 `lh:hub:theme`，没选过默认动画、5:00–17:00 晨。`site/assets/boyun/` 整份是拨云的导出文件，不在这里改。调试参数只在 `?dev=1` 时生效：`done=all|none|w01d1,…`、`today=YYYY-MM-DD`、`theme=<主题>`、`map=2d`（直接看 2D）、`gl=0`、`ctxlost=<毫秒>`（试退路）。
 - 视觉主题：`site/assets/themes/`（quest 工程/编程、ink 文科、anatomy 数学/金融/理论；规范见其中的 README.md），每门课在 manifest 的 `topics.<topic>.theme` 指定。样例页在 http://localhost:4321/lab/themes/。
-- 工具：`tools/tts.mjs`（配音；`.env` 里没有 TTS key 或没装 ffmpeg 时自动改成字幕版，播放时由浏览器朗读）、`tools/qa.mjs`（课程 QA + 截图，用本机的 Chrome 或 Edge）、`tools/events.mjs`（学习事件汇总）、`tools/now.mjs`（学习者时区的现在时间）、`tools/render-video.mjs`（配音动画导出 mp4，需要 ffmpeg；`--portrait` 导出 9:16 竖屏，场景要按 `ctx.portrait` 重新排版）。
+- 工具：`tools/tts.mjs`（配音；`.env` 里没有 TTS key 或没装 ffmpeg 时自动改成字幕版，播放时由浏览器朗读）、`tools/qa.mjs`（课程 QA + 截图，用本机的 Chrome 或 Edge）、`tools/qa-hub.mjs`（hub 的 3D 地图：截图、退路、自检；本机的 Chrome 或 Edge 开 GPU）、`tools/map-check.mjs`（检查地图数据）、`tools/events.mjs`（学习事件汇总）、`tools/now.mjs`（学习者时区的现在时间）、`tools/render-video.mjs`（配音动画导出 mp4，需要 ffmpeg；`--portrait` 导出 9:16 竖屏，场景要按 `ctx.portrait` 重新排版）。
 - 问老师：课程页的面板（`site/assets/lh-ask.js`）→ `POST /api/ask`（`tools/ask.mjs`）调用 `claude -p`，不带任何工具，用学习者自己的 Claude Code 登录额度；`.env` 里可用 `ASK_MODEL`、`ASK_EFFORT` 换模型和思考强度。面板里可以「发送，稍后看」；页面中途刷新或关掉，回答也照常记进学习记录。
 - 回看：课文里的回指（`<lh-recall ref>`）点开小窗，看之前学过的题、讲解、留言的快照（`site/assets/lh-recall.js`）；写法和快照格式见风格指南第 4 节「回指回看」。从小窗的「去原文」打开的旧课带 `?from=recall`：只读、不计时。
 - 风格指南 `platform/style-guide.md`；发音词表 `platform/pronunciation.md`；TTS 默认配置 `platform/tts.json`；生成记录 `platform/build-log.md`。
-- 浏览器自动化用 `tools/qa.mjs`（截图后用 Read 看）。
+- 浏览器自动化用 `tools/qa.mjs`（截图后用 Read 看）；hub 的 3D 地图用 `tools/qa-hub.mjs`。
 - 命令行：工作区默认是 acceptEdits，改文件不用学习者确认；命令只有白名单里的（`.claude/settings.json`：`node tools/…`、git、打开本地网页等）不用确认，别的每条都要学习者点同意。所以改文件用 Edit、Write，不写 sed、perl、python 一次性脚本；等 subagent 用完成通知，不用 `sleep` 轮询。
 
 ## git（可选）

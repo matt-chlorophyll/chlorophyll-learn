@@ -61,7 +61,7 @@ version.mjs 有输出（有新版本）：在最后加一句，转告新版本�
 
 > 任务 C：调整。主题 `<topic>`，第 N 周，从 d<明天> 开始。反馈摘要：<events.mjs 的要点，可以原样贴>。完成后列出需要重做的部分。
 
-planner 返回需要重做的部分后，按 `/build-week` 第 2–3 步只重做这些部分（同样经过 reviewer）。planner 说 `map` 改了，或者合并、裁剪了某天（manifest 跟着改了）：把 build.json 里本周的 `map` 按 `/build-week` 第 4 步重新合进 `site/map.json`，和 manifest 保持一致。完成后（工作区是 git 仓库时）commit：`git commit -m "adjust: <topic> wNN dN"`，有远端再 `git push`。**只调整明天及以后的课**，学习者正在学的今天这节不动。
+planner 返回需要重做的部分后，按 `/build-week` 第 2–3 步只重做这些部分（同样经过 reviewer）。planner 说 `map` 或 `places` 改了，或者合并、裁剪了某天（manifest 跟着改了）：把 build.json 里本周的 `map` 和 `places` 按 `/build-week` 第 4 步重新合进 `site/map.json`（本周整周替换，新地点追加到末尾，删掉没有概念的地点），和 manifest 保持一致，再跑 `node tools/map-check.mjs <topic>`，有错误让 planner 改。完成后（工作区是 git 仓库时）commit：`git commit -m "adjust: <topic> wNN dN"`，有远端再 `git push`。**只调整明天及以后的课**，学习者正在学的今天这节不动。
 
 ## 注意
 

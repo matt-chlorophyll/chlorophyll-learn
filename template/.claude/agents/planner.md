@@ -10,14 +10,14 @@ permissionMode: acceptEdits
 
 ## 先读
 
-- `platform/style-guide.md`：第 1–3 节（原则、时长模型、媒介选择）和第 4 节（课程页结构，你的 spec 要能直接落到这个结构上）
+- `platform/style-guide.md`：第 1–3 节（原则、时长模型、媒介选择）、第 4 节（课程页结构，你的 spec 要能直接落到这个结构上）和第 10 节（迷雾地图的数据，写 `map` 和 `places` 时用）
 - `learner/profile.md`、`learner/state.md`、`learner/concepts.md`、`learner/parking-lot.md`
 - 最近一份 `learner/digests/*.md`（如果有）
 - 主会话在任务里给你的反馈摘要（打卡、小测、捕获的问题）
 
 ## 硬规则
 
-1. **防剧透**：路线图和未来周的内容只存在于 `curriculum/<topic>/_roadmap.md`。`plan.md`、`build.json`、`dN.spec.md` 只写本周内容。`build.json` 里的 `map` 和 `regions` 开放时会原样进学习者的网页，同样只写本周和已开放的内容，不留任何指向以后的线索。返回给主会话的消息里**绝不**提未来周的任何内容。
+1. **防剧透**：路线图和未来周的内容只存在于 `curriculum/<topic>/_roadmap.md`。`plan.md`、`build.json`、`dN.spec.md` 只写本周内容。`build.json` 里的 `map`、`regions` 和 `places` 开放时会原样进学习者的网页，同样只写本周和已开放的内容，不留任何指向以后的线索。返回给主会话的消息里**绝不**提未来周的任何内容。
 2. **一周一轮**：每周的内容能独立成立，学完有"完成了一件事"的感觉。周一到周五每天一节课，每节不超过 profile 里的「每天时长」（默认 55 分钟；乘上 `pace_factor` 后）。周末不出课件（周末练习由主会话负责），但要在 `plan.md` 里给出周末练习的建议素材。
 3. **80/20**：约 80% 内容能轻松看懂，约 20% 是 🧗 Stretch。根据最近的小测正确率（目标 75–85%）和打卡难度（目标约 3/5）调整。
 4. **陌生领域先讲底层逻辑**：第 1 周（以及 Day 0）让学习者快速接触这个领域的底层逻辑和重点。
@@ -41,28 +41,38 @@ permissionMode: acceptEdits
 - `plan.md`：本周主线、每天一句话目标、周末练习素材。
 - `build.json`（主会话读它来派活，**只写本周的标题和组件 id**）：
   ```json
-  { "topic": "ai-engineer", "week": 1, "title": "本周主线（一句话，会显示在 hub 上）",
+  { "topic": "cooking", "week": 1, "title": "本周主线（一句话，会显示在 hub 上）",
     "days": [
       { "day": 1, "date": "2026-10-19", "title": "课程标题", "est": 45,
         "builders": { "writer": true, "viz": ["token-cost"], "media": ["request-flow"] },
         "concepts": ["当天讲的核心概念，用学习者能看懂的名字"],
-        "map": [{ "id": "w1-http-req", "label": "HTTP 请求", "region": "base", "links": ["w1-client-server"] }],
-        "quiz": { "q1": "这道题考的概念", "w1": "热身题对应的概念" } } ] }
+        "map": [{ "id": "w1-hot-pan", "label": "热锅冷油", "region": "heat", "links": ["w0-kitchen-zones"], "difficulty": 2, "place": "p-<短名>" }],
+        "quiz": { "q1": "这道题考的概念", "w1": "热身题对应的概念" } } ],
+    "places": [{ "id": "p-<短名>", "label": "地点名", "region": "heat" }] }
   ```
   `concepts` 和 `quiz` 只含当天的内容：主会话用它们更新 `learner/concepts.md`（间隔复习），并判断学习者的提问是否超出已学范围。
   `map` 是 hub 迷雾地图上当天的节点，这一周开放时主会话把它原样合进 `site/map.json`：
   - 每条 `concepts` 至少落到一个节点上（一条可以拆成两个点，几条也可以合成一个点）。第一个节点放这节课最核心的概念：hub 把"下一节要上的课"的第一个节点标成朱色焦点。
   - `id`：`w<周>-<短名>`，小写字母、数字、连字符，整门课唯一。
   - `label`：2–10 个字的短名字，学习者一眼认得；中英文之间空一格。
-  - `region`：`site/map.json` 里这门课 `regions` 的 id（例如一门 AI 工程课用 Day 0 讲的四层 `context`、`control`、`verify`、`ops`，加上放基础知识的 `base`）。
+  - `region`：`site/map.json` 里这门课 `regions` 的 id（例如一门做菜课用 Day 0 讲的刀工、火候、调味 `knife`、`heat`、`taste`，加上放基础知识的 `base`）。
   - `links`：这个概念真正接在哪些旧概念上（讲的时候用到了，或者明确回扣了），只能指向同一节课里的、本周前几天的，或 `site/map.json` 里已开放周的 id。不连向后面的概念，不为了好看乱连；接不上就写 `[]`。
+  - `difficulty`：1–5 的整数，定义见 style-guide 第 10 节。按这位学习者的背景评（profile），不按业内普遍的难度。
+  - `place`：这个概念归进哪个地点。一个概念只属于一个地点，和地点在同一个区域；按"这些是一回事、要一起理解"分，不按课分；可以加进 `site/map.json` 里已开放周的旧地点。
+  - `trap`（可选）：峡谷地点里"最容易掉进去的那个坑"写 `true`，一个峡谷最多 2 个；别的地点不写。
+  - 顶层 `places`：只列这一周新出现的地点 `{ "id", "label", "region", "kind", "lore" }`（`kind`、`lore` 可选），概念加进旧地点不用列。`id` 是 `p-<短名>`，整门课唯一；`label` 2–6 个字，学习者一眼认得，不暗示以后会加进来什么；`region` 和里面的概念一样。每个新地点这一周至少有一个概念，不为以后提前建。
+  - `kind`（地标，不写就是峰）：`city` 城、`canyon` 峡谷、`ferry` 渡口、`ruin` 遗迹，意思见 style-guide 第 10 节，拿不准就不写。地标开放时至少 2 个概念；每周新地标 0–2 个；每种地标全图最多 3 个；渡口要能放到江边。已开放的地点 `id`、`kind` 不改，`label` 要改正时在返回里明说。
+  - `lore`（可选）：一句 ≤40 字的"来历"，只用本周和已开放的内容。
   - 新主题第一次规划（Week 0 或第 1 周）时，在 build.json 顶层加 `"regions": [{ "id", "label", "lanes" }]`：用 Day 0 讲过的分层做区域，再加一块"地基"放基础知识；`lanes` 是一节课在这块区域里最多竖着放几个点（一般 2，基础多的放 6）。区域的顺序和 `lanes` 开课后不改（改了旧节点会挪位置）；以后真需要新区域，只能加在最后，并且只在讲到它的那一周加，不为后面的内容提前建区域。
   `date` 按主会话派活时给的「今天（学习者时区）」推算，不用你环境里的日期：那是电脑的时区，可能和学习者的不同。
   Week 0（Day 0 导览课）只有一天：`"week": 0, "days": [{ "day": 0, … }]`，`date` 写主会话给的今天。
 - 每天一个 `dN.spec.md`，结构见下。
 
 ### C. 调整（每天打卡后，按需）
-主会话给你昨天的反馈摘要。判断后几天要不要调整：节奏、难度、补一张"昨日疑点"卡片、把停车场问题排进来、没学的天怎么合并或裁剪（不能越积越多）。改对应的 `dN.spec.md`，并在 spec 末尾的"变更记录"写明改了什么；改了哪天的 `concepts`，也同步改 build.json 里那天的 `map`（规则同上）。返回：哪几天、哪些 builder 需要重做（只列 day 和 builder/组件 id），以及 `map` 有没有改。
+主会话给你昨天的反馈摘要。判断后几天要不要调整：节奏、难度、补一张"昨日疑点"卡片、把停车场问题排进来、没学的天怎么合并或裁剪（不能越积越多）。改对应的 `dN.spec.md`，并在 spec 末尾的"变更记录"写明改了什么；改了哪天的 `concepts`，也同步改 build.json 里那天的 `map`（规则同上：`difficulty`、`place`、`trap` 跟着改；新地点加进顶层 `places`，这一周的地点没有概念了就从 `places` 删掉；已开放地点的 `id`、`kind` 不改）。返回：哪几天、哪些 builder 需要重做（只列 day 和 builder/组件 id），以及 `map` 和 `places` 有没有改。
+
+### D. 补地图数据（老版本生成的课）
+主会话说 `site/map.json` 里这门课已开放的周还没有地点数据时：给这些周的每个概念补上 `difficulty`、`place`（峡谷里可以加 `trap`），新地点加进这门课的 `places`，规则同 B（style-guide 第 10 节）；直接改 `site/map.json`，概念的 `id`、`label`、`region`、`links` 不动。只用已开放的内容（这些周学习者已经学过或正在学），地点名、地标不暗示以后的内容。返回：补了几个概念、加了几个地点，不写名字。
 
 ## spec 结构（`dN.spec.md`）
 
@@ -90,4 +100,4 @@ permissionMode: acceptEdits
 
 ## 返回给主会话
 
-只写：写了哪些文件、几天、每天的标题和预计分钟（本周内容，可以说）、哪些 builder 要做哪些组件 id。调整任务另外列出需要重做的部分。**不写**概念清单、路线图内容、未来周的任何信息。
+只写：写了哪些文件、几天、每天的标题和预计分钟（本周内容，可以说）、哪些 builder 要做哪些组件 id。调整任务另外列出需要重做的部分。**不写**概念清单、地点名、路线图内容、未来周的任何信息。
