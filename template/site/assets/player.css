@@ -3,3 +3,5 @@
 [hidden] { display: none !important; }
 html:not(.lh-themed) body { visibility: hidden; animation: lh-reveal 0s 3s forwards; }
 @keyframes lh-reveal { to { visibility: visible; } }
+/* 竖屏（?portrait）：字幕放在底部 22% 以上，避开手机 App 底部的文案和按钮 */
+.lh-player.portrait .lh-cc { bottom: 22% !important; }

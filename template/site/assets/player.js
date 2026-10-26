@@ -23,6 +23,8 @@
 //   用一个和 <audio> 接口相同的时钟（SilentClock）驱动画面，字幕始终打开。
 //   默认用浏览器朗读字幕（Narrator，Web Speech API），时钟跟着读到哪句走；播放器里可以关，选择记在浏览器里。
 // - QA 钩子：window.__LH.seekBeat('terms', 0.5) 后截图，即可检查任意时刻的画面。
+// - 竖屏（9:16，发手机上的平台用）：URL 加 ?portrait，舞台变成 720×1280（ctx.portrait 为 true，ctx.width/height 跟着变），
+//   场景要自己按竖屏重新排版；字幕抬到底部 22% 以上，避开 App 底部的文案区。导出见 tools/render-video.mjs --portrait。
 
 import { log } from './lh-log.js';
 import { applyTheme } from './lh-theme.js';
@@ -286,7 +288,7 @@ function loadVoices() {
   });
 }
 
-function makeCtx(timeline) {
+function makeCtx(timeline, portrait = false) {
   const beats = timeline.beats;
   const byId = new Map(beats.map((b, i) => [b.id, { ...b, index: i, next: beats[i + 1]?.start ?? timeline.duration }]));
   const beat = id => {
@@ -295,8 +297,9 @@ function makeCtx(timeline) {
     return b;
   };
   return {
-    width: 1280,
-    height: 720,
+    width: portrait ? 720 : 1280,
+    height: portrait ? 1280 : 720,
+    portrait,
     timeline,
     duration: timeline.duration,
     beats,
@@ -344,6 +347,7 @@ export async function mountScene(scene, opts = {}) {
   const params = new URLSearchParams(location.search);
   const base = new URL(params.get('media') || opts.media || './', location.href);
   const mediaId = base.pathname.replace(/\/$/, '').split('/').slice(-2).join('/');
+  const portrait = params.has('portrait') || !!opts.portrait;
 
   // ---- DOM ----
   const stage = document.getElementById('stage') || el('div');
@@ -351,6 +355,11 @@ export async function mountScene(scene, opts = {}) {
   const root = el('div', 'lh-player');
   root.tabIndex = 0;
   const frame = el('div', 'lh-frame');
+  if (portrait) {
+    root.classList.add('portrait');
+    frame.style.width = 'min(100vw, calc(100vh * 9 / 16))';
+    frame.style.aspectRatio = '9 / 16';
+  }
   const cc = el('div', 'lh-cc');
   const ccText = el('span');
   cc.append(ccText);
@@ -403,7 +412,7 @@ export async function mountScene(scene, opts = {}) {
     showError(`时间轴加载失败：${new URL('timeline.json', base).pathname}（${e.message}）`);
     return;
   }
-  const ctx = makeCtx(timeline);
+  const ctx = makeCtx(timeline, portrait);
   const duration = timeline.duration;
   const silent = timeline.provider === 'silent';
   let audio;
@@ -427,7 +436,7 @@ export async function mountScene(scene, opts = {}) {
   // ---- 尺寸 ----
   const onResize = () => {
     const w = frame.clientWidth, h = frame.clientHeight;
-    frame.style.setProperty('--u', `${w / 1280}px`);
+    frame.style.setProperty('--u', `${w / ctx.width}px`);
     try { scene.resize?.({ width: w, height: h }); } catch (e) { showError(`resize 出错：${e.message}`); }
   };
 
@@ -626,6 +635,7 @@ export async function mountScene(scene, opts = {}) {
     ready: true,
     duration,
     silent,
+    portrait,
     beats: timeline.beats.map(b => b.id),
     errors,
     seek: t => (setTime(t), t),
