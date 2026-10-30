@@ -22,6 +22,12 @@ function here(page) {
   return m ? { base: m[1], w: Number(m[2]), d: Number(m[3]) } : { base: '/', w: null, d: null }; // lab 样例页等：不检查先后
 }
 
+// 快照里嵌套的回指（被引用的原文自己也引用了更早的课）：小窗里点不开，显示成普通文字
+function flat(root) {
+  for (const x of root.querySelectorAll('lh-recall')) x.replaceWith(...x.childNodes);
+  return root;
+}
+
 export function parseRef(ref) {
   const m = String(ref || '').trim().match(REF);
   return m && { w: Number(m[1]), d: Number(m[2]), anchor: m[3], path: `w${m[1]}/d${m[2]}/` };
@@ -127,7 +133,7 @@ export function createRecall({ h, main, page, log, warn, paused, onOpen }) {
       result.append(h('p', { class: 'lh-recall-was' }, wasLine(was, reveal, answer)));
       if (was?.note) result.append(h('blockquote', {}, `你当时写的：${was.note}`));
       if (why) {
-        const w = why.cloneNode(true);
+        const w = flat(why.cloneNode(true));
         w.className = 'lh-recall-why';
         w.removeAttribute('hidden');
         result.append(w);
@@ -197,6 +203,7 @@ export function createRecall({ h, main, page, log, warn, paused, onOpen }) {
       h('div', { class: 'lh-recall-body' }, body),
       h('div', { class: 'lh-recall-f' },
         h('a', { class: 'lh-recall-go', href: hrefOf(r), target: '_blank', rel: 'noopener' }, '去原文 ↗')));
+    flat(pop);
     document.body.append(pop);
     cur = { el, pop };
     el.setAttribute('aria-expanded', 'true');
@@ -219,23 +226,42 @@ export function createRecall({ h, main, page, log, warn, paused, onOpen }) {
 
   // 小窗放在回指的下方，放不下就放上方，再放不下就在屏幕内尽量靠下（会盖住回指）；
   // 上面不压顶部条，下面留出捕获按钮，左右不出屏；跟着页面滚动
+  // 代码块、表格比小窗宽（常见于行末注释）时，小窗放宽到放得下为止，最多 760px；
+  // 还放不下（窄屏）就在框里横向滚动，右边缘的阴影提示右边还有
   function place(pop, el) {
     const vw = document.documentElement.clientWidth, vh = innerHeight;
     const r = el.getClientRects()[0] || el.getBoundingClientRect();
     const top = Math.max(0, document.querySelector('.lh-top')?.getBoundingClientRect().bottom ?? 0) + 12;
     const bottom = vh - 84;
-    const w = Math.min(540, vw - 24);
+    const cap = Math.min(760, vw - 24);
+    const boxes = [...pop.querySelectorAll('pre, .lh-recall-scroll')];   // 代码框、表格的滚动框
+    let w = Math.min(540, cap);
+    const fit = () => {
+      const over = Math.max(0, ...boxes.map(p => p.scrollWidth - p.clientWidth));
+      if (over > 0 && w < cap) { w = Math.min(w + over + 2, cap); pop.style.width = `${w}px`; }
+    };
     pop.style.width = `${w}px`;
     pop.style.maxHeight = '';
+    fit();
     const avail = Math.max(220, bottom - top);
-    const ph = Math.min(pop.scrollHeight, avail);
     pop.style.maxHeight = `${avail}px`;
+    fit(); // 高度封顶后出现竖向滚动条，框又窄了一截
+    for (const p of boxes) scrollHint(p);
+    const ph = Math.min(pop.scrollHeight, avail);
     const left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, vw - w - 12));
     const y = r.bottom + 10 + ph <= bottom ? r.bottom + 10
       : r.top - 10 - ph >= top ? r.top - 10 - ph
       : Math.max(top, bottom - ph);
     pop.style.left = `${scrollX + left}px`;
     pop.style.top = `${scrollY + y}px`;
+  }
+
+  // 代码框、表格右边还有没露出来的内容时加 .lh-more（右边缘的阴影），滚到头就去掉
+  const hinted = new WeakSet();
+  function scrollHint(p) {
+    const upd = () => p.classList.toggle('lh-more', p.scrollLeft + p.clientWidth < p.scrollWidth - 1);
+    if (!hinted.has(p)) { hinted.add(p); p.addEventListener('scroll', upd, { passive: true }); }
+    upd();
   }
 
   // 点外面关掉（焦点回到回指处）；点到别的按钮（暂停、犯困了……）时也是先关小窗，那个按钮照常响应

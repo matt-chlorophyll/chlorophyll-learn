@@ -49,6 +49,10 @@ lh-recall:focus-visible { outline: 2px solid var(--pen); outline-offset: 2px; }
   font: 12.5px/1.6 var(--mono); white-space: pre; tab-size: 2;
 }
 .lh-recall-body pre code { background: none; padding: 0; font: inherit; }
+/* 代码框、表格右边还有内容（lh-recall.js 加 .lh-more）：右边缘一道阴影，提示可以横向滚动 */
+.lh-recall-body pre.lh-more, .lh-recall-scroll.lh-more { box-shadow: inset -26px 0 18px -16px color-mix(in srgb, var(--ink) 45%, transparent); }
+/* 快照最外层是列表项（回指指向列表里的一条）：按普通段落显示，不留孤立的列表圆点 */
+.lh-recall-copy > li { display: block; margin: 0 0 .6em; }
 .lh-recall-body mark { background: color-mix(in srgb, var(--marker) 70%, transparent); color: inherit; padding: 0 .1em; }
 .lh-recall-scroll { overflow-x: auto; margin: .4em 0 .8em; }
 .lh-recall-body table { border-collapse: collapse; font-size: 13px; line-height: 1.55; min-width: 100%; }
@@ -57,6 +61,9 @@ lh-recall:focus-visible { outline: 2px solid var(--pen); outline-offset: 2px; }
 .lh-recall-quote blockquote, .lh-recall-result blockquote {
   margin: 0 0 .7em; padding: 6px 12px; border-left: 3px solid var(--pen); background: var(--paper-2); border-radius: 0 4px 4px 0;
 }
+/* 留言和当时写的想法常贴着多行代码：换行和缩进照原样显示，太长的照常折行。
+ * 只管最外层（学习者写的那段），解析里引用的原文（带缩进的 HTML）不受影响 */
+.lh-recall-quote > blockquote, .lh-recall-result > blockquote { white-space: pre-wrap; overflow-wrap: anywhere; }
 .lh-recall-meta, .lh-recall-hint { margin: 0 0 .5em; color: var(--pencil); font-size: 13px; }
 .lh-recall-note { color: var(--ink); }
 
