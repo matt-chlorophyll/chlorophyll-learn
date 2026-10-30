@@ -1,0 +1,22 @@
+/* lh-lines.css — 代码片段的文件名和原文件行号（lh-lines.js），所有主题共用，只用主题 token（见 themes/README.md）。
+ * 正文和回看小窗里的代码块都用；主题想换外观，可以在自己的 lesson.css 里覆盖这些类。 */
+
+/* 文件名：代码块顶上一行小字，横向滚动时留在左边 */
+pre > .lh-src {
+  display: block; position: sticky; left: 0; width: max-content; margin: -2px 0 6px;
+  font: 600 12px/1.6 var(--sans); letter-spacing: .02em; color: var(--pencil); white-space: nowrap;
+}
+
+/* 有行号：行号栏一列、代码一列。行号栏也是 <code>，字号、行高跟着主题的 pre code，和代码逐行对齐 */
+pre.lh-numbered { display: grid; grid-template-columns: auto max-content; align-items: start; }
+pre.lh-numbered > .lh-src { grid-column: 1 / -1; }
+pre.lh-numbered > code.lh-ln {
+  position: sticky; left: 0; z-index: 1; align-self: stretch; /* 最后一行没有行号时也拉满高度 */
+  margin: 0; padding: 0 .7em 0 0; border: 0; border-right: 1px solid var(--rule); border-radius: 0;
+  background: inherit; color: var(--pencil); text-align: right; white-space: pre;
+  font-variant-numeric: tabular-nums; user-select: none; -webkit-user-select: none;
+}
+/* 横向滚动时，滚走的代码不从行号栏左边（代码框的内边距）露出来：往左补一块同色的底，超出代码框的部分被裁掉 */
+pre.lh-numbered > code.lh-ln::before { content: ""; position: absolute; top: 0; bottom: 0; right: 100%; width: 32px; background: inherit; }
+/* 和行号栏的间隔放在代码自己身上（跟着滚动），不用行号栏的外边距（透明，代码会从那里露出来） */
+pre.lh-numbered > code:not(.lh-ln) { padding-left: .9em; }
