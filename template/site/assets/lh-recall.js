@@ -12,6 +12,8 @@
 // 「去原文」在新标签页打开旧课（?from=recall#锚点）：那一页只读、不计时（lesson.js 的 READONLY），并停在锚点上（land）。
 // 每次点开记一条 recall_open（ref、kind、所在段）。
 
+import { numberAll } from './lh-lines.js';
+
 const REF = /^w(\d{2})\/d(\d+)#([\w-]+)(?:~\d+)?$/;
 const KIND_LABEL = { quiz: '题目', text: '讲解', note: '你的留言', media: '配音动画', viz: '交互组件' };
 const SELF = { got: '想对了', partial: '想到一部分', missed: '没想到' };
@@ -134,6 +136,7 @@ export function createRecall({ h, main, page, log, warn, paused, onOpen }) {
       if (was?.note) result.append(h('blockquote', {}, `你当时写的：${was.note}`));
       if (why) {
         const w = flat(why.cloneNode(true));
+        numberAll(w);
         w.className = 'lh-recall-why';
         w.removeAttribute('hidden');
         result.append(w);
@@ -204,6 +207,7 @@ export function createRecall({ h, main, page, log, warn, paused, onOpen }) {
       h('div', { class: 'lh-recall-f' },
         h('a', { class: 'lh-recall-go', href: hrefOf(r), target: '_blank', rel: 'noopener' }, '去原文 ↗')));
     flat(pop);
+    numberAll(pop); // 代码块的文件名和行号（lh-lines.js）
     document.body.append(pop);
     cur = { el, pop };
     el.setAttribute('aria-expanded', 'true');

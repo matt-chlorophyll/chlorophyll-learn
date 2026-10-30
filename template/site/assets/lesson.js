@@ -9,6 +9,7 @@
 // - 暂停：虚化层 .lh-pause 盖住整页，计时停下、配音动画暂停，只有「继续学习」能点；刷新后不保留
 // - 犯困了：提示框 .lh-sleepy 列出马上能做的几件事，可以从这里直接暂停；每次点开记一条 lesson_sleepy
 // - 回指回看（lh-recall.js）：正文里的 <lh-recall> 点开小窗，看之前学过的题、讲解、留言的快照
+// - 摘自仓库文件的代码片段（<pre data-src data-lines>）：标出文件名，左边显示原文件的行号（lh-lines.js）
 // - 从回看的「去原文」打开（?from=recall）时只读：不计时，不记进度、作答和打卡，停在锚点上
 // - QA 钩子 window.__LESSON：{ ready, theme, slots, errors, sections, quizzes, guesses, recalls, est }
 //
@@ -18,6 +19,7 @@ import { log as send, QA_MODE } from './lh-log.js';
 import { resolveTheme, themeUrl, loadCss, reveal } from './lh-theme.js';
 import { createAsk } from './lh-ask.js';
 import { createRecall, land } from './lh-recall.js';
+import { numberAll } from './lh-lines.js';
 
 const main = document.querySelector('main.lesson');
 const PAGE = location.pathname;
@@ -95,6 +97,7 @@ const [mod] = await Promise.all([
   import(themeUrl(THEME, 'theme.js')).catch(e => { QA.errors.push(`主题 ${THEME} 的 theme.js 加载失败：${e.message}`); return {}; }),
   loadCss(themeUrl(THEME, 'lesson.css')),
   loadCss('/assets/lh-recall.css'), // 排在主题样式前面：主题可以覆盖
+  loadCss('/assets/lh-lines.css'),
 ]);
 const T = { ...DEFAULTS, ...(mod.options || {}), labels: { ...DEFAULTS.labels, ...(mod.options?.labels || {}) } };
 if (QA_MODE) document.documentElement.classList.add('lh-still'); // QA 截图：一次性的动效直接画到终点
@@ -721,9 +724,15 @@ addEventListener('keydown', e => {
 
 // ---------- 杂项 ----------
 
+// 摘自仓库文件的代码片段：文件名 + 原文件行号。QA 时快照里的代码块也查一遍（小窗打开时 lh-recall.js 再加）
+for (const [pre, e] of numberAll(main)) QA.errors.push(`代码块${pre.id ? ` #${pre.id}` : ''}：${e}`);
+for (const t of QA_MODE ? document.querySelectorAll('template[data-recall]') : []) {
+  for (const [, e] of numberAll(t.content.cloneNode(true))) QA.errors.push(`快照 ${t.dataset.recall} 的代码块：${e}`);
+}
+
 for (const pre of main.querySelectorAll('pre')) {
   pre.append(h('button', { type: 'button', class: 'lh-copy', onclick: async ev => {
-    const code = pre.querySelector('code')?.innerText ?? pre.innerText;
+    const code = pre.querySelector('code:not(.lh-ln)')?.innerText ?? pre.innerText;
     try { await navigator.clipboard.writeText(code); ev.target.textContent = '已复制'; } catch { ev.target.textContent = '复制失败'; }
     setTimeout(() => { ev.target.textContent = '复制'; }, 1500);
   } }, '复制'));
